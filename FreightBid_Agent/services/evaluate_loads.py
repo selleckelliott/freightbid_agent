@@ -1,5 +1,6 @@
 from domain.models.load import Load
 from domain.models.truck_state import TruckState
+from domain.models.load_evaluation import LoadEvaluation
 
 class EvaluateLoadsService:
 
@@ -12,12 +13,20 @@ class EvaluateLoadsService:
                 load.origin_latitude, load.origin_longitude
             )
             total_miles = deadhead_miles + load.miles
-            driver_hours = total_miles / truck_state.speed
+            speed = truck_state.speed if truck_state.speed > 0 else 1  # Avoid division by zero
+            driver_hours = total_miles / speed
             expected_revenue = load.rate * load.miles
 
-            evaluated_loads.append((load, deadhead_miles, total_miles, driver_hours, expected_revenue))
+            evaluation = LoadEvaluation(
+                load=load,
+                deadhead_miles=deadhead_miles,
+                total_miles=total_miles,
+                driver_hours=driver_hours,
+                expected_revenue=expected_revenue
+            )
 
-        evaluated_loads.sort(key=lambda x: x[1], reverse=True)
+            evaluated_loads.append(evaluation)
+
         return evaluated_loads
     
     def calculate_distance(self, lat1, lon1, lat2, lon2):

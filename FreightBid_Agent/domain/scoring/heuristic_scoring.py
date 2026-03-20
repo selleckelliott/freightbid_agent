@@ -1,4 +1,5 @@
 from domain.models.truck_state import TruckState
+from domain.policies.scoring_weights import ScoringWeights
 from domain.scoring.scoring_strategy import ScoringStrategy
 from domain.models.load_evaluation import LoadEvaluation
 
@@ -19,7 +20,7 @@ def calculate_profit(load: LoadEvaluation, cost_model) -> float:
 
 class HeuristicScoringStrategy(ScoringStrategy):
 
-    def __init__(self, scoring_weights, cost_model):
+    def __init__(self, scoring_weights: ScoringWeights, cost_model):
         self.scoring_weights = scoring_weights
         self.cost_model = cost_model
 
