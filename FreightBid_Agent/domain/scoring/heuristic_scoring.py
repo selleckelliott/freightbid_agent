@@ -1,6 +1,8 @@
+from domain.models.truck_state import TruckState
 from domain.scoring.scoring_strategy import ScoringStrategy
+from domain.models.load_evaluation import LoadEvaluation
 
-def calculate_profit(load, cost_model) -> float:
+def calculate_profit(load: LoadEvaluation, cost_model) -> float:
     load_cost = (
         load.load_miles * cost_model.fuel_cost_per_mile +
         load.load_miles * cost_model.maintenance_cost_per_mile +
@@ -21,7 +23,7 @@ class HeuristicScoringStrategy(ScoringStrategy):
         self.scoring_weights = scoring_weights
         self.cost_model = cost_model
 
-    def score_load(self, load, truck_state) -> float:
+    def score_load(self, load: LoadEvaluation, truck_state: TruckState) -> float:
         profit = calculate_profit(load, self.cost_model)
 
         score = (

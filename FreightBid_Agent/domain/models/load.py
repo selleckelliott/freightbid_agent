@@ -12,8 +12,14 @@ class Load:
     origin_city: str
     origin_state: str
 
+    origin_latitude: float
+    origin_longitude: float
+
     destination_city: str
     destination_state: str
+
+    destination_latitude: float
+    destination_longitude: float
 
     pickup_time: datetime
     delivery_time: datetime
