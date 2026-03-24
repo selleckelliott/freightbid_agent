@@ -1,6 +1,8 @@
 from domain.models.load import Load
 from domain.models.truck_state import TruckState
 from domain.models.load_evaluation import LoadEvaluation
+from domain.policies.constraints import CostModel
+from domain.models.load_evaluation import LoadEvaluation
 
 class EvaluateLoadsService:
 
@@ -42,3 +44,18 @@ class EvaluateLoadsService:
         c = 2 * asin(sqrt(a))
         r = 3956  # Radius of Earth in miles
         return c * r
+    
+    def calculate_profit(self, load: LoadEvaluation, cost_model: CostModel) -> float:
+        load_cost = (
+            load.total_miles * cost_model.fuel_cost_per_mile +
+            load.total_miles * cost_model.maintenance_cost_per_mile +
+            load.driver_hours * cost_model.driver_cost_per_hour
+        )
+        deadhead_cost = (
+            load.deadhead_miles * cost_model.fuel_cost_per_mile +
+            load.deadhead_miles * cost_model.maintenance_cost_per_mile +
+            load.driver_hours * cost_model.driver_cost_per_hour
+        )
+        total_cost = load_cost + deadhead_cost
+        profit = load.expected_revenue - total_cost
+        return profit
