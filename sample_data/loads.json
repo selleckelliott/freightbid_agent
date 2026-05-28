@@ -1,0 +1,64 @@
+{
+  "loads": [
+    {
+      "load_id": 1,
+      "weight": 22000,
+      "created_at": "2026-05-27T08:00:00Z",
+      "origin_city": "Dallas", "origin_state": "TX",
+      "origin_latitude": 32.7767, "origin_longitude": -96.7970,
+      "destination_city": "Houston", "destination_state": "TX",
+      "destination_latitude": 29.7604, "destination_longitude": -95.3698,
+      "pickup_window_start": "2026-05-27T18:00:00Z",
+      "pickup_window_end":   "2026-05-27T22:00:00Z",
+      "delivery_window_start": "2026-05-28T03:00:00Z",
+      "delivery_window_end":   "2026-05-28T12:00:00Z",
+      "miles": 240, "total_rate": 850,
+      "equipment_type": "Dry Van"
+    },
+    {
+      "load_id": 2,
+      "weight": 18000,
+      "created_at": "2026-05-27T08:00:00Z",
+      "origin_city": "Houston", "origin_state": "TX",
+      "origin_latitude": 29.7604, "origin_longitude": -95.3698,
+      "destination_city": "New Orleans", "destination_state": "LA",
+      "destination_latitude": 29.9511, "destination_longitude": -90.0715,
+      "pickup_window_start": "2026-05-28T06:00:00Z",
+      "pickup_window_end":   "2026-05-28T18:00:00Z",
+      "delivery_window_start": "2026-05-28T15:00:00Z",
+      "delivery_window_end":   "2026-05-29T08:00:00Z",
+      "miles": 350, "total_rate": 1400,
+      "equipment_type": "Dry Van"
+    },
+    {
+      "load_id": 3,
+      "weight": 30000,
+      "created_at": "2026-05-27T08:00:00Z",
+      "origin_city": "Dallas", "origin_state": "TX",
+      "origin_latitude": 32.7767, "origin_longitude": -96.7970,
+      "destination_city": "Oklahoma City", "destination_state": "OK",
+      "destination_latitude": 35.4676, "destination_longitude": -97.5164,
+      "pickup_window_start": "2026-05-27T20:00:00Z",
+      "pickup_window_end":   "2026-05-28T02:00:00Z",
+      "delivery_window_start": "2026-05-28T04:00:00Z",
+      "delivery_window_end":   "2026-05-28T14:00:00Z",
+      "miles": 210, "total_rate": 720,
+      "equipment_type": "Dry Van"
+    },
+    {
+      "load_id": 4,
+      "weight": 25000,
+      "created_at": "2026-05-27T08:00:00Z",
+      "origin_city": "Fort Worth", "origin_state": "TX",
+      "origin_latitude": 32.7555, "origin_longitude": -97.3308,
+      "destination_city": "Memphis", "destination_state": "TN",
+      "destination_latitude": 35.1495, "destination_longitude": -90.0490,
+      "pickup_window_start": "2026-05-27T16:00:00Z",
+      "pickup_window_end":   "2026-05-27T23:00:00Z",
+      "delivery_window_start": "2026-05-28T12:00:00Z",
+      "delivery_window_end":   "2026-05-29T06:00:00Z",
+      "miles": 460, "total_rate": 1650,
+      "equipment_type": "Reefer"
+    }
+  ]
+}

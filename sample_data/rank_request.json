@@ -1,0 +1,17 @@
+{
+  "truck": {
+    "truck_id": 101,
+    "current_city": "Dallas", "current_state": "TX",
+    "latitude": 32.7767, "longitude": -96.7970,
+    "available_at": "2026-05-27T16:00:00Z",
+    "trailer_type": "Dry Van",
+    "max_load_capacity": 45000,
+    "current_load_id": null,
+    "home_city": "Dallas", "home_state": "TX",
+    "remaining_capacity": 45000,
+    "driver_hours_left": 11,
+    "speed": 0, "heading": 0,
+    "timestamp": "2026-05-27T16:00:00Z"
+  },
+  "top_n": 10
+}

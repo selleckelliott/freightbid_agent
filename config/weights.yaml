@@ -1,0 +1,11 @@
+scoring:
+  profit_weight: 1.0
+  rate_per_mile_weight: 50.0
+  deadhead_miles_penalty: 0.5
+  driver_hours_penalty: 5.0
+
+bid_policy:
+  target_margin: 0.20
+  min_margin: 0.05
+  max_margin: 0.35
+  acceptance_curve_steepness: 6.0

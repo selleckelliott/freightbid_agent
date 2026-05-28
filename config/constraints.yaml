@@ -1,0 +1,21 @@
+average_speed_mph: 50.0
+
+planning:
+  max_deadhead_miles: 250
+  max_load_miles: 1500
+  max_total_miles: 1800
+  max_deadhead_cost: 500
+  max_load_cost: 5000
+  max_total_cost: 6000
+  min_expected_profit: 50
+  max_driver_hours: 22
+  planning_time_limit_seconds: 30
+  planning_horizon_hours: 48.0
+  average_load_unload_hours: 1.5
+
+bidding:
+  min_bid_amount: 100
+  max_bid_amount: 25000
+  min_rate_per_mile: 1.00
+  max_rate_per_mile: 6.00
+  bidding_time_limit_seconds: 10
