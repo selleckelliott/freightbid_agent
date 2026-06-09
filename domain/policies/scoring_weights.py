@@ -14,4 +14,3 @@ class BidPolicy:
     target_margin: float = 0.20
     min_margin: float = 0.05
     max_margin: float = 0.35
-    acceptance_curve_steepness: float = 6.0

@@ -2,6 +2,5 @@ cost_model:
   fuel_cost_per_mile: 0.55
   driver_cost_per_hour: 28.00
   maintenance_cost_per_mile: 0.18
-  toll_cost_per_mile: 0.05
   time_opportunity_cost_per_hour: 5.00
   deadhead_fuel_multiplier: 1.0

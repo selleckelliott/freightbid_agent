@@ -50,10 +50,6 @@ class RecommendLoadsService:
             )
             if evaluation.delivery_eta and evaluation.delivery_eta > horizon_end:
                 is_feasible, reason = False, "Delivery ETA beyond planning horizon"
-            if evaluation.pickup_eta and evaluation.pickup_eta > evaluation.load.pickup_window_end:
-                is_feasible, reason = False, "Cannot reach pickup before window closes"
-            if evaluation.delivery_eta and evaluation.delivery_eta > evaluation.load.delivery_window_end:
-                is_feasible, reason = False, "Cannot deliver before delivery window closes"
 
             if not is_feasible:
                 logger.info(

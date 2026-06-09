@@ -64,10 +64,6 @@ class PlanBuilderService:
                 )
                 if not feasible:
                     continue
-                if evaluation.pickup_eta > load.pickup_window_end:
-                    continue
-                if evaluation.delivery_eta > load.delivery_window_end:
-                    continue
                 if evaluation.delivery_eta > horizon_end:
                     continue
 

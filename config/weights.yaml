@@ -8,4 +8,3 @@ bid_policy:
   target_margin: 0.20
   min_margin: 0.05
   max_margin: 0.35
-  acceptance_curve_steepness: 6.0

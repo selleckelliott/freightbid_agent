@@ -26,7 +26,6 @@ class CostModel:
     fuel_cost_per_mile: float
     driver_cost_per_hour: float
     maintenance_cost_per_mile: float
-    toll_cost_per_mile: float = 0.0
     time_opportunity_cost_per_hour: float = 0.0
     deadhead_fuel_multiplier: float = 1.0
 
