@@ -9,6 +9,7 @@ from adapters.outbound.tolls.flat_rate import FlatRateTollEstimator
 from application.bid_recommender import BidRecommenderService
 from application.config_loader import AppConfig, load_config
 from application.evaluate_loads import EvaluateLoadsService
+from application.ortools_planner import ORToolsPlanner
 from application.plan_builder import PlanBuilderService
 from application.recommend_loads import RecommendLoadsService
 from domain.scoring.heuristic_scoring import HeuristicScoringStrategy
@@ -29,6 +30,7 @@ class Container:
     scoring: HeuristicScoringStrategy
     recommender: RecommendLoadsService
     planner: PlanBuilderService
+    ortools_planner: ORToolsPlanner
     bid_recommender: BidRecommenderService
 
 
@@ -56,6 +58,13 @@ def build_container(
     scoring = HeuristicScoringStrategy(config.scoring_weights, config.cost_model)
     recommender = RecommendLoadsService(scoring, config.planning_constraints, evaluator)
     planner = PlanBuilderService(scoring, config.planning_constraints, evaluator)
+    ortools_planner = ORToolsPlanner(
+        distance_provider=distance,
+        evaluate_loads_service=evaluator,
+        constraints=config.planning_constraints,
+        average_speed_mph=config.average_speed_mph,
+        load_unload_hours=config.planning_constraints.average_load_unload_hours,
+    )
     bid_recommender = BidRecommenderService(
         config.bid_policy, config.bidding_constraints
     )
@@ -69,5 +78,6 @@ def build_container(
         scoring=scoring,
         recommender=recommender,
         planner=planner,
+        ortools_planner=ortools_planner,
         bid_recommender=bid_recommender,
     )

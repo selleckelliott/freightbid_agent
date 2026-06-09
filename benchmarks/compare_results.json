@@ -1,0 +1,26 @@
+{
+  "scenarios": 1000,
+  "ortools_time_limit_s": 0.2,
+  "heuristic": {
+    "scenarios": 1000,
+    "feasible_rate": 0.881,
+    "avg_profit": 396.38034345150345,
+    "total_profit": 396380.34345150343,
+    "avg_deadhead_miles": 11.287646437767325,
+    "avg_loads_selected": 0.907,
+    "total_loads_selected": 907,
+    "avg_runtime_ms": 0.17577700002220809,
+    "median_runtime_ms": 0.16759999925852753
+  },
+  "ortools": {
+    "scenarios": 1000,
+    "feasible_rate": 0.824,
+    "avg_profit": 240.1368764564821,
+    "total_profit": 240136.8764564821,
+    "avg_deadhead_miles": 8.930239239940937,
+    "avg_loads_selected": 0.875,
+    "total_loads_selected": 875,
+    "avg_runtime_ms": 199.34836120007094,
+    "median_runtime_ms": 201.69465000071796
+  }
+}
