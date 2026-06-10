@@ -1,6 +1,14 @@
-# FreightBid Agent — Phase 1
+# FreightBid Agent
 
-Deterministic **Dispatch Brain**: ranks loads and proposes a single-truck 48-hour plan with explanations.
+An AI-powered dispatch and bidding decision system that helps hotshot operators
+maximize profit and reduce deadhead through heuristic scoring, route
+optimization, benchmarking — and eventually machine learning and agent-based
+planning.
+
+**Phase 1** ships a deterministic **Dispatch Brain**: ranks loads and proposes a
+single-truck 48-hour plan with explanations. **Phase 2** adds OR-Tools
+constraint-programming planners and a three-way benchmark
+([results below](#phase-2--or-tools-route-optimization)).
 
 ## Architecture (Hexagonal / Ports & Adapters)
 
@@ -18,7 +26,8 @@ adapters/
   outbound/distance/  Haversine distance provider.
   outbound/tolls/     Flat-rate per-state toll estimator.
 application/     Use cases: EvaluateLoadsService, RecommendLoadsService,
-                 PlanBuilderService, BidRecommenderService, ConfigLoader.
+                 PlanBuilderService, BidRecommenderService, ConfigLoader,
+                 ORToolsDistancePlanner, ORToolsProfitAwarePlanner.
 config/          Editable YAML for cost model, weights, constraints.
 ```
 
@@ -154,6 +163,57 @@ A quick end-to-end run against the sample data (truck `101`, 4 loads):
   "score": 612.48,
   "rationale": "Sequenced 1 load(s) [1] over 48h horizon. Revenue=$850.00, Cost=$383.10, Profit=$466.90, Deadhead=0mi."
 }
+```
+
+## Phase 2 — OR-Tools Route Optimization
+
+Phase 2 reframes planning as a **prize-collecting pickup-and-delivery problem**
+solved with Google OR-Tools CP routing, benchmarked against the Phase 1
+heuristic over 1,000 generated scenarios. Two solver variants isolate the
+effect of the objective function:
+
+| Planner | Objective | Avg profit | Avg deadhead | Feasible rate |
+|---|---|---|---|---|
+| Heuristic (`PlanBuilderService`) | greedy score ranking | $396.38 | 11.3 mi | 88.1% |
+| `ORToolsDistancePlanner` (v1) | minimize total miles | $240.14 (**−39.4%**) | **8.9 mi (−20.9%)** | 82.4% |
+| `ORToolsProfitAwarePlanner` (v2) | maximize expected profit | **$396.79 (+0.1%)** | 12.0 mi (+6.6%) | **88.1%** |
+
+![Planner comparison](benchmarks/compare_chart.png)
+
+**The ablation story.** The distance objective is a classic mis-specified
+proxy: it slashes deadhead by 21% but destroys 39% of profit, because the
+cheapest route to drive is rarely the most valuable one to run. The
+profit-aware variant fixes the objective rather than the solver — same
+constraints, same search budget — and recovers full heuristic-level profit
+while retaining the solver's ability to chain multi-load routes.
+
+**Objective formulation (profit-aware).** The solver minimizes the negative of
+expected plan profit, in integer cents, derived from the YAML cost model — no
+hand-tuned magic weights:
+
+- *Repositioning arcs* cost `miles × 139¢` (fuel + maintenance + driver &
+  opportunity time at average speed, from `config/cost_model.yaml`).
+- *Loaded arcs* cost 0 — their economics live in the skip penalty.
+- *Skipping a load* costs its position-independent static profit
+  (revenue − operating cost − time cost), floored at the configured
+  `min_expected_profit`: profitable loads are expensive to skip, marginal
+  ones are free to drop.
+
+Minimizing (deadhead cost + skipped profit) is equivalent to maximizing
+(selected profit − deadhead cost) = expected plan profit.
+
+Every solver plan is **replayed through the same `EvaluateLoadsService` +
+feasibility pipeline as the heuristic**, so reported financials come from one
+source of truth, and the solver cannot game its own reward. Both planners
+share the constraint encoding (pickup-and-delivery pairing, time windows,
+HOS-style driver-hours dimension, planning horizon) in
+`application/ortools_distance_planner.py`; the profit-aware subclass overrides
+only the objective hooks, first-solution strategy, and full-truckload
+sequencing. Reproduce with:
+
+```bash
+python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_results.json
+python -m benchmarks.chart_comparison --results benchmarks/compare_results.json
 ```
 
 ## Tests

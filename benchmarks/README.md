@@ -5,6 +5,27 @@ so perf runs don't gate correctness CI.
 
 ---
 
+## Planner Comparison — Heuristic vs OR-Tools (Phase 2)
+
+1,000 scenarios, OR-Tools capped at 0.2 s/solve:
+
+| Metric | Heuristic | OR-Tools Distance | OR-Tools Profit-Aware |
+|---|---|---|---|
+| Feasible rate | 88.1% | 82.4% | 88.1% |
+| Avg profit / scenario | $396.38 | $240.14 (−39.4%) | **$396.79 (+0.1%)** |
+| Avg deadhead miles | 11.3 | **8.9 (−20.9%)** | 12.0 (+6.6%) |
+| Avg loads selected | 0.91 | 0.88 | 0.91 |
+| Avg runtime / scenario | 0.17 ms | 199 ms | 197 ms |
+
+Chart: [`compare_chart.png`](compare_chart.png)  
+Raw data: [`compare_results.json`](compare_results.json)
+
+> Minimizing distance saves deadhead but craters profit; switching the solver
+> objective to cost-model-derived expected profit recovers it. See the main
+> README's Phase 2 section for the objective formulation.
+
+---
+
 ## Current Baseline — `heuristic_baseline_1000`
 
 | Metric | Value |
@@ -47,6 +68,12 @@ python -m benchmarks.run_scenarios --out benchmarks/results.json
 # generate charts from results JSON
 python -m benchmarks.chart_results --results benchmarks/results.json --show
 
+# three-way planner comparison (heuristic vs OR-Tools distance vs profit-aware)
+python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_results.json
+
+# chart the comparison
+python -m benchmarks.chart_comparison --results benchmarks/compare_results.json
+
 # regenerate 1 000 scenarios (reproducible with --seed)
 python -m benchmarks.scenario_generator --count 1000 --seed 42 \
     --out-dir benchmarks/scenarios/gen
@@ -61,6 +88,8 @@ python -m benchmarks.scenario_generator --count 1000 --seed 42 \
 | `bench_scenarios.py` | Scenario-driven pytest-benchmark tests |
 | `run_scenarios.py` | Run scenarios, print ranked results + summary |
 | `chart_results.py` | Visualize results JSON → 6-panel PNG chart |
+| `compare_planners.py` | Heuristic vs OR-Tools planners over all scenarios |
+| `chart_comparison.py` | Visualize comparison JSON → grouped-bar PNG |
 | `scenario_generator.py` | Generate random realistic scenarios |
 | `scenarios/scenario_001.json` | Hand-crafted canonical example |
 | `scenarios/gen/` | Generated scenarios (gitignored — reproducible) |

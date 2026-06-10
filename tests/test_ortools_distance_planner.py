@@ -7,7 +7,7 @@ from adapters.outbound.distance.haversine import HaversineDistanceProvider
 from adapters.outbound.tolls.flat_rate import FlatRateTollEstimator
 from application.config_loader import load_config
 from application.evaluate_loads import EvaluateLoadsService
-from application.ortools_planner import ORToolsPlanner
+from application.ortools_distance_planner import ORToolsDistancePlanner
 from domain.models.load import Load
 from domain.models.truck_state import TruckState
 
@@ -35,7 +35,7 @@ def _make_planner(config, time_limit=0.3):
         average_speed_mph=config.average_speed_mph,
         load_unload_hours=config.planning_constraints.average_load_unload_hours,
     )
-    return ORToolsPlanner(
+    return ORToolsDistancePlanner(
         distance_provider=HaversineDistanceProvider(),
         evaluate_loads_service=evaluator,
         constraints=config.planning_constraints,
@@ -159,7 +159,7 @@ def test_no_candidate_loads_returns_infeasible(config):
 
 
 def test_sample_data_plan_excludes_reefer_and_is_valid(container, sample_loads, sample_truck):
-    plan = container.ortools_planner.build_plan(sample_loads, sample_truck)
+    plan = container.ortools_distance_planner.build_plan(sample_loads, sample_truck)
 
     assert plan.feasible
     assert len(plan.stops) >= 1

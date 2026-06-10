@@ -1,13 +1,16 @@
-"""Visualize the head-to-head HeuristicPlanner vs ORToolsPlanner comparison.
+"""Visualize the three-way planner comparison dashboard.
 
 Reads the JSON written by ``compare_planners.py`` (``--out``) and renders a
 grouped-bar dashboard, one panel per metric, since the metrics live on very
 different scales (a feasibility fraction, dollars, miles, load counts and
 milliseconds can't share a single axis).
 
+The first planner in the JSON (the heuristic) is treated as the baseline:
+every other planner gets a "vs baseline" delta annotation under each panel.
+
 Workflow
 --------
-    # Step 1 - generate the JSON (slower; re-runs both planners over all scenarios)
+    # Step 1 - generate the JSON (slower; re-runs every planner over all scenarios)
     python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_results.json
 
     # Step 2 - chart it
@@ -22,20 +25,26 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESULTS_JSON = ROOT / "benchmarks" / "compare_results.json"
 DEFAULT_OUT_PNG = ROOT / "benchmarks" / "compare_chart.png"
 
-HEURISTIC_COLOR = "#58a6ff"
-ORTOOLS_COLOR = "#3fb950"
-ORANGE = "#f0883e"
+GREEN = "#3fb950"
 RED = "#f85149"
+GREY = "#8b949e"
+
+# Stable colors per planner key; unknown keys fall back to the spare palette.
+PLANNER_COLORS = {
+    "heuristic": "#58a6ff",
+    "ortools_distance": "#f0883e",
+    "ortools_profit_aware": "#3fb950",
+}
+FALLBACK_COLORS = ["#bc8cff", "#39c5cf", "#d29922", "#ff7b72"]
 
 # (json_key, panel title, value formatter, "lower is better")
 _PANELS = [
@@ -54,24 +63,43 @@ def _load(path: Path) -> Dict[str, Any]:
             "Generate it with:\n"
             "  python -m benchmarks.compare_planners --out benchmarks/compare_results.json"
         )
-    return json.loads(path.read_text())
+    data = json.loads(path.read_text())
+    if "planners" not in data:
+        sys.exit(
+            "Results file uses the old two-planner schema. Regenerate it with:\n"
+            "  python -m benchmarks.compare_planners --out benchmarks/compare_results.json"
+        )
+    return data
 
 
-def _delta_label(h: float, o: float, lower_is_better: bool) -> tuple[str, str]:
-    """Return (text, color) describing the OR-Tools change vs heuristic."""
-    if h == 0:
-        return "n/a", "#8b949e"
-    pct = (o - h) / abs(h) * 100.0
+def _short_label(label: str) -> str:
+    return label.replace("OR-Tools ", "")
+
+
+def _delta_label(base: float, val: float, lower_is_better: bool) -> tuple[str, str]:
+    """Return (text, color) describing one planner's change vs the baseline."""
+    if base == 0:
+        return "n/a", GREY
+    pct = (val - base) / abs(base) * 100.0
+    if abs(pct) < 0.05:
+        return "±0.0%", GREY
     improved = (pct < 0) if lower_is_better else (pct > 0)
-    color = ORTOOLS_COLOR if improved else RED
-    return f"{pct:+.1f}% vs heuristic", color
+    color = GREEN if improved else RED
+    if abs(pct) >= 1000:  # absurd percentages read better as multipliers
+        return f"{val / base:,.0f}x", color
+    return f"{pct:+.1f}%", color
 
 
 def build_chart(data: Dict[str, Any], out_png: Path, show: bool) -> None:
-    heuristic = data["heuristic"]
-    ortools = data["ortools"]
-    scenarios = data.get("scenarios", heuristic.get("scenarios", 0))
+    planners: List[Dict[str, Any]] = data["planners"]
+    baseline = planners[0]
+    scenarios = data.get("scenarios", 0)
     time_limit = data.get("ortools_time_limit_s")
+
+    colors = []
+    spare = iter(FALLBACK_COLORS)
+    for p in planners:
+        colors.append(PLANNER_COLORS.get(p["key"], next(spare, GREY)))
 
     matplotlib.rcParams.update({
         "figure.facecolor": "#0d1117",
@@ -85,38 +113,36 @@ def build_chart(data: Dict[str, Any], out_png: Path, show: bool) -> None:
         "text.color": "#c9d1d9",
         "axes.titlesize": 11,
         "axes.labelsize": 8,
-        "xtick.labelsize": 8,
+        "xtick.labelsize": 7.5,
         "ytick.labelsize": 7,
     })
 
-    fig = plt.figure(figsize=(16, 6.5))
-    title = f"FreightBid Agent - Heuristic vs OR-Tools  ({scenarios:,} scenarios"
+    fig = plt.figure(figsize=(17, 7))
+    title = f"FreightBid Agent - Planner Comparison  ({scenarios:,} scenarios"
     if time_limit is not None:
         title += f", OR-Tools {time_limit:g}s/solve"
     title += ")"
     fig.suptitle(title, color="#e6edf3", fontsize=14, fontweight="bold", y=0.99)
 
     gs = fig.add_gridspec(1, len(_PANELS), wspace=0.42,
-                          left=0.05, right=0.98, top=0.82, bottom=0.12)
+                          left=0.05, right=0.98, top=0.84, bottom=0.20)
 
-    labels = ["Heuristic", "OR-Tools"]
-    colors = [HEURISTIC_COLOR, ORTOOLS_COLOR]
+    bar_labels = [_short_label(p["label"]) for p in planners]
 
     for col, (key, panel_title, fmt, lower_is_better) in enumerate(_PANELS):
         ax = fig.add_subplot(gs[0, col])
-        hv = float(heuristic[key])
-        ov = float(ortools[key])
-        values = [hv, ov]
+        values = [float(p["metrics"][key]) for p in planners]
 
         log = key == "avg_runtime_ms"
         if log:
             ax.set_yscale("log")
 
-        bars = ax.bar(labels, values, color=colors, alpha=0.9,
-                      edgecolor="#0d1117", linewidth=0.6, width=0.6)
+        bars = ax.bar(bar_labels, values, color=colors, alpha=0.9,
+                      edgecolor="#0d1117", linewidth=0.6, width=0.62)
 
         ax.set_title(panel_title)
         ax.grid(axis="y", alpha=0.4)
+        ax.tick_params(axis="x", rotation=12)
         if not log:
             ax.set_ylim(0, max(values) * 1.28 if max(values) > 0 else 1)
 
@@ -124,14 +150,21 @@ def build_chart(data: Dict[str, Any], out_png: Path, show: bool) -> None:
             ax.text(bar.get_x() + bar.get_width() / 2,
                     bar.get_height(),
                     fmt(val), ha="center", va="bottom",
-                    fontsize=8, color="#e6edf3", fontweight="bold")
+                    fontsize=7.5, color="#e6edf3", fontweight="bold")
 
-        text, color = _delta_label(hv, ov, lower_is_better)
-        ax.text(0.5, -0.16, text, transform=ax.transAxes, ha="center", va="top",
-                fontsize=8, color=color, fontweight="bold")
+        # Delta lines: each non-baseline planner vs the baseline.
+        base_val = float(baseline["metrics"][key])
+        for row, p in enumerate(planners[1:]):
+            text, color = _delta_label(
+                base_val, float(p["metrics"][key]), lower_is_better)
+            ax.text(0.5, -0.20 - 0.085 * row,
+                    f"{_short_label(p['label'])}: {text} vs {baseline['label']}",
+                    transform=ax.transAxes, ha="center", va="top",
+                    fontsize=7, color=color, fontweight="bold")
         if lower_is_better:
-            ax.text(0.5, -0.24, "(lower is better)", transform=ax.transAxes,
-                    ha="center", va="top", fontsize=6, color="#8b949e")
+            ax.text(0.5, -0.20 - 0.085 * (len(planners) - 1),
+                    "(lower is better)", transform=ax.transAxes,
+                    ha="center", va="top", fontsize=6, color=GREY)
 
     out_png.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_png, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())

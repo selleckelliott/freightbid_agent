@@ -1,14 +1,17 @@
-"""Head-to-head comparison: heuristic planner vs OR-Tools planner.
+"""Head-to-head comparison: heuristic vs OR-Tools distance vs OR-Tools profit-aware.
 
-Runs both planners over the generated scenario suite and reports aggregate
-plan-quality and runtime metrics side by side. Same scenarios, same load
-inputs, same cost accounting (both planners' financials come from
+Runs all three planners over the generated scenario suite and reports
+aggregate plan-quality and runtime metrics side by side. Same scenarios, same
+load inputs, same cost accounting (every planner's financials come from
 ``EvaluateLoadsService``), so the only difference is load selection/sequencing.
 
-Note on objective: the Phase 2 OR-Tools planner minimises travel *distance*
+Note on objectives: ``ORToolsDistancePlanner`` minimises travel *distance*
 (and therefore deadhead) subject to time windows, pickup-before-delivery and
-the driver's HOS budget. It does **not** optimise profit yet, so the headline
-expected win is reduced deadhead miles; profit parity-or-better is a bonus.
+the driver's HOS budget. ``ORToolsProfitAwarePlanner`` (Phase 2.2) instead
+minimises *negative expected profit* — cost-model-priced deadhead plus
+profit-proportional penalties for skipping loads — so it may decline freight
+that is not worth its empty miles. The three-way result is a clean ablation:
+heuristic baseline, distance objective, business objective.
 
 Examples
 --------
@@ -30,7 +33,8 @@ from typing import Any, Callable, Dict, List, Tuple
 from adapters.inbound.api.container import build_container
 from adapters.inbound.api.mappers import load_from_dto, truck_from_dto
 from adapters.inbound.api.schemas import LoadDTO, TruckStateDTO
-from application.ortools_planner import ORToolsPlanner
+from application.ortools_distance_planner import ORToolsDistancePlanner
+from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
 from domain.models.load import Load
 from domain.models.plan import Plan
 from domain.models.truck_state import TruckState
@@ -110,6 +114,14 @@ def _pct_delta(new: float, old: float) -> str:
     return f"{(new - old) / abs(old) * 100:+6.1f}%"
 
 
+def _print_delta(title: str, new: Dict[str, Any], old: Dict[str, Any]) -> None:
+    print(f"Delta ({title}):")
+    print(f"  Profit:    {_pct_delta(new['avg_profit'], old['avg_profit'])}")
+    print(f"  Deadhead:  {_pct_delta(new['avg_deadhead_miles'], old['avg_deadhead_miles'])} "
+          f"(lower is better)")
+    print(f"  Loads:     {_pct_delta(new['avg_loads_selected'], old['avg_loads_selected'])}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -124,7 +136,7 @@ def main() -> None:
     scenarios = _load_scenarios(Path(args.scenario_dir), args.limit)
     container = build_container(ROOT / "config")
 
-    ortools_planner = ORToolsPlanner(
+    ortools_kwargs = dict(
         distance_provider=container.evaluator.distance_provider,
         evaluate_loads_service=container.evaluator,
         constraints=container.config.planning_constraints,
@@ -132,32 +144,52 @@ def main() -> None:
         average_speed_mph=container.config.average_speed_mph,
         load_unload_hours=container.config.planning_constraints.average_load_unload_hours,
     )
+    planners: List[Tuple[str, str, Callable[[List[Load], TruckState], Plan]]] = [
+        ("heuristic", "Heuristic", container.planner.build_plan),
+        (
+            "ortools_distance",
+            "OR-Tools Distance",
+            ORToolsDistancePlanner(**ortools_kwargs).build_plan,
+        ),
+        (
+            "ortools_profit_aware",
+            "OR-Tools Profit-Aware",
+            ORToolsProfitAwarePlanner(
+                objective_weights=container.config.ortools_objective_weights,
+                **ortools_kwargs,
+            ).build_plan,
+        ),
+    ]
 
     print("=" * 78)
     print(f"Planner comparison over {len(scenarios)} scenarios "
           f"(OR-Tools {args.time_limit:.2f}s/solve)")
     print("=" * 78)
 
-    heuristic = _run_planner(container.planner.build_plan, scenarios)
-    ortools = _run_planner(ortools_planner.build_plan, scenarios)
+    results: Dict[str, Dict[str, Any]] = {}
+    labels: Dict[str, str] = {}
+    for key, label, build_plan in planners:
+        results[key] = _run_planner(build_plan, scenarios)
+        labels[key] = label
+        _print_block(label, results[key])
+        print("-" * 78)
 
-    _print_block("HeuristicPlanner", heuristic)
-    print("-" * 78)
-    _print_block("ORToolsPlanner", ortools)
-    print("-" * 78)
-    print("Delta (OR-Tools vs Heuristic):")
-    print(f"  Profit:    {_pct_delta(ortools['avg_profit'], heuristic['avg_profit'])}")
-    print(f"  Deadhead:  {_pct_delta(ortools['avg_deadhead_miles'], heuristic['avg_deadhead_miles'])} "
-          f"(lower is better)")
-    print(f"  Loads:     {_pct_delta(ortools['avg_loads_selected'], heuristic['avg_loads_selected'])}")
+    _print_delta("OR-Tools Distance vs Heuristic",
+                 results["ortools_distance"], results["heuristic"])
+    _print_delta("OR-Tools Profit-Aware vs Heuristic",
+                 results["ortools_profit_aware"], results["heuristic"])
+    _print_delta("OR-Tools Profit-Aware vs OR-Tools Distance",
+                 results["ortools_profit_aware"], results["ortools_distance"])
     print("=" * 78)
 
     if args.out:
         payload = {
             "scenarios": len(scenarios),
             "ortools_time_limit_s": args.time_limit,
-            "heuristic": heuristic,
-            "ortools": ortools,
+            "planners": [
+                {"key": key, "label": labels[key], "metrics": results[key]}
+                for key, _label, _fn in planners
+            ],
         }
         Path(args.out).write_text(json.dumps(payload, indent=2))
         print(f"Wrote metrics to {args.out}")

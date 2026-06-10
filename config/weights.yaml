@@ -8,3 +8,9 @@ bid_policy:
   target_margin: 0.20
   min_margin: 0.05
   max_margin: 0.35
+
+# Ablation knobs for the profit-aware OR-Tools objective (Phase 2.2).
+# Rates are derived from cost_model.yaml at load time; 1.0 = true cost model.
+ortools_objective:
+  deadhead_cost_multiplier: 1.0
+  profit_multiplier: 1.0

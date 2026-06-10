@@ -9,7 +9,7 @@ from domain.models.truck_state import TruckState
 class Planner(Protocol):
     """Single-truck planner interface.
 
-    Both ``PlanBuilderService`` (greedy heuristic) and ``ORToolsPlanner``
+    Both ``PlanBuilderService`` (greedy heuristic) and ``ORToolsDistancePlanner``
     (OR-Tools optimization) conform to this structural interface so the
     benchmark harness can compare them interchangeably.
     """

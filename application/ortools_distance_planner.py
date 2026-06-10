@@ -18,6 +18,11 @@ pipeline the heuristic ``PlanBuilderService`` uses. That replay is the source of
 truth for the returned ``Plan`` financials and for final feasibility, which keeps
 the head-to-head benchmark fair: both planners obey identical validity rules and
 identical cost accounting; only their load selection/order differs.
+
+The *objective* is isolated behind two small hooks (``_arc_cost`` and
+``_drop_penalty``) so that planner variants — e.g. the Phase 2.2
+``ORToolsProfitAwarePlanner`` — can swap the optimisation goal while sharing
+all of the correctness-critical routing machinery above.
 """
 from __future__ import annotations
 
@@ -60,8 +65,19 @@ class _RoutingNode:
     tw_end_min: int = 0
 
 
-class ORToolsPlanner:
+class ORToolsDistancePlanner:
     """OR-Tools pickup-and-delivery planner conforming to the ``Planner`` interface."""
+
+    PLANNER_LABEL = "OR-Tools Distance"
+    # Greedy cheapest-arc works well when the objective *is* arc distance;
+    # objective variants may override (see ORToolsProfitAwarePlanner).
+    FIRST_SOLUTION_STRATEGY = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    LOCAL_SEARCH_METAHEURISTIC = (
+        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    )
+    # When True, a delivery must immediately follow its pickup (strict
+    # full-truckload semantics: serve one load completely, then the next).
+    SEQUENTIAL_PICKUP_DELIVERY = False
 
     def __init__(
         self,
@@ -227,7 +243,7 @@ class ORToolsPlanner:
                         nodes[i].latitude, nodes[i].longitude,
                         nodes[j].latitude, nodes[j].longitude,
                     )
-                distance[i][j] = int(miles * DISTANCE_SCALE)
+                distance[i][j] = self._arc_cost(nodes[i], nodes[j], miles)
                 # ceil keeps the model conservative so a route OR-Tools deems
                 # feasible survives the float-precision replay.
                 travel_time[i][j] = math.ceil(miles / self.average_speed_mph * 60.0) + service
@@ -270,17 +286,25 @@ class ORToolsPlanner:
             solver.Add(routing.VehicleVar(pickup_index) == routing.VehicleVar(delivery_index))
             solver.Add(time_dim.CumulVar(pickup_index) <= time_dim.CumulVar(delivery_index))
             # Per-node disjunctions tied together so a load is dropped as a pair.
-            routing.AddDisjunction([pickup_index], DROP_PENALTY)
+            routing.AddDisjunction(
+                [pickup_index],
+                self._drop_penalty(nodes[pickup_id].load, truck_state),
+            )
             routing.AddDisjunction([delivery_index], 0)
             solver.Add(routing.ActiveVar(pickup_index) == routing.ActiveVar(delivery_index))
+            if self.SEQUENTIAL_PICKUP_DELIVERY:
+                # Served => the delivery is the very next stop after its
+                # pickup; dropped => NextVar(pickup) self-loops as OR-Tools
+                # requires for inactive nodes.
+                solver.Add(
+                    routing.NextVar(pickup_index)
+                    == delivery_index * routing.ActiveVar(pickup_index)
+                    + pickup_index * (1 - routing.ActiveVar(pickup_index))
+                )
 
         params = pywrapcp.DefaultRoutingSearchParameters()
-        params.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-        )
-        params.local_search_metaheuristic = (
-            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-        )
+        params.first_solution_strategy = self.FIRST_SOLUTION_STRATEGY
+        params.local_search_metaheuristic = self.LOCAL_SEARCH_METAHEURISTIC
         params.time_limit.FromMilliseconds(
             max(1, int(self.solver_time_limit_seconds * 1000))
         )
@@ -297,6 +321,18 @@ class ORToolsPlanner:
                 ordered.append(node.load)
             index = solution.Value(routing.NextVar(index))
         return ordered
+
+    # --------------------------------------------------------- objective hooks
+    def _arc_cost(
+        self, from_node: _RoutingNode, to_node: _RoutingNode, miles: float
+    ) -> int:
+        """Objective cost of one arc. v1 minimises pure travel distance."""
+        return int(miles * DISTANCE_SCALE)
+
+    def _drop_penalty(self, load: Load, truck_state: TruckState) -> int:
+        """Objective penalty for dropping ``load``. v1 serves every feasible
+        load (flat dominant penalty), then minimises distance among them."""
+        return DROP_PENALTY
 
     def _replay_to_plan(
         self,
@@ -340,7 +376,7 @@ class ORToolsPlanner:
                     revenue=evaluation.expected_revenue,
                     cost=evaluation.total_cost,
                     profit=evaluation.expected_profit,
-                    rationale="OR-Tools optimized route stop",
+                    rationale=f"{self.PLANNER_LABEL} optimized route stop",
                 )
             )
             plan.expected_revenue += evaluation.expected_revenue
@@ -377,21 +413,20 @@ class ORToolsPlanner:
         )
         plan.feasible = False
         plan.rationale = (
-            "OR-Tools found no feasible pickup-and-delivery route within the "
-            "planning horizon."
+            f"{self.PLANNER_LABEL} found no feasible pickup-and-delivery route "
+            "within the planning horizon."
         )
         return plan
 
-    @staticmethod
-    def _explain(plan: Plan) -> str:
+    def _explain(self, plan: Plan) -> str:
         if not plan.stops:
             return (
-                "OR-Tools found no feasible pickup-and-delivery route within the "
-                "planning horizon."
+                f"{self.PLANNER_LABEL} found no feasible pickup-and-delivery "
+                "route within the planning horizon."
             )
         ids = ", ".join(str(s.load_id) for s in plan.stops)
         return (
-            f"OR-Tools sequenced {len(plan.stops)} load(s) [{ids}] over "
+            f"{self.PLANNER_LABEL} sequenced {len(plan.stops)} load(s) [{ids}] over "
             f"{plan.horizon_hours:.0f}h horizon. "
             f"Revenue=${plan.expected_revenue:,.2f}, "
             f"Cost=${plan.expected_cost:,.2f}, "

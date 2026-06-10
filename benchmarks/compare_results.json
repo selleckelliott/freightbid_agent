@@ -1,26 +1,51 @@
 {
   "scenarios": 1000,
   "ortools_time_limit_s": 0.2,
-  "heuristic": {
-    "scenarios": 1000,
-    "feasible_rate": 0.881,
-    "avg_profit": 396.38034345150345,
-    "total_profit": 396380.34345150343,
-    "avg_deadhead_miles": 11.287646437767325,
-    "avg_loads_selected": 0.907,
-    "total_loads_selected": 907,
-    "avg_runtime_ms": 0.17577700002220809,
-    "median_runtime_ms": 0.16759999925852753
-  },
-  "ortools": {
-    "scenarios": 1000,
-    "feasible_rate": 0.824,
-    "avg_profit": 240.1368764564821,
-    "total_profit": 240136.8764564821,
-    "avg_deadhead_miles": 8.930239239940937,
-    "avg_loads_selected": 0.875,
-    "total_loads_selected": 875,
-    "avg_runtime_ms": 199.34836120007094,
-    "median_runtime_ms": 201.69465000071796
-  }
+  "planners": [
+    {
+      "key": "heuristic",
+      "label": "Heuristic",
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.881,
+        "avg_profit": 396.38034345150345,
+        "total_profit": 396380.34345150343,
+        "avg_deadhead_miles": 11.287646437767325,
+        "avg_loads_selected": 0.907,
+        "total_loads_selected": 907,
+        "avg_runtime_ms": 0.17062950000399724,
+        "median_runtime_ms": 0.15954999798850622
+      }
+    },
+    {
+      "key": "ortools_distance",
+      "label": "OR-Tools Distance",
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.824,
+        "avg_profit": 240.1368764564821,
+        "total_profit": 240136.8764564821,
+        "avg_deadhead_miles": 8.930239239940937,
+        "avg_loads_selected": 0.875,
+        "total_loads_selected": 875,
+        "avg_runtime_ms": 199.19379750002918,
+        "median_runtime_ms": 201.53540000137582
+      }
+    },
+    {
+      "key": "ortools_profit_aware",
+      "label": "OR-Tools Profit-Aware",
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.881,
+        "avg_profit": 396.7936054612443,
+        "total_profit": 396793.6054612443,
+        "avg_deadhead_miles": 12.030616934356622,
+        "avg_loads_selected": 0.909,
+        "total_loads_selected": 909,
+        "avg_runtime_ms": 197.31541500006642,
+        "median_runtime_ms": 201.59500000045227
+      }
+    }
+  ]
 }
