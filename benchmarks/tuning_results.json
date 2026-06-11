@@ -1,0 +1,780 @@
+{
+  "scenario_count": 1000,
+  "ortools_time_limit_s": 0.2,
+  "min_feasible_rate": 0.85,
+  "knee_profit_tolerance": 0.02,
+  "baselines": [
+    {
+      "key": "heuristic",
+      "label": "Heuristic",
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.881,
+        "avg_profit": 396.38034345150345,
+        "total_profit": 396380.34345150343,
+        "avg_deadhead_miles": 11.287646437767325,
+        "avg_loads_selected": 0.907,
+        "total_loads_selected": 907,
+        "avg_runtime_ms": 0.1505091999842989,
+        "median_runtime_ms": 0.15309999980672728
+      }
+    },
+    {
+      "key": "ortools_distance",
+      "label": "OR-Tools Distance",
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.824,
+        "avg_profit": 240.1368764564821,
+        "total_profit": 240136.8764564821,
+        "avg_deadhead_miles": 8.930239239940937,
+        "avg_loads_selected": 0.875,
+        "total_loads_selected": 875,
+        "avg_runtime_ms": 199.16300200000296,
+        "median_runtime_ms": 201.5322000006563
+      }
+    }
+  ],
+  "configs": [
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 0.75,
+        "skip_profit_floor_dollars": 50.0,
+        "deadhead_cost_cents_per_mile": 104,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.879,
+        "avg_profit": 396.19492471183406,
+        "total_profit": 396194.92471183406,
+        "avg_deadhead_miles": 13.876759919543844,
+        "avg_loads_selected": 0.905,
+        "total_loads_selected": 905,
+        "avg_runtime_ms": 197.16214399999808,
+        "median_runtime_ms": 201.49954999942565
+      },
+      "deltas": {
+        "profit_delta_pct": -0.05,
+        "deadhead_delta_pct": 22.94,
+        "feasible_delta_pct": -0.23,
+        "loads_delta_pct": -0.22
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 0.75,
+        "skip_profit_floor_dollars": 75.0,
+        "deadhead_cost_cents_per_mile": 104,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.877,
+        "avg_profit": 395.8221580857554,
+        "total_profit": 395822.1580857554,
+        "avg_deadhead_miles": 13.982708571398987,
+        "avg_loads_selected": 0.9,
+        "total_loads_selected": 900,
+        "avg_runtime_ms": 196.02593249999154,
+        "median_runtime_ms": 201.64575000035256
+      },
+      "deltas": {
+        "profit_delta_pct": -0.14,
+        "deadhead_delta_pct": 23.88,
+        "feasible_delta_pct": -0.45,
+        "loads_delta_pct": -0.77
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 0.75,
+        "skip_profit_floor_dollars": 100.0,
+        "deadhead_cost_cents_per_mile": 104,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.874,
+        "avg_profit": 395.29245677759053,
+        "total_profit": 395292.4567775905,
+        "avg_deadhead_miles": 13.681812390222651,
+        "avg_loads_selected": 0.894,
+        "total_loads_selected": 894,
+        "avg_runtime_ms": 194.77730470002643,
+        "median_runtime_ms": 201.63070000035077
+      },
+      "deltas": {
+        "profit_delta_pct": -0.27,
+        "deadhead_delta_pct": 21.21,
+        "feasible_delta_pct": -0.79,
+        "loads_delta_pct": -1.43
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 0.75,
+        "skip_profit_floor_dollars": 150.0,
+        "deadhead_cost_cents_per_mile": 104,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.854,
+        "avg_profit": 393.3078674903664,
+        "total_profit": 393307.8674903664,
+        "avg_deadhead_miles": 11.188914755132082,
+        "avg_loads_selected": 0.873,
+        "total_loads_selected": 873,
+        "avg_runtime_ms": 193.0713244999679,
+        "median_runtime_ms": 201.54790000015055
+      },
+      "deltas": {
+        "profit_delta_pct": -0.78,
+        "deadhead_delta_pct": -0.87,
+        "feasible_delta_pct": -3.06,
+        "loads_delta_pct": -3.75
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": "max_profit",
+      "params": {
+        "deadhead_cost_multiplier": 1.0,
+        "skip_profit_floor_dollars": 50.0,
+        "deadhead_cost_cents_per_mile": 139,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.881,
+        "avg_profit": 396.7936054612443,
+        "total_profit": 396793.6054612443,
+        "avg_deadhead_miles": 12.030616934356622,
+        "avg_loads_selected": 0.909,
+        "total_loads_selected": 909,
+        "avg_runtime_ms": 197.2667227999591,
+        "median_runtime_ms": 201.56190000034258
+      },
+      "deltas": {
+        "profit_delta_pct": 0.1,
+        "deadhead_delta_pct": 6.58,
+        "feasible_delta_pct": 0.0,
+        "loads_delta_pct": 0.22
+      },
+      "pareto_efficient": true,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.0,
+        "skip_profit_floor_dollars": 75.0,
+        "deadhead_cost_cents_per_mile": 139,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.869,
+        "avg_profit": 395.821301668016,
+        "total_profit": 395821.301668016,
+        "avg_deadhead_miles": 10.786146282002878,
+        "avg_loads_selected": 0.894,
+        "total_loads_selected": 894,
+        "avg_runtime_ms": 196.07235469999068,
+        "median_runtime_ms": 201.63900000079593
+      },
+      "deltas": {
+        "profit_delta_pct": -0.14,
+        "deadhead_delta_pct": -4.44,
+        "feasible_delta_pct": -1.36,
+        "loads_delta_pct": -1.43
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.0,
+        "skip_profit_floor_dollars": 100.0,
+        "deadhead_cost_cents_per_mile": 139,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.864,
+        "avg_profit": 395.0663291843833,
+        "total_profit": 395066.32918438327,
+        "avg_deadhead_miles": 10.233561737853764,
+        "avg_loads_selected": 0.886,
+        "total_loads_selected": 886,
+        "avg_runtime_ms": 194.57023000002482,
+        "median_runtime_ms": 201.60180000038963
+      },
+      "deltas": {
+        "profit_delta_pct": -0.33,
+        "deadhead_delta_pct": -9.34,
+        "feasible_delta_pct": -1.93,
+        "loads_delta_pct": -2.32
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.0,
+        "skip_profit_floor_dollars": 150.0,
+        "deadhead_cost_cents_per_mile": 139,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.847,
+        "avg_profit": 392.62880130550315,
+        "total_profit": 392628.8013055031,
+        "avg_deadhead_miles": 9.389860931292713,
+        "avg_loads_selected": 0.867,
+        "total_loads_selected": 867,
+        "avg_runtime_ms": 193.15611449996322,
+        "median_runtime_ms": 201.58970000011323
+      },
+      "deltas": {
+        "profit_delta_pct": -0.95,
+        "deadhead_delta_pct": -16.81,
+        "feasible_delta_pct": -3.86,
+        "loads_delta_pct": -4.41
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": "balanced",
+      "params": {
+        "deadhead_cost_multiplier": 1.25,
+        "skip_profit_floor_dollars": 50.0,
+        "deadhead_cost_cents_per_mile": 174,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.869,
+        "avg_profit": 395.9024081300296,
+        "total_profit": 395902.40813002957,
+        "avg_deadhead_miles": 9.964236597101042,
+        "avg_loads_selected": 0.898,
+        "total_loads_selected": 898,
+        "avg_runtime_ms": 197.36954740000328,
+        "median_runtime_ms": 201.57835000009072
+      },
+      "deltas": {
+        "profit_delta_pct": -0.12,
+        "deadhead_delta_pct": -11.72,
+        "feasible_delta_pct": -1.36,
+        "loads_delta_pct": -0.99
+      },
+      "pareto_efficient": true,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.25,
+        "skip_profit_floor_dollars": 75.0,
+        "deadhead_cost_cents_per_mile": 174,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.865,
+        "avg_profit": 395.3617450766957,
+        "total_profit": 395361.7450766957,
+        "avg_deadhead_miles": 9.698970448420376,
+        "avg_loads_selected": 0.89,
+        "total_loads_selected": 890,
+        "avg_runtime_ms": 195.81128699998226,
+        "median_runtime_ms": 201.5195499998299
+      },
+      "deltas": {
+        "profit_delta_pct": -0.26,
+        "deadhead_delta_pct": -14.07,
+        "feasible_delta_pct": -1.82,
+        "loads_delta_pct": -1.87
+      },
+      "pareto_efficient": true,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.25,
+        "skip_profit_floor_dollars": 100.0,
+        "deadhead_cost_cents_per_mile": 174,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.856,
+        "avg_profit": 394.24144072054025,
+        "total_profit": 394241.44072054024,
+        "avg_deadhead_miles": 9.222745524791193,
+        "avg_loads_selected": 0.88,
+        "total_loads_selected": 880,
+        "avg_runtime_ms": 194.59213390001605,
+        "median_runtime_ms": 201.6071499992904
+      },
+      "deltas": {
+        "profit_delta_pct": -0.54,
+        "deadhead_delta_pct": -18.29,
+        "feasible_delta_pct": -2.84,
+        "loads_delta_pct": -2.98
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.25,
+        "skip_profit_floor_dollars": 150.0,
+        "deadhead_cost_cents_per_mile": 174,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.836,
+        "avg_profit": 390.8962113854369,
+        "total_profit": 390896.2113854369,
+        "avg_deadhead_miles": 7.785298283858359,
+        "avg_loads_selected": 0.858,
+        "total_loads_selected": 858,
+        "avg_runtime_ms": 193.02121399999487,
+        "median_runtime_ms": 201.5128499997445
+      },
+      "deltas": {
+        "profit_delta_pct": -1.38,
+        "deadhead_delta_pct": -31.03,
+        "feasible_delta_pct": -5.11,
+        "loads_delta_pct": -5.4
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.6,
+        "skip_profit_floor_dollars": 50.0,
+        "deadhead_cost_cents_per_mile": 222,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.863,
+        "avg_profit": 394.6040444977623,
+        "total_profit": 394604.0444977623,
+        "avg_deadhead_miles": 8.17985215988324,
+        "avg_loads_selected": 0.894,
+        "total_loads_selected": 894,
+        "avg_runtime_ms": 197.25737519997165,
+        "median_runtime_ms": 201.56969999970897
+      },
+      "deltas": {
+        "profit_delta_pct": -0.45,
+        "deadhead_delta_pct": -27.53,
+        "feasible_delta_pct": -2.04,
+        "loads_delta_pct": -1.43
+      },
+      "pareto_efficient": true,
+      "recommended": false
+    },
+    {
+      "profile_name": "deadhead_control",
+      "params": {
+        "deadhead_cost_multiplier": 1.6,
+        "skip_profit_floor_dollars": 75.0,
+        "deadhead_cost_cents_per_mile": 222,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.854,
+        "avg_profit": 392.973111130564,
+        "total_profit": 392973.111130564,
+        "avg_deadhead_miles": 7.418621488802873,
+        "avg_loads_selected": 0.879,
+        "total_loads_selected": 879,
+        "avg_runtime_ms": 196.0000374999854,
+        "median_runtime_ms": 201.59940000121424
+      },
+      "deltas": {
+        "profit_delta_pct": -0.86,
+        "deadhead_delta_pct": -34.28,
+        "feasible_delta_pct": -3.06,
+        "loads_delta_pct": -3.09
+      },
+      "pareto_efficient": true,
+      "recommended": true
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.6,
+        "skip_profit_floor_dollars": 100.0,
+        "deadhead_cost_cents_per_mile": 222,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.842,
+        "avg_profit": 391.2532398546523,
+        "total_profit": 391253.2398546523,
+        "avg_deadhead_miles": 6.7051180901782095,
+        "avg_loads_selected": 0.866,
+        "total_loads_selected": 866,
+        "avg_runtime_ms": 194.48717090000173,
+        "median_runtime_ms": 201.56725000015285
+      },
+      "deltas": {
+        "profit_delta_pct": -1.29,
+        "deadhead_delta_pct": -40.6,
+        "feasible_delta_pct": -4.43,
+        "loads_delta_pct": -4.52
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 1.6,
+        "skip_profit_floor_dollars": 150.0,
+        "deadhead_cost_cents_per_mile": 222,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.826,
+        "avg_profit": 388.29375315107006,
+        "total_profit": 388293.7531510701,
+        "avg_deadhead_miles": 5.785109243834482,
+        "avg_loads_selected": 0.849,
+        "total_loads_selected": 849,
+        "avg_runtime_ms": 193.1342735000144,
+        "median_runtime_ms": 201.59514999977546
+      },
+      "deltas": {
+        "profit_delta_pct": -2.04,
+        "deadhead_delta_pct": -48.75,
+        "feasible_delta_pct": -6.24,
+        "loads_delta_pct": -6.39
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.0,
+        "skip_profit_floor_dollars": 50.0,
+        "deadhead_cost_cents_per_mile": 278,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.849,
+        "avg_profit": 391.3861130568921,
+        "total_profit": 391386.11305689206,
+        "avg_deadhead_miles": 6.060256074178361,
+        "avg_loads_selected": 0.877,
+        "total_loads_selected": 877,
+        "avg_runtime_ms": 197.31707060000008,
+        "median_runtime_ms": 201.56090000000404
+      },
+      "deltas": {
+        "profit_delta_pct": -1.26,
+        "deadhead_delta_pct": -46.31,
+        "feasible_delta_pct": -3.63,
+        "loads_delta_pct": -3.31
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.0,
+        "skip_profit_floor_dollars": 75.0,
+        "deadhead_cost_cents_per_mile": 278,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.839,
+        "avg_profit": 389.510156296098,
+        "total_profit": 389510.156296098,
+        "avg_deadhead_miles": 5.440206261800004,
+        "avg_loads_selected": 0.863,
+        "total_loads_selected": 863,
+        "avg_runtime_ms": 195.83167180001146,
+        "median_runtime_ms": 201.54084999921906
+      },
+      "deltas": {
+        "profit_delta_pct": -1.73,
+        "deadhead_delta_pct": -51.8,
+        "feasible_delta_pct": -4.77,
+        "loads_delta_pct": -4.85
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.0,
+        "skip_profit_floor_dollars": 100.0,
+        "deadhead_cost_cents_per_mile": 278,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.833,
+        "avg_profit": 388.59573662621847,
+        "total_profit": 388595.7366262185,
+        "avg_deadhead_miles": 5.193050628619809,
+        "avg_loads_selected": 0.857,
+        "total_loads_selected": 857,
+        "avg_runtime_ms": 194.41232449997733,
+        "median_runtime_ms": 201.52555000004213
+      },
+      "deltas": {
+        "profit_delta_pct": -1.96,
+        "deadhead_delta_pct": -53.99,
+        "feasible_delta_pct": -5.45,
+        "loads_delta_pct": -5.51
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.0,
+        "skip_profit_floor_dollars": 150.0,
+        "deadhead_cost_cents_per_mile": 278,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.813,
+        "avg_profit": 384.4779903450567,
+        "total_profit": 384477.9903450567,
+        "avg_deadhead_miles": 4.222840039527543,
+        "avg_loads_selected": 0.836,
+        "total_loads_selected": 836,
+        "avg_runtime_ms": 193.0504684000025,
+        "median_runtime_ms": 201.55254999917815
+      },
+      "deltas": {
+        "profit_delta_pct": -3.0,
+        "deadhead_delta_pct": -62.59,
+        "feasible_delta_pct": -7.72,
+        "loads_delta_pct": -7.83
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.5,
+        "skip_profit_floor_dollars": 50.0,
+        "deadhead_cost_cents_per_mile": 348,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.837,
+        "avg_profit": 388.2902445740139,
+        "total_profit": 388290.2445740139,
+        "avg_deadhead_miles": 4.59639023452236,
+        "avg_loads_selected": 0.864,
+        "total_loads_selected": 864,
+        "avg_runtime_ms": 3156.4695578000046,
+        "median_runtime_ms": 201.7202000006364
+      },
+      "deltas": {
+        "profit_delta_pct": -2.04,
+        "deadhead_delta_pct": -59.28,
+        "feasible_delta_pct": -4.99,
+        "loads_delta_pct": -4.74
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.5,
+        "skip_profit_floor_dollars": 75.0,
+        "deadhead_cost_cents_per_mile": 348,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.832,
+        "avg_profit": 387.1721073545377,
+        "total_profit": 387172.1073545377,
+        "avg_deadhead_miles": 4.382311255728278,
+        "avg_loads_selected": 0.856,
+        "total_loads_selected": 856,
+        "avg_runtime_ms": 196.49538479986222,
+        "median_runtime_ms": 201.97620000180905
+      },
+      "deltas": {
+        "profit_delta_pct": -2.32,
+        "deadhead_delta_pct": -61.18,
+        "feasible_delta_pct": -5.56,
+        "loads_delta_pct": -5.62
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": "aggressive_deadhead_control",
+      "params": {
+        "deadhead_cost_multiplier": 2.5,
+        "skip_profit_floor_dollars": 100.0,
+        "deadhead_cost_cents_per_mile": 348,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.819,
+        "avg_profit": 384.9078105680968,
+        "total_profit": 384907.8105680968,
+        "avg_deadhead_miles": 3.9091111020886258,
+        "avg_loads_selected": 0.843,
+        "total_loads_selected": 843,
+        "avg_runtime_ms": 248.6486018000105,
+        "median_runtime_ms": 201.60095000210276
+      },
+      "deltas": {
+        "profit_delta_pct": -2.89,
+        "deadhead_delta_pct": -65.37,
+        "feasible_delta_pct": -7.04,
+        "loads_delta_pct": -7.06
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    },
+    {
+      "profile_name": null,
+      "params": {
+        "deadhead_cost_multiplier": 2.5,
+        "skip_profit_floor_dollars": 150.0,
+        "deadhead_cost_cents_per_mile": 348,
+        "profit_cents_multiplier": 100
+      },
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.805,
+        "avg_profit": 381.474667497725,
+        "total_profit": 381474.667497725,
+        "avg_deadhead_miles": 3.1462046778956774,
+        "avg_loads_selected": 0.829,
+        "total_loads_selected": 829,
+        "avg_runtime_ms": 192.97705889997815,
+        "median_runtime_ms": 201.4961000004405
+      },
+      "deltas": {
+        "profit_delta_pct": -3.76,
+        "deadhead_delta_pct": -72.13,
+        "feasible_delta_pct": -8.63,
+        "loads_delta_pct": -8.6
+      },
+      "pareto_efficient": false,
+      "recommended": false
+    }
+  ],
+  "time_study": {
+    "profile_name": "deadhead_control",
+    "params": {
+      "deadhead_cost_multiplier": 1.6,
+      "skip_profit_floor_dollars": 75.0,
+      "deadhead_cost_cents_per_mile": 222,
+      "profit_cents_multiplier": 100
+    },
+    "scenario_count": 200,
+    "points": [
+      {
+        "time_limit_s": 0.1,
+        "metrics": {
+          "scenarios": 200,
+          "feasible_rate": 0.87,
+          "avg_profit": 397.47497501402074,
+          "total_profit": 79494.99500280415,
+          "avg_deadhead_miles": 7.407302148186535,
+          "avg_loads_selected": 0.89,
+          "total_loads_selected": 178,
+          "avg_runtime_ms": 100.13484850005625,
+          "median_runtime_ms": 101.80235000188986
+        }
+      },
+      {
+        "time_limit_s": 0.2,
+        "metrics": {
+          "scenarios": 200,
+          "feasible_rate": 0.87,
+          "avg_profit": 397.47497501402074,
+          "total_profit": 79494.99500280415,
+          "avg_deadhead_miles": 7.407302148186535,
+          "avg_loads_selected": 0.89,
+          "total_loads_selected": 178,
+          "avg_runtime_ms": 196.98810949992549,
+          "median_runtime_ms": 201.90179999917746
+        }
+      },
+      {
+        "time_limit_s": 0.5,
+        "metrics": {
+          "scenarios": 200,
+          "feasible_rate": 0.87,
+          "avg_profit": 397.47497501402074,
+          "total_profit": 79494.99500280415,
+          "avg_deadhead_miles": 7.407302148186535,
+          "avg_loads_selected": 0.89,
+          "total_loads_selected": 178,
+          "avg_runtime_ms": 490.11770099994465,
+          "median_runtime_ms": 502.5466499992035
+        }
+      },
+      {
+        "time_limit_s": 1.0,
+        "metrics": {
+          "scenarios": 200,
+          "feasible_rate": 0.87,
+          "avg_profit": 397.47497501402074,
+          "total_profit": 79494.99500280415,
+          "avg_deadhead_miles": 7.407302148186535,
+          "avg_loads_selected": 0.89,
+          "total_loads_selected": 178,
+          "avg_runtime_ms": 976.9895665001968,
+          "median_runtime_ms": 1001.7391000001226
+        }
+      }
+    ]
+  }
+}

@@ -48,3 +48,36 @@ def test_inmemory_load_repo_roundtrip(container, sample_loads):
     container.load_repo.add_many(sample_loads)
     assert len(container.load_repo.list_all()) == len(sample_loads)
     assert container.load_repo.get(sample_loads[0].load_id) is not None
+
+
+def test_objective_profiles_load_into_weight_objects():
+    from pathlib import Path
+
+    from application.config_loader import load_config, load_objective_profiles
+
+    config_dir = Path(__file__).resolve().parents[1] / "config"
+    config = load_config(config_dir)
+    profiles = load_objective_profiles(config_dir)
+
+    expected = {
+        "max_profit",
+        "balanced",
+        "deadhead_control",
+        "aggressive_deadhead_control",
+    }
+    assert expected <= set(profiles)
+
+    base_rate = config.ortools_objective_weights.deadhead_cost_cents_per_mile
+    for profile in profiles.values():
+        # Rates are derived from the shared cost model, scaled by multiplier.
+        assert profile.weights.deadhead_cost_cents_per_mile == round(
+            base_rate * profile.deadhead_cost_multiplier
+        )
+        # Floors must respect the business rule the replay enforces.
+        assert (
+            profile.weights.skip_profit_floor_dollars
+            >= config.planning_constraints.min_expected_profit
+        )
+
+    assert profiles["max_profit"].deadhead_cost_multiplier == 1.0
+    assert profiles["max_profit"].weights.deadhead_cost_cents_per_mile == base_rate

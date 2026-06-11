@@ -79,6 +79,19 @@ class ORToolsProfitAwarePlanner(ORToolsDistancePlanner):
             load_unload_hours=load_unload_hours,
         )
         self.objective_weights = objective_weights
+        floor = objective_weights.skip_profit_floor_dollars
+        if floor is not None and floor < constraints.min_expected_profit:
+            # The replay pipeline rejects loads under the business floor, so
+            # an objective floor below it would reward serving loads that get
+            # truncated after the fact — mis-calibrated by construction.
+            raise ValueError(
+                "skip_profit_floor_dollars "
+                f"({floor:g}) must be >= the business min_expected_profit "
+                f"({constraints.min_expected_profit:g})"
+            )
+        self._skip_profit_floor = (
+            constraints.min_expected_profit if floor is None else floor
+        )
 
     # --------------------------------------------------------- objective hooks
     def _arc_cost(
@@ -105,18 +118,18 @@ class ORToolsProfitAwarePlanner(ORToolsDistancePlanner):
         )
 
     def _drop_penalty(self, load: Load, truck_state: TruckState) -> int:
-        """Skip penalty = static profit *above the business profit floor*.
+        """Skip penalty = static profit *above the skip-profit floor*.
 
         The replay's feasibility rule only accepts a load whose
         position-aware profit clears ``min_expected_profit``, so serving is
         only worth it when ``static_profit - deadhead_cost`` beats the floor.
         Shifting the penalty by the floor makes the solver's serve-vs-skip
-        break-even point coincide with that rule exactly.
+        break-even point coincide with that rule exactly. A higher
+        ``skip_profit_floor_dollars`` override (Phase 2.3) makes the solver
+        pickier than the business rule requires: marginal freight becomes
+        free to skip while the replay stays untouched.
         """
-        margin = (
-            self._static_profit(load, truck_state)
-            - self.constraints.min_expected_profit
-        )
+        margin = self._static_profit(load, truck_state) - self._skip_profit_floor
         if margin <= 0:
             return 0
         return int(round(margin * self.objective_weights.profit_cents_multiplier))

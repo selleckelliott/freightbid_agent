@@ -1,0 +1,32 @@
+# Named dispatch policy profiles for the profit-aware OR-Tools planner
+# (Phase 2.3 objective tuning).
+#
+# Each profile is expressed as *multipliers over the derived cost model*,
+# never absolute magic numbers:
+#   deadhead_cost_multiplier   - scales the true cost-model deadhead rate
+#                                (1.0 = real cost; >1 = extra deadhead aversion)
+#   skip_profit_floor_dollars  - solver pickiness: static profit a load must
+#                                clear before skipping it costs anything.
+#                                Must be >= planning.min_expected_profit.
+#   solver_time_limit_seconds  - optional per-profile override (omit to use
+#                                the caller's time limit)
+#
+# Grid placement comes from the Phase 2.3 sweep (benchmarks/tune_objective.py);
+# see benchmarks/tuning_results.json for each profile's measured tradeoff.
+profiles:
+  max_profit:
+    description: Take every load worth its true deadhead cost; maximum expected profit.
+    deadhead_cost_multiplier: 1.0
+    skip_profit_floor_dollars: 50
+  balanced:
+    description: Mild deadhead aversion at a small profit concession.
+    deadhead_cost_multiplier: 1.25
+    skip_profit_floor_dollars: 50
+  deadhead_control:
+    description: Empty miles priced well above cost; skips marginal freight.
+    deadhead_cost_multiplier: 1.6
+    skip_profit_floor_dollars: 75
+  aggressive_deadhead_control:
+    description: Strong deadhead avoidance; only high-margin freight moves the truck.
+    deadhead_cost_multiplier: 2.5
+    skip_profit_floor_dollars: 100

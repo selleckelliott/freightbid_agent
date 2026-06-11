@@ -42,7 +42,7 @@ def config():
     return load_config(ROOT / "config")
 
 
-def _make_profit_planner(config, time_limit=0.3):
+def _make_profit_planner(config, time_limit=0.3, weights=None):
     evaluator = EvaluateLoadsService(
         distance_provider=HaversineDistanceProvider(),
         toll_estimator=FlatRateTollEstimator(),
@@ -54,7 +54,7 @@ def _make_profit_planner(config, time_limit=0.3):
         distance_provider=HaversineDistanceProvider(),
         evaluate_loads_service=evaluator,
         constraints=config.planning_constraints,
-        objective_weights=config.ortools_objective_weights,
+        objective_weights=weights or config.ortools_objective_weights,
         solver_time_limit_seconds=time_limit,
         average_speed_mph=config.average_speed_mph,
         load_unload_hours=config.planning_constraints.average_load_unload_hours,
@@ -134,3 +134,35 @@ def test_empty_load_list_returns_empty_valid_plan(config):
     assert not plan.feasible
     assert plan.stops == []
     assert plan.expected_profit == 0.0
+
+
+def test_skip_profit_floor_below_business_floor_raises(config):
+    """An objective floor under min_expected_profit would reward serving
+    loads the replay rejects — the planner refuses the mis-calibration."""
+    bad = replace(config.ortools_objective_weights, skip_profit_floor_dollars=25.0)
+
+    with pytest.raises(ValueError, match="min_expected_profit"):
+        _make_profit_planner(config, weights=bad)
+
+
+def test_higher_skip_profit_floor_makes_solver_pickier(config):
+    """Phase 2.3 pickiness knob: a load worth serving under the business
+    floor ($50) becomes skippable when the objective floor is raised to
+    $100, with business rules untouched."""
+    # ~20 mi south of the truck (deadhead cost ~$28); static profit
+    # = 308.50 - 1.39*100 - 49.50 = $120, replayed profit ~$92 (feasible).
+    nearby_origin = (40.471, -111.8910)
+    load = _load(1, nearby_origin, SOUTH_UT_DEST, miles=100, rate=308.50)
+    truck = _truck()
+
+    default_plan = _make_profit_planner(config).build_plan([load], truck)
+    # Margin over $50 floor = $70 > $28 deadhead -> serve.
+    assert [s.load_id for s in default_plan.stops] == [1]
+
+    picky = replace(
+        config.ortools_objective_weights, skip_profit_floor_dollars=100.0
+    )
+    picky_plan = _make_profit_planner(config, weights=picky).build_plan([load], truck)
+    # Margin over $100 floor = $20 < $28 deadhead -> free to skip.
+    assert picky_plan.stops == []
+    assert not picky_plan.feasible

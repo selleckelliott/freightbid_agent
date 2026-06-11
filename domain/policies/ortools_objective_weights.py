@@ -30,10 +30,17 @@ class ORToolsObjectiveWeights:
         Cents of skip-penalty per dollar of a load's static (deadhead-free)
         expected profit. 100 keeps penalties on the same cents scale as the
         arc costs.
+    ``skip_profit_floor_dollars``
+        Optional *solver pickiness* knob (Phase 2.3). When set, skip
+        penalties only reward static profit above this floor instead of the
+        business ``min_expected_profit``. Must be >= the business floor —
+        anything lower asks the solver to serve loads the replay pipeline
+        will reject (the planner enforces this).
     """
 
     deadhead_cost_cents_per_mile: int
     profit_cents_multiplier: int = CENTS_PER_DOLLAR
+    skip_profit_floor_dollars: float | None = None
 
     @classmethod
     def from_cost_model(
@@ -42,6 +49,7 @@ class ORToolsObjectiveWeights:
         average_speed_mph: float,
         deadhead_cost_multiplier: float = 1.0,
         profit_multiplier: float = 1.0,
+        skip_profit_floor_dollars: float | None = None,
     ) -> "ORToolsObjectiveWeights":
         """Derive the per-mile deadhead rate from the business cost model.
 
@@ -69,4 +77,5 @@ class ORToolsObjectiveWeights:
             profit_cents_multiplier=max(
                 1, round(CENTS_PER_DOLLAR * profit_multiplier)
             ),
+            skip_profit_floor_dollars=skip_profit_floor_dollars,
         )

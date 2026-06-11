@@ -7,8 +7,11 @@ planning.
 
 **Phase 1** ships a deterministic **Dispatch Brain**: ranks loads and proposes a
 single-truck 48-hour plan with explanations. **Phase 2** adds OR-Tools
-constraint-programming planners and a three-way benchmark
-([results below](#phase-2--or-tools-route-optimization)).
+constraint-programming planners, a three-way benchmark
+([results below](#phase-2--or-tools-route-optimization)), and an objective
+tuning harness that maps the profit-vs-deadhead
+[Pareto frontier](#phase-23--objective-tuning-and-the-pareto-frontier) of
+dispatch policies.
 
 ## Architecture (Hexagonal / Ports & Adapters)
 
@@ -214,6 +217,75 @@ sequencing. Reproduce with:
 ```bash
 python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_results.json
 python -m benchmarks.chart_comparison --results benchmarks/compare_results.json
+```
+
+## Phase 2.3 — Objective Tuning and the Pareto Frontier
+
+"Maximize profit" is only one dispatch policy. An operator who hates empty
+miles (wear, risk, schedule fragility) may happily trade a percent of profit
+for far less deadhead. Phase 2.3 turns the profit-aware objective into a
+**configurable policy** and maps the tradeoff empirically: a tuning harness
+(`benchmarks/tune_objective.py`) sweeps 24 objective configurations over the
+same 1,000 scenarios and computes the profit-vs-deadhead **Pareto frontier**
+(feasible rate ≥ 85% required; non-dominated configs only).
+
+![Profit vs Deadhead Pareto Frontier](benchmarks/pareto_frontier.png)
+
+Only two knobs exist, both multipliers over the derived cost model — and that
+is a finding, not a simplification:
+
+- **`deadhead_cost_multiplier`** — how much above true cost to price an empty
+  mile (1.0 = the real cost model).
+- **`skip_profit_floor_dollars`** — solver pickiness: the static profit a load
+  must clear before skipping it costs anything. Swept only **at or above**
+  the business `min_expected_profit` ($50) — an objective floor below the
+  replay's acceptance rule would reward the solver for proposing loads the
+  feasibility pipeline then rejects.
+
+The objective is `Σ(deadhead miles × D) + Σ(skipped margin × P)`, so scaling
+`D` and `P` jointly cannot change which plan wins — only the **D/P ratio**
+matters. The harness proves it (`--invariance-check`): tripling both rates
+reproduces every plan bit-for-bit; tripling only `D` changes them
+(−67% deadhead, −3% profit on the check slice). A naive "skip penalty
+multiplier" sweep axis would have silently doubled the grid for zero
+information.
+
+**Named dispatch profiles** (`config/objective_profiles.yaml`), placed on the
+measured frontier (1,000 scenarios):
+
+| Profile | D × floor | Avg profit | Avg deadhead | Feasible |
+|---|---|---|---|---|
+| `max_profit` | 1.0 × $50 | **$396.79 (+0.1%)** | 12.0 mi (+6.6%) | 88.1% |
+| `balanced` | 1.25 × $50 | $395.90 (−0.1%) | 10.0 mi (−11.7%) | 86.9% |
+| **`deadhead_control`** ⭐ | 1.6 × $75 | $392.97 (−0.9%) | **7.4 mi (−34.3%)** | 85.4% |
+| `aggressive_deadhead_control` | 2.5 × $100 | $384.91 (−2.9%) | 3.9 mi (−65.4%) | 81.9% ✗ |
+
+*(deltas vs the heuristic baseline; ✗ = fails the ≥ 85% feasibility filter)*
+
+**Findings.**
+
+- **The Phase 2.2 derivation sits exactly at the frontier's max-profit end.**
+  Under-pricing deadhead (0.75×) is *dominated* — more deadhead **and** less
+  profit — empirical validation that the cost-model-derived 139 ¢/mi was the
+  right calibration, not a lucky guess.
+- **The recommended knee: `deadhead_control` cuts deadhead 34% for 0.9%
+  profit** (largest deadhead reduction costing < 2% of best-config profit).
+- **Deadhead aversion has a feasibility cliff.** Past ~1.6× the planner
+  increasingly refuses to plan at all (feasible rate slides from 88% toward
+  80%) — the floor knob mostly trades feasibility, the multiplier knob trades
+  deadhead, and the filter keeps the frontier honest.
+- **Runtime is not a tradeoff axis here.** The knee config produces
+  bit-identical plans at 0.1 s and 1.0 s per solve (`--time-study`): the
+  solver converges in under 100 ms at this instance size (≤ ~20 loads), so
+  "fast vs good" is a non-decision until instances grow.
+
+Reproduce with:
+
+```bash
+python -m benchmarks.tune_objective --time-limit 0.2 --out benchmarks/tuning_results.json
+python -m benchmarks.tune_objective --invariance-check --limit 200
+python -m benchmarks.tune_objective --time-study --out benchmarks/tuning_results.json
+python -m benchmarks.chart_pareto --results benchmarks/tuning_results.json
 ```
 
 ## Tests

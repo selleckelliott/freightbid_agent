@@ -26,6 +26,29 @@ Raw data: [`compare_results.json`](compare_results.json)
 
 ---
 
+## Objective Tuning — Pareto Frontier (Phase 2.3)
+
+24 objective configs (deadhead multiplier × skip-profit floor), 1,000
+scenarios each, 0.2 s/solve. Frontier = non-dominated on (profit, deadhead)
+among configs with feasible rate ≥ 85%:
+
+| Config | Avg profit | Avg deadhead | Feasible | Frontier |
+|---|---|---|---|---|
+| 1.0 × $50 (`max_profit`, = Phase 2.2) | $396.79 | 12.0 mi | 88.1% | ✔ max-profit end |
+| 1.25 × $50 (`balanced`) | $395.90 | 10.0 mi | 86.9% | ✔ |
+| 1.6 × $75 (`deadhead_control`) | $392.97 | 7.4 mi | 85.4% | ✔ **knee (recommended)** |
+| 2.5 × $100 (`aggressive_deadhead_control`) | $384.91 | 3.9 mi | 81.9% | ✗ feasibility filter |
+
+Chart: [`pareto_frontier.png`](pareto_frontier.png)  
+Raw data: [`tuning_results.json`](tuning_results.json)
+
+> Scaling both objective rates jointly reproduces every plan bit-for-bit
+> (`--invariance-check`) — only the deadhead/profit *ratio* matters, so the
+> sweep is 2-axis by design. The knee config solves identically at 0.1 s and
+> 1.0 s (`--time-study`): runtime is not a binding tradeoff at this size.
+
+---
+
 ## Current Baseline — `heuristic_baseline_1000`
 
 | Metric | Value |
@@ -74,6 +97,16 @@ python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_
 # chart the comparison
 python -m benchmarks.chart_comparison --results benchmarks/compare_results.json
 
+# Phase 2.3 objective tuning sweep (24 configs x scenarios; slow - background it)
+python -m benchmarks.tune_objective --time-limit 0.2 --out benchmarks/tuning_results.json
+
+# scaling-invariance demonstration / solver time-limit study
+python -m benchmarks.tune_objective --invariance-check --limit 200
+python -m benchmarks.tune_objective --time-study --out benchmarks/tuning_results.json
+
+# chart the Pareto frontier
+python -m benchmarks.chart_pareto --results benchmarks/tuning_results.json
+
 # regenerate 1 000 scenarios (reproducible with --seed)
 python -m benchmarks.scenario_generator --count 1000 --seed 42 \
     --out-dir benchmarks/scenarios/gen
@@ -90,6 +123,9 @@ python -m benchmarks.scenario_generator --count 1000 --seed 42 \
 | `chart_results.py` | Visualize results JSON → 6-panel PNG chart |
 | `compare_planners.py` | Heuristic vs OR-Tools planners over all scenarios |
 | `chart_comparison.py` | Visualize comparison JSON → grouped-bar PNG |
+| `tune_objective.py` | Phase 2.3 objective sweep + invariance check + time study |
+| `pareto.py` | Pure Pareto-dominance utilities (unit-tested) |
+| `chart_pareto.py` | Visualize tuning JSON → Pareto frontier PNG |
 | `scenario_generator.py` | Generate random realistic scenarios |
 | `scenarios/scenario_001.json` | Hand-crafted canonical example |
 | `scenarios/gen/` | Generated scenarios (gitignored — reproducible) |
