@@ -8,4 +8,8 @@ click==8.1.7
 rich==13.8.1
 httpx==0.27.2
 ortools==9.15.6755
+scikit-learn==1.7.2
+pandas==2.3.2
+numpy==2.3.3
+joblib==1.5.2
 pytest==8.3.3

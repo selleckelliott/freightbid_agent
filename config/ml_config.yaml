@@ -1,0 +1,36 @@
+# Phase 3.1 — Destination Desirability Model configuration.
+#
+# Drives the synthetic history generator, label construction, feature builder,
+# and training pipeline. All compute is light and fully seeded.
+
+synthetic_data:
+  start_date: "2026-01-01"
+  days: 60
+  snapshots_per_day: 8          # every 3h
+  loads_per_snapshot_mean: 45   # Poisson mean per snapshot
+  unposted_rate_fraction: 0.15  # share of loads posted "call for rate" (rate=None)
+  max_post_age_hours: 12.0      # a load may have been on the board up to this long
+  seed: 42
+  output_path: "data/synthetic_load_history.jsonl"
+
+labeling:
+  # "After I deliver, within this window, how far to the nearest viable load?"
+  search_window_hours: 8.0
+  min_rate_per_mile: 1.75       # a "good next load" bar (stricter than the $1.00 bid floor)
+  max_deadhead_cap_miles: 300.0 # censoring cap when no viable next load exists
+
+features:
+  radius_miles: [50, 100, 150]  # market-density rings around the destination
+  rate_radius_miles: 100        # ring used for median rate/miles/age features
+
+training:
+  test_size_time_fraction: 0.2  # last 20% of the time range is the test set
+  model_type: "hist_gradient_boosting"
+  min_bucket_count: 5           # min samples for a zone/daypart baseline bucket
+  top_k: 3                      # top-k for the ranking hit-rate metric
+  min_candidates_for_ranking: 4 # min loads in a (snapshot, equipment) group to score ranking
+  random_seed: 42
+
+artifacts:
+  model_path: "ml/artifacts/destination_desirability_model.joblib"
+  metadata_path: "ml/artifacts/destination_model_metadata.json"

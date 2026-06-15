@@ -14,6 +14,10 @@ dependencies = [
   "rich>=13.8",
   "httpx>=0.27",
   "ortools>=9.10",
+  "scikit-learn>=1.4",
+  "pandas>=2.0",
+  "numpy>=1.26",
+  "joblib>=1.3",
 ]
 
 [project.optional-dependencies]
@@ -28,7 +32,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["domain*", "ports*", "adapters*", "application*"]
+include = ["domain*", "ports*", "adapters*", "application*", "ml*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

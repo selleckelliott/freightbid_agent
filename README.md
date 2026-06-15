@@ -288,6 +288,88 @@ python -m benchmarks.tune_objective --time-study --out benchmarks/tuning_results
 python -m benchmarks.chart_pareto --results benchmarks/tuning_results.json
 ```
 
+## Phase 3.1 — Destination Desirability Model (first ML layer)
+
+Phases 2.x optimize *today's* board. But a load that pays well today can still be
+a trap if it **delivers into a dead market** — somewhere the next load is far
+away or doesn't exist, forcing a long deadhead. Phase 3.1 learns that risk.
+
+The model predicts **`expected_next_deadhead_miles`**: given a candidate
+delivery (destination, arrival time, equipment), how far will the truck likely
+have to deadhead to its *next* viable load? This becomes a learned
+"future-opportunity" signal the planner can price in Phase 3.2
+(`future_deadhead_penalty = predict_next_deadhead(...) × deadhead_cost_per_mile`).
+**No planner code changes in 3.1** — the `DestinationDesirabilityService` facade
+defines the contract; wiring comes later.
+
+**Label (retrospective truth).** After a delivery, search a window
+(`8h`) for the nearest viable next load — same equipment, picks up after
+arrival, clears a rate bar (`≥ 1.75 $/mi`; "call for rate" loads don't count).
+The label is the haversine miles to that load's origin, **censored at 300 mi**
+when nothing qualifies (a genuine stranding signal, ~9% of rows).
+
+**Leakage discipline (the hard part).** Two failure modes are designed out:
+- *Decision-time features only.* Market-density features (how many loads, and
+  how many equipment-matched loads, are posted within 50/100/150 mi of the
+  destination *right now*) are read from the same board on which the load
+  appears — never from the future board the label looks at. One feature builder
+  serves both training and inference, so there's no train/serve skew.
+- *Embargo + observability split.* The split is time-based (last 20% is test).
+  Labels are computed against the full history (no per-pool truncation), then
+  train rows whose label window reaches into the test period are **embargoed**,
+  and rows whose window runs off the end of the data are dropped as
+  **unobservable**. (An earlier per-pool labeling scheme manufactured fake
+  "stranded" labels at each pool's edge and silently wrecked the model — there's
+  a regression test for it now.)
+
+**Model — a hurdle (two-part) regressor.** The label is right-censored and
+heavy-tailed (a spike at 300 mi over a bulk of short deadheads), so a single
+regressor either ignores the spike (good MAE, ~0 R²) or is dragged toward the
+mean (good R², poor MAE). Instead:
+- a `HistGradientBoostingClassifier` estimates `p = P(no viable next load)`;
+- a `HistGradientBoostingRegressor` (absolute-error → conditional median of the
+  *non-censored* bulk) estimates the deadhead when a load exists;
+- they recombine into a proper expectation: `E[miles] = p·300 + (1−p)·bulk`.
+
+Both halves use native categorical handling (`destination_zone`,
+`destination_state`, `equipment_type`) — no one-hot.
+
+**Results** (held-out last-20%-by-time test set, 2,717 rows, 8.6% censored):
+
+| Model | MAE | RMSE | MedAE | R² | ≤25 mi | ≤50 mi | top-3 |
+|---|---|---|---|---|---|---|---|
+| Global mean | 70.5 | 95.4 | 47.5 | −0.00 | 4% | 61% | 32% |
+| Zone × daypart | 63.8 | 89.8 | 36.7 | 0.11 | 27% | 63% | 46% |
+| **Hurdle GBM** | **49.5** | **86.2** | **12.0** | **0.18** | **63%** | **71%** | **54%** |
+
+The model beats both baselines on **every** metric. Because the target is
+censored, MAE / median / bucket-accuracy / **top-3 ranking** (its real job —
+ranking destinations) are the headline metrics; R² is reported but secondary.
+MedAE of 12 mi vs the baseline's 37 mi, and a 63% ≤25 mi hit rate, mean the
+model usually nails the easy "you'll find a reload nearby" calls and reserves
+big predictions for genuinely weak destinations.
+
+**Why synthetic data?** Real historical board data isn't available yet, so a
+seeded generator manufactures *learnable* structure: strong hubs (Dallas,
+Houston, LA…) flood the board while weak markets (Boise, Albuquerque) barely
+appear, and each metro has its own **equipment mix** — so a flatbed delivering
+into a reefer-heavy market correctly faces a high expected deadhead (an
+interaction a zone-only baseline can't see, but the model can). The schema
+mirrors the domain `Load` so a future Truckstop adapter drops in unchanged.
+
+Reproduce (artifacts are seeded; the `.joblib` and JSONL history are
+gitignored, the metadata JSON is committed):
+
+```bash
+python -m ml.training.train_destination_model --config config/ml_config.yaml
+python -m ml.training.evaluate_destination_model --config config/ml_config.yaml
+```
+
+> **Phase 3.0.5 — Truckstop feature discovery.** Before hardening the feature
+> schema, `docs/truckstop_feature_discovery.md` captures the questions and
+> screenshot inventory needed to confirm which of these signals a real load
+> board actually exposes at decision time — keeping the synthetic schema honest.
+
 ## Tests
 
 ```bash

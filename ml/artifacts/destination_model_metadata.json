@@ -1,0 +1,84 @@
+{
+  "model_name": "HurdleHistGradientBoosting",
+  "target": "expected_next_deadhead_miles",
+  "trained_at": "2026-06-15T17:47:20.060280+00:00",
+  "train_rows": 11251,
+  "test_rows": 2717,
+  "label_cap_miles": 300.0,
+  "censoring_rate": {
+    "train": 0.09234734690249756,
+    "test": 0.08649245491350754
+  },
+  "ranking_groups": 233.0,
+  "config": {
+    "search_window_hours": 8.0,
+    "min_rate_per_mile": 1.75,
+    "max_deadhead_cap_miles": 300.0,
+    "radius_miles": [
+      50.0,
+      100.0,
+      150.0
+    ],
+    "test_size_time_fraction": 0.2,
+    "top_k": 3,
+    "random_seed": 42
+  },
+  "metrics": {
+    "global_mean": {
+      "mae": 70.53260929872657,
+      "rmse": 95.43913317099629,
+      "median_ae": 47.498296817467946,
+      "r2": -0.0009664023547990563,
+      "within_25mi": 0.0368052999631947,
+      "within_50mi": 0.6139124033860875,
+      "top_k_hit_rate": 0.31759656652360513,
+      "ranking_groups": 233.0
+    },
+    "zone_daypart": {
+      "mae": 63.76016132889592,
+      "rmse": 89.78675670703177,
+      "median_ae": 36.70921856676717,
+      "r2": 0.11408695531434287,
+      "within_25mi": 0.2749355907250644,
+      "within_50mi": 0.6345233713654767,
+      "top_k_hit_rate": 0.4592274678111588,
+      "ranking_groups": 233.0
+    },
+    "gradient_boosting": {
+      "mae": 49.53803975715029,
+      "rmse": 86.19113693735756,
+      "median_ae": 11.973170004498927,
+      "r2": 0.18362114579239275,
+      "within_25mi": 0.6312108943687891,
+      "within_50mi": 0.7107103422892896,
+      "top_k_hit_rate": 0.5364806866952789,
+      "ranking_groups": 233.0
+    }
+  },
+  "features": [
+    "destination_lat",
+    "destination_lon",
+    "destination_zone",
+    "destination_state",
+    "equipment_type",
+    "arrival_hour",
+    "arrival_dow",
+    "is_weekend",
+    "arrival_month",
+    "sin_hour",
+    "cos_hour",
+    "sin_dow",
+    "cos_dow",
+    "load_age_hours",
+    "loads_within_50",
+    "equip_match_within_50",
+    "loads_within_100",
+    "equip_match_within_100",
+    "loads_within_150",
+    "equip_match_within_150",
+    "posted_loads_near",
+    "median_rate_per_mile_near",
+    "median_loaded_miles_near",
+    "median_load_age_near"
+  ]
+}
