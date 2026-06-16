@@ -13,6 +13,10 @@ learn:
   *arrival time* of a delivery affects how easy the next load is to find.
 * A configurable fraction of loads post no rate ("call for rate"), and every
   load carries a ``posted_at`` so load age is observable.
+* Phase 3.1.1: each load also carries the real board fields discovered from
+  Truckstop — hot-shot ``equipment_type`` (HS/F/FSD/FSDV), ``weight``/``length``
+  (and usually-blank ``width``/``height``), ``mode`` (TL/PTL/LTL), and a
+  ``load_views`` competition bucket that grows with time-on-board and rate.
 
 Everything is seeded and reproducible.
 
@@ -40,6 +44,27 @@ GRAVITY_ALPHA = 1.5         # distance decay for lane selection
 COORD_JITTER_DEG = 0.18     # spread loads around a metro center (~12 mi std)
 MIN_RATE_FLOOR = 1.10       # posted rates never fall below this USD/mi
 AVG_SPEED_MPH = 50.0
+
+# -- Phase 3.1.1 board-field synthesis --------------------------------------
+# weight (lbs) and length (ft) ranges by hot-shot equipment class; hotshot loads
+# stay under the board's 0-15,000 lb / 0-40 ft filters seen in discovery.
+_WEIGHT_RANGES = {
+    "HS":   (1500.0, 12000.0),
+    "F":    (6000.0, 15000.0),
+    "FSD":  (5000.0, 15000.0),
+    "FSDV": (3000.0, 14000.0),
+}
+_LENGTH_RANGES = {
+    "HS":   (8.0, 40.0),
+    "F":    (24.0, 40.0),
+    "FSD":  (24.0, 40.0),
+    "FSDV": (16.0, 40.0),
+}
+# width/height are blank on the board most of the time -> usually None.
+_DIM_PRESENT_FRACTION = 0.4
+MODE_WEIGHTS = (("TL", 0.55), ("PTL", 0.33), ("LTL", 0.12))
+# "Load Views" competition buckets, keyed by a synthetic view count (descending).
+_VIEW_BUCKETS = ((30, "high"), (10, "med"), (1, "low"), (0, "be_the_first"))
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +150,56 @@ def _pick_destination(
     return _weighted_choice(rng, others, weights)
 
 
+def _pick_dimensions(
+    rng: random.Random, equipment: str
+) -> tuple[float, float, float | None, float | None]:
+    w_lo, w_hi = _WEIGHT_RANGES.get(equipment, (3000.0, 15000.0))
+    l_lo, l_hi = _LENGTH_RANGES.get(equipment, (16.0, 40.0))
+    weight = round(rng.uniform(w_lo, w_hi), -1)        # nearest 10 lb
+    length = float(round(rng.uniform(l_lo, l_hi)))     # whole feet
+    width = (
+        round(rng.uniform(7.0, 8.5), 1)
+        if rng.random() < _DIM_PRESENT_FRACTION
+        else None
+    )
+    height = (
+        round(rng.uniform(3.0, 10.5), 1)
+        if rng.random() < _DIM_PRESENT_FRACTION
+        else None
+    )
+    return weight, length, width, height
+
+
+def _pick_mode(rng: random.Random, weight: float, length: float) -> str:
+    # Heavy/long loads skew full truckload; light loads skew partial / LTL.
+    if weight >= 12000.0 or length >= 36.0:
+        weights = (("TL", 0.75), ("PTL", 0.20), ("LTL", 0.05))
+    elif weight <= 5000.0:
+        weights = (("TL", 0.35), ("PTL", 0.42), ("LTL", 0.23))
+    else:
+        weights = MODE_WEIGHTS
+    return _weighted_choice(rng, [m for m, _ in weights], [w for _, w in weights])
+
+
+def _load_views_bucket(
+    rng: random.Random,
+    origin: MarketProfile,
+    load_age_hours: float,
+    rpm: float | None,
+) -> str:
+    """Synthetic "Load Views" bucket. Views accumulate with time on the board,
+    rate attractiveness, and mild market popularity, so fresh loads land in
+    ``be_the_first``/``low`` (uncontested) while aging/cheap loads draw a crowd.
+    """
+    rpm_pull = 0.0 if rpm is None else max(0.0, rpm - 1.8)
+    lam = 0.6 + 1.4 * load_age_hours + 6.0 * rpm_pull + 2.0 * origin.outbound_density
+    views = _poisson(rng, max(0.0, lam))
+    for threshold, bucket in _VIEW_BUCKETS:
+        if views >= threshold:
+            return bucket
+    return "be_the_first"
+
+
 def _generate_load(
     rng: random.Random,
     load_seq: int,
@@ -163,6 +238,11 @@ def _generate_load(
     dropoff_start = pickup_end + timedelta(hours=drive_hours)
     dropoff_end = dropoff_start + timedelta(hours=rng.uniform(2.0, 6.0))
 
+    weight, length, width, height = _pick_dimensions(rng, equipment)
+    mode = _pick_mode(rng, weight, length)
+    load_age_hours = (snapshot_time - posted_at).total_seconds() / 3600.0
+    load_views = _load_views_bucket(rng, origin, load_age_hours, rpm)
+
     return LoadSnapshotRecord(
         snapshot_time=snapshot_time,
         load_id=f"L-{load_seq:06d}",
@@ -182,6 +262,12 @@ def _generate_load(
         loaded_miles=miles,
         posted_at=posted_at,
         total_rate=total_rate,
+        weight=weight,
+        length=length,
+        width=width,
+        height=height,
+        mode=mode,
+        load_views=load_views,
     )
 
 

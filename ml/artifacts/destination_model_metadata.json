@@ -1,15 +1,15 @@
 {
   "model_name": "HurdleHistGradientBoosting",
   "target": "expected_next_deadhead_miles",
-  "trained_at": "2026-06-15T17:47:20.060280+00:00",
-  "train_rows": 11251,
-  "test_rows": 2717,
+  "trained_at": "2026-06-16T15:19:09.607436+00:00",
+  "train_rows": 14936,
+  "test_rows": 3594,
   "label_cap_miles": 300.0,
   "censoring_rate": {
-    "train": 0.09234734690249756,
-    "test": 0.08649245491350754
+    "train": 0.0790037493304767,
+    "test": 0.08291597106288258
   },
-  "ranking_groups": 233.0,
+  "ranking_groups": 313.0,
   "config": {
     "search_window_hours": 8.0,
     "min_rate_per_mile": 1.75,
@@ -25,34 +25,34 @@
   },
   "metrics": {
     "global_mean": {
-      "mae": 70.53260929872657,
-      "rmse": 95.43913317099629,
-      "median_ae": 47.498296817467946,
-      "r2": -0.0009664023547990563,
-      "within_25mi": 0.0368052999631947,
-      "within_50mi": 0.6139124033860875,
-      "top_k_hit_rate": 0.31759656652360513,
-      "ranking_groups": 233.0
+      "mae": 69.81402226276681,
+      "rmse": 96.77572305544385,
+      "median_ae": 44.540568711540374,
+      "r2": -0.0005404554326600142,
+      "within_25mi": 0.05008347245409015,
+      "within_50mi": 0.7276015581524764,
+      "top_k_hit_rate": 0.36741214057507987,
+      "ranking_groups": 313.0
     },
     "zone_daypart": {
-      "mae": 63.76016132889592,
-      "rmse": 89.78675670703177,
-      "median_ae": 36.70921856676717,
-      "r2": 0.11408695531434287,
-      "within_25mi": 0.2749355907250644,
-      "within_50mi": 0.6345233713654767,
-      "top_k_hit_rate": 0.4592274678111588,
-      "ranking_groups": 233.0
+      "mae": 61.234465129366576,
+      "rmse": 89.24683989659601,
+      "median_ae": 32.09513327424781,
+      "r2": 0.14908241588760174,
+      "within_25mi": 0.3884251530328325,
+      "within_50mi": 0.6597106288258208,
+      "top_k_hit_rate": 0.4472843450479233,
+      "ranking_groups": 313.0
     },
     "gradient_boosting": {
-      "mae": 49.53803975715029,
-      "rmse": 86.19113693735756,
-      "median_ae": 11.973170004498927,
-      "r2": 0.18362114579239275,
-      "within_25mi": 0.6312108943687891,
-      "within_50mi": 0.7107103422892896,
-      "top_k_hit_rate": 0.5364806866952789,
-      "ranking_groups": 233.0
+      "mae": 49.32314829519187,
+      "rmse": 88.65214106170785,
+      "median_ae": 13.238358099622369,
+      "r2": 0.16038485957185256,
+      "within_25mi": 0.6371730662214803,
+      "within_50mi": 0.755147468002226,
+      "top_k_hit_rate": 0.5015974440894568,
+      "ranking_groups": 313.0
     }
   },
   "features": [
@@ -61,6 +61,7 @@
     "destination_zone",
     "destination_state",
     "equipment_type",
+    "mode",
     "arrival_hour",
     "arrival_dow",
     "is_weekend",
@@ -72,10 +73,13 @@
     "load_age_hours",
     "loads_within_50",
     "equip_match_within_50",
+    "open_match_within_50",
     "loads_within_100",
     "equip_match_within_100",
+    "open_match_within_100",
     "loads_within_150",
     "equip_match_within_150",
+    "open_match_within_150",
     "posted_loads_near",
     "median_rate_per_mile_near",
     "median_loaded_miles_near",

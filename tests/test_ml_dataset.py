@@ -58,7 +58,7 @@ def _record(i: int) -> LoadSnapshotRecord:
         pickup_end=snap + timedelta(hours=1.5),
         dropoff_start=snap + timedelta(hours=ARRIVAL_OFFSET_H),
         dropoff_end=snap + timedelta(hours=ARRIVAL_OFFSET_H + 0.5),
-        equipment_type="Dry Van",
+        equipment_type="HS",
         loaded_miles=100.0,
         posted_at=snap - timedelta(hours=1.0),
         total_rate=250.0,

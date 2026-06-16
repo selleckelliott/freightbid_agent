@@ -46,6 +46,7 @@ class DestinationDesirabilityService:
         equipment_type: str,
         visible_loads: Sequence[Any] = (),
         load_age_hours: float = 0.0,
+        mode: str = "TL",
     ) -> float:
         """Predicted ``expected_next_deadhead_miles`` for a candidate delivery.
 
@@ -58,6 +59,7 @@ class DestinationDesirabilityService:
             destination_state=destination_state,
             equipment_type=equipment_type,
             arrival_dt=arrival_time,
+            mode=mode,
             load_age_hours_value=load_age_hours,
             load_id=None,
         )

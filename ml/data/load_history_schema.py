@@ -7,6 +7,13 @@ A ``LoadSnapshotRecord`` is one load as it appeared on the board at a particular
 Discovery-driven additions (Phase 3.0.5): ``posted_at`` (load age is observable
 at decision time and signals staleness) and a nullable ``total_rate`` ("call for
 rate" loads carry no rate and are treated as non-viable when labeling).
+
+Phase 3.1.1 (real Truckstop board discovery): the board exposes hot-shot
+equipment codes (``HS``/``F``/``FSD``/``FSDV``), load ``mode`` (TL/PTL/LTL),
+physical dimensions (``weight``/``length`` are filterable; ``width``/``height``
+are often blank, hence nullable), and a per-load competition signal
+(``load_views``: ``Be The First``/``Low``/``Med``/``High``). These mirror the
+columns a future API adapter will map onto.
 """
 from __future__ import annotations
 
@@ -50,6 +57,13 @@ class LoadSnapshotRecord:
     loaded_miles: float
     posted_at: datetime
     total_rate: float | None = None
+    # -- Phase 3.1.1 board fields (defaults keep older fixtures/JSONL valid) ----
+    weight: float = 0.0          # lbs (Truckstop "Weight"); hotshot's key limit
+    length: float = 0.0          # ft (Truckstop "Length"); hotshot deck limit
+    width: float | None = None   # ft (often blank on the board)
+    height: float | None = None  # ft (often blank on the board)
+    mode: str = "TL"             # TL / PTL / LTL
+    load_views: str = "low"      # competition bucket: be_the_first/low/med/high
 
     # -- decision-time accessors -------------------------------------------
     @property

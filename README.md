@@ -306,7 +306,7 @@ defines the contract; wiring comes later.
 (`8h`) for the nearest viable next load — same equipment, picks up after
 arrival, clears a rate bar (`≥ 1.75 $/mi`; "call for rate" loads don't count).
 The label is the haversine miles to that load's origin, **censored at 300 mi**
-when nothing qualifies (a genuine stranding signal, ~9% of rows).
+when nothing qualifies (a genuine stranding signal, ~8% of rows).
 
 **Leakage discipline (the hard part).** Two failure modes are designed out:
 - *Decision-time features only.* Market-density features (how many loads, and
@@ -332,30 +332,31 @@ mean (good R², poor MAE). Instead:
 - they recombine into a proper expectation: `E[miles] = p·300 + (1−p)·bulk`.
 
 Both halves use native categorical handling (`destination_zone`,
-`destination_state`, `equipment_type`) — no one-hot.
+`destination_state`, `equipment_type`, `mode`) — no one-hot.
 
-**Results** (held-out last-20%-by-time test set, 2,717 rows, 8.6% censored):
+**Results** (held-out last-20%-by-time test set, 3,594 rows, 8.3% censored):
 
 | Model | MAE | RMSE | MedAE | R² | ≤25 mi | ≤50 mi | top-3 |
 |---|---|---|---|---|---|---|---|
-| Global mean | 70.5 | 95.4 | 47.5 | −0.00 | 4% | 61% | 32% |
-| Zone × daypart | 63.8 | 89.8 | 36.7 | 0.11 | 27% | 63% | 46% |
-| **Hurdle GBM** | **49.5** | **86.2** | **12.0** | **0.18** | **63%** | **71%** | **54%** |
+| Global mean | 69.8 | 96.8 | 44.5 | −0.00 | 5% | 73% | 37% |
+| Zone × daypart | 61.2 | 89.2 | 32.1 | 0.15 | 39% | 66% | 45% |
+| **Hurdle GBM** | **49.3** | **88.7** | **13.2** | **0.16** | **64%** | **76%** | **50%** |
 
 The model beats both baselines on **every** metric. Because the target is
 censored, MAE / median / bucket-accuracy / **top-3 ranking** (its real job —
 ranking destinations) are the headline metrics; R² is reported but secondary.
-MedAE of 12 mi vs the baseline's 37 mi, and a 63% ≤25 mi hit rate, mean the
+MedAE of 13 mi vs the baseline's 32 mi, and a 64% ≤25 mi hit rate, mean the
 model usually nails the easy "you'll find a reload nearby" calls and reserves
 big predictions for genuinely weak destinations.
 
 **Why synthetic data?** Real historical board data isn't available yet, so a
 seeded generator manufactures *learnable* structure: strong hubs (Dallas,
 Houston, LA…) flood the board while weak markets (Boise, Albuquerque) barely
-appear, and each metro has its own **equipment mix** — so a flatbed delivering
-into a reefer-heavy market correctly faces a high expected deadhead (an
-interaction a zone-only baseline can't see, but the model can). The schema
-mirrors the domain `Load` so a future Truckstop adapter drops in unchanged.
+appear, and each metro has its own **hot-shot equipment mix** — so an `F`
+(flatbed) load delivering into a Hot-Shot-heavy market correctly faces a high
+expected deadhead (an interaction a zone-only baseline can't see, but the model
+can). The schema mirrors the **real Truckstop board** (see Phase 3.0.5 below),
+so a future API adapter drops in unchanged.
 
 Reproduce (artifacts are seeded; the `.joblib` and JSONL history are
 gitignored, the metadata JSON is committed):
@@ -365,10 +366,19 @@ python -m ml.training.train_destination_model --config config/ml_config.yaml
 python -m ml.training.evaluate_destination_model --config config/ml_config.yaml
 ```
 
-> **Phase 3.0.5 — Truckstop feature discovery.** Before hardening the feature
-> schema, `docs/truckstop_feature_discovery.md` captures the questions and
-> screenshot inventory needed to confirm which of these signals a real load
-> board actually exposes at decision time — keeping the synthetic schema honest.
+> **Phase 3.0.5 / 3.1.1 — Truckstop feature discovery (grounded).** Real board
+> screenshots were captured and folded into the schema:
+> `docs/truckstop_feature_discovery.md` holds the observed-field inventory. The
+> board's columns confirmed the existing design (load age, "call-for-rate"
+> nullable rate, derived rate-per-mile) and added real fields — hot-shot
+> equipment codes (`HS`/`F`/`FSD`/`FSDV`), `weight`/`length` (+ usually-blank
+> `width`/`height`), `mode` (TL/PTL/LTL), and a `Load Views` competition bucket
+> (now the `open_match_within_*` "uncontested onward supply" feature). Crucially,
+> the board shows deadhead only to a *user-specified* point (`O-DH` to pickup,
+> `D-DH` to a typed destination) — never the open-ended next-load deadhead this
+> model predicts, so the ML layer is **additive**. Broker-quality signals
+> (`Days-to-Pay`, credit/bond) are observable but describe *load winnability*,
+> not onward deadhead, so they're deferred to a future Phase 4 quality model.
 
 ## Tests
 

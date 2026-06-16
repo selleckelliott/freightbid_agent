@@ -17,7 +17,7 @@ DEST_LAT, DEST_LON = 40.0, -111.0
 def _rec(
     load_id,
     *,
-    equip="Flatbed",
+    equip="F",
     olat=40.0,
     olon=-111.0,
     pickup=BASE,
@@ -62,8 +62,8 @@ def test_no_viable_future_load_returns_cap():
 
 
 def test_equipment_mismatch_is_ignored():
-    completed = _rec("C", equip="Flatbed")
-    mismatch = _rec("M", equip="Reefer", olat=40.1, pickup=BASE + timedelta(hours=1))
+    completed = _rec("C", equip="F")
+    mismatch = _rec("M", equip="HS", olat=40.1, pickup=BASE + timedelta(hours=1))
     assert build_label(completed, [mismatch], CFG) == CFG.max_deadhead_cap_miles
 
 

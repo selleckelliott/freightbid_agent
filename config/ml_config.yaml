@@ -7,11 +7,17 @@ synthetic_data:
   start_date: "2026-01-01"
   days: 60
   snapshots_per_day: 8          # every 3h
-  loads_per_snapshot_mean: 45   # Poisson mean per snapshot
+  loads_per_snapshot_mean: 60   # Poisson mean per snapshot (richer board keeps
+                                # per-equipment onward supply healthy across the
+                                # 4 hot-shot classes; ~4/3 of the 3-class value)
   unposted_rate_fraction: 0.15  # share of loads posted "call for rate" (rate=None)
   max_post_age_hours: 12.0      # a load may have been on the board up to this long
   seed: 42
   output_path: "data/synthetic_load_history.jsonl"
+  # Board-field distributions discovered in Phase 3.0.5 (hot-shot equipment mix,
+  # weight/length/width/height ranges, TL/PTL/LTL mode weights, and the
+  # "Load Views" competition thresholds) live as seeded constants in
+  # ml/data/synthetic_history_generator.py and ml/markets.py.
 
 labeling:
   # "After I deliver, within this window, how far to the nearest viable load?"

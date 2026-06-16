@@ -26,7 +26,7 @@ def test_service_returns_model_prediction_and_builds_one_row():
         destination_lon=-104.9903,
         destination_state="CO",
         arrival_time=datetime(2026, 1, 2, 14, 0, tzinfo=timezone.utc),
-        equipment_type="Flatbed",
+        equipment_type="F",
         visible_loads=[],
     )
 

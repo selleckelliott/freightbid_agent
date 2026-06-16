@@ -37,6 +37,7 @@ class _DestinationLike(Protocol):
     destination_lon: float
     destination_state: str
     equipment_type: str
+    mode: str
     load_id: str | None
 
     @property
@@ -58,6 +59,7 @@ class DestinationQuery:
     destination_state: str
     equipment_type: str
     arrival_dt: datetime
+    mode: str = "TL"
     load_age_hours_value: float = 0.0
     load_id: str | None = None
 
@@ -103,6 +105,7 @@ def build_features(
         "destination_zone": nearest_zone(load.destination_lat, load.destination_lon),
         "destination_state": load.destination_state,
         "equipment_type": load.equipment_type,
+        "mode": load.mode,
         "arrival_hour": hour,
         "arrival_dow": dow,
         "is_weekend": int(dow >= 5),
@@ -121,6 +124,16 @@ def build_features(
             1
             for d, other in near
             if d <= radius and other.equipment_type == load.equipment_type
+        )
+        # Equipment-matched onward loads that are still uncontested on the board
+        # ("Load Views" = Be The First / Low) — an easy-to-grab onward supply
+        # signal a dispatcher can read at decision time.
+        feats[f"open_match_within_{r}"] = sum(
+            1
+            for d, other in near
+            if d <= radius
+            and other.equipment_type == load.equipment_type
+            and getattr(other, "load_views", "low") in ("be_the_first", "low")
         )
 
     ring = [other for d, other in near if d <= cfg.rate_radius_miles]
@@ -142,6 +155,7 @@ CATEGORICAL_COLUMNS: tuple[str, ...] = (
     "destination_zone",
     "destination_state",
     "equipment_type",
+    "mode",
 )
 
 # Non-feature bookkeeping columns produced alongside features in the dataset.

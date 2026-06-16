@@ -18,8 +18,8 @@ So this is a **hurdle model**:
       E[deadhead] = p * cap + (1 - p) * E[deadhead | load exists]
 
 Both sub-models are ``HistGradientBoosting*`` with native categorical handling
-(no one-hot): ``destination_zone``, ``destination_state`` and
-``equipment_type`` are passed through as pandas ``category`` columns. The class
+(no one-hot): ``destination_zone``, ``destination_state``, ``equipment_type``
+and ``mode`` are passed through as pandas ``category`` columns. The class
 owns its feature selection, persistence (joblib), and reload, and keeps the
 plain ``fit``/``predict`` interface the rest of the pipeline expects.
 """

@@ -13,7 +13,7 @@ SNAP = datetime(2026, 1, 1, 8, 0, tzinfo=timezone.utc)
 DENVER = (39.7392, -104.9903)
 
 
-def _board_load(load_id, olat, olon, *, equip="Flatbed", miles=200.0, rate=500.0):
+def _board_load(load_id, olat, olon, *, equip="F", miles=200.0, rate=500.0):
     return LoadSnapshotRecord(
         snapshot_time=SNAP,
         load_id=load_id,
@@ -36,7 +36,7 @@ def _board_load(load_id, olat, olon, *, equip="Flatbed", miles=200.0, rate=500.0
     )
 
 
-def _query(equip="Flatbed"):
+def _query(equip="F"):
     return DestinationQuery(
         destination_lat=DENVER[0],
         destination_lon=DENVER[1],
@@ -49,9 +49,9 @@ def _query(equip="Flatbed"):
 
 def _board():
     return [
-        _board_load("b1", 39.80, -104.99, equip="Flatbed", miles=200.0, rate=500.0),
-        _board_load("b2", 40.00, -104.99, equip="Reefer", miles=300.0, rate=750.0),
-        _board_load("b3", 34.05, -118.24, equip="Flatbed", miles=400.0, rate=1000.0),
+        _board_load("b1", 39.80, -104.99, equip="F", miles=200.0, rate=500.0),
+        _board_load("b2", 40.00, -104.99, equip="HS", miles=300.0, rate=750.0),
+        _board_load("b3", 34.05, -118.24, equip="F", miles=400.0, rate=1000.0),
     ]
 
 
@@ -60,8 +60,10 @@ def test_density_and_equipment_counts():
     # Two CO loads are within every ring; the LA load is excluded.
     assert feats["loads_within_50"] == 2
     assert feats["loads_within_150"] == 2
-    # Only the Flatbed CO load matches equipment within 50 mi.
+    # Only the F (flatbed) CO load matches equipment within 50 mi.
     assert feats["equip_match_within_50"] == 1
+    # b1 is equipment-matched and uncontested (default load_views "low").
+    assert feats["open_match_within_50"] == 1
     assert feats["posted_loads_near"] == 2
     assert feats["median_rate_per_mile_near"] == pytest.approx(2.5)
 
@@ -90,7 +92,7 @@ def test_candidate_excludes_itself_from_board():
         destination_lat=DENVER[0],
         destination_lon=DENVER[1],
         destination_state="CO",
-        equipment_type="Flatbed",
+        equipment_type="F",
         arrival_dt=datetime(2026, 1, 2, 14, 0, tzinfo=timezone.utc),
         load_id="b1",
     )
