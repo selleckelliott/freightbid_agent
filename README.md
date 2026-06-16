@@ -445,6 +445,89 @@ artifact exists locally):
 python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_results.json
 ```
 
+## Phase 3.3 — Rolling Replanning Simulation (measuring the sequential payoff)
+
+The Phase 3.2 A/B was *one-shot*: the planner chooses once, so it can only ever
+**decline** a stranding load — it never gets to collect the better next load its
+choice sets up. That's why it cost 0.9% profit to save deadhead. Phase 3.3 builds
+the missing piece: a **rolling-horizon (MPC-style) simulation** that lets a truck
+replan over a multi-day week, so the destination signal's *downstream* payoff
+shows up end-to-end.
+
+**How it works.** Each **episode** is one synthetic world — a time-stamped stream
+of board snapshots from the **Phase 3.1 generator** (the same market structure the
+model trained on, so it is tested in-distribution, *not* on the uniform benchmark
+generator). The loop is deliberately thin (`simulation/`):
+
+```
+observe visible board → planner picks → execute only the first load → advance
+truck (position, clock, HOS) → replan at the next snapshot → … until the horizon
+```
+
+* **`SnapshotBoard`** answers "what can the truck take right now?": the latest
+  snapshot at or before the clock, filtered by equipment, pickup-window expiry,
+  radius and consumed loads, then adapted from ML records to domain `Load`s.
+* **`TruckSimulator`** owns *no cost math*. The planners already produce a
+  position-aware financial replay on `plan.stops[0]` via `EvaluateLoadsService`,
+  so the simulator just **lifts those realized numbers** and advances the truck to
+  the delivered destination — rolling metrics therefore reconcile exactly with the
+  one-shot engine (there is a regression test for this). A simple daily
+  Hours-of-Service reset keeps a single truck from running dry after day one.
+* **Same world, same truck, every planner.** Only the dispatch policy differs.
+
+**Policy divergence (shadow comparison).** To explain effect size, while the
+profit-aware truck runs, the destination-aware planner rides along as a *shadow*:
+at each decision it is asked what it *would* pick from the **identical** board and
+truck state, **without executing**. The agreement flag yields a
+`decision_overlap_rate`. Forced idles (both planners decline an HOS-depleted
+board) are excluded — only genuine choice points count.
+
+**A/B result** (150 episodes × 7-day horizon, OR-Tools 0.2 s/decision,
+`weight=1.0`; 95% bootstrap CIs):
+
+| Planner | Cumulative profit | Cumulative deadhead | Idle hrs | Loads | Profit/day | Deadhead/load |
+| --- | --- | --- | --- | --- | --- | --- |
+| OR-Tools Profit-Aware | $1,682.7 `[1562, 1806]` | 123.7 mi `[110, 138]` | 67.8 | 5.6 | $240.4 | 19.6 mi |
+| OR-Tools Destination-Aware | **$1,749.0** `[1624, 1878]` | **118.0 mi** `[106, 130]` | 67.7 | 5.6 | **$249.9** | **18.9 mi** |
+
+Destination-aware vs. its profit-aware parent: **+3.9% profit and −4.7% deadhead**
+(−3.8% deadhead per load), idle hours and load count flat.
+
+**The headline: rolling flips the one-shot trade-off.** What cost 0.9% profit in
+the single-shot benchmark now *earns* +3.9% — because the truck actually collects
+the closer next load that pricing onward-deadhead set up. Same model, same weight;
+the only change is letting decisions compound. That is exactly the hypothesis this
+simulation was built to test.
+
+**Reading this honestly.** The two policies agree **92.4%** of the time (divergence
+**7.6%** over 838 genuine decisions), so the effect is carried by a minority of
+episodes, and a paired per-episode view (both planners ran the same world) is the
+fair lens:
+
+* **Profit:** mean Δ **+$66.3/episode** — better in **34** episodes, tied in **98**,
+  worse in **18**.
+* **Deadhead:** mean Δ **−5.8 mi/episode** — better in **30**, tied in **98**,
+  worse in **22**.
+
+So on the ~1/3 of worlds where the policies diverge, destination-awareness wins
+clearly more often than it loses, and never hurts on the other two-thirds. Two
+honest caveats: (1) a single-truck, simple-HOS model completes only ~5.6 loads/
+week, which bounds how much decisions can compound; (2) the model's *predicted*
+onward-deadhead barely tracks the *realized* onward miles in this loop
+(correlation ≈ 0.02, MAE ≈ 17.8 mi) — the realized proxy is shaped by HOS timing
+and the next snapshot, not destination strength alone — yet the **aggregate
+dispatch nudge is still net-positive**. Tightening that signal (and multi-truck /
+finer HOS) is the natural Phase 3.4+ direction. See
+`benchmarks/rolling_replay_comparison.png` for the full distribution view.
+
+Reproduce (destination-aware trajectory appears only when the gitignored model
+artifact exists locally):
+
+```bash
+python -m benchmarks.run_rolling_replay --episodes 150 --out benchmarks/rolling_replay_summary.json
+python -m benchmarks.chart_rolling_replay
+```
+
 ## Tests
 
 ```bash
