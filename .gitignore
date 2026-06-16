@@ -7,6 +7,8 @@ __pycache__/
 .ipynb_checkpoints/
 
 benchmarks/scenarios/gen/
+# Scratch/smoke artifacts (underscore-prefixed) from local benchmark runs.
+benchmarks/_*
 
 # Phase 3.1 ML — generated history + trained binaries (seeded, regenerable).
 # Metadata JSON is committed as a result artifact; the model binary is not.

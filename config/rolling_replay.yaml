@@ -1,0 +1,28 @@
+# Phase 3.3 — Rolling replanning simulation configuration.
+#
+# Drives benchmarks/run_rolling_replay.py. Each episode is one synthetic world
+# (built from the Phase 3.1 generator with a per-episode seed) replayed for every
+# planner over a rolling multi-day horizon. Loaded directly by the runner (NOT
+# through the DI container) to stay decoupled from the planning-config schema;
+# average_speed_mph / load_unload_hours still come from the container so the HOS
+# ledger matches the evaluator's own accounting.
+
+world:
+  start_date: "2026-01-01"
+  horizon_days: 7               # length of each rolling episode
+  snapshots_per_day: 8          # board refresh cadence (every 3h), matches Phase 3.1
+  loads_per_snapshot_mean: 60   # Poisson mean per snapshot (rich board -> candidates)
+  unposted_rate_fraction: 0.15  # share posted "call for rate" (non-viable)
+  max_post_age_hours: 12.0
+
+episodes:
+  count: 50                     # episode ramp lives on the CLI (--episodes 5/50/200)
+  base_seed: 1000               # episode e uses world seed base_seed + e
+
+truck:
+  radius_mi: 400.0              # how far the truck will reach for a pickup
+  daily_drive_hours: 11.0       # HOS daily drive cap restored each duty day
+
+planners:
+  destination_weight: 1.0       # scales the Phase 3.2 onward-deadhead discount
+  solver_time_limit_seconds: 0.3
