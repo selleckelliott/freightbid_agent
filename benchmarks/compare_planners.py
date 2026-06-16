@@ -1,8 +1,8 @@
-"""Head-to-head comparison: heuristic vs OR-Tools distance vs OR-Tools profit-aware.
+"""Head-to-head comparison: heuristic vs OR-Tools distance / profit / destination.
 
-Runs all three planners over the generated scenario suite and reports
-aggregate plan-quality and runtime metrics side by side. Same scenarios, same
-load inputs, same cost accounting (every planner's financials come from
+Runs every planner over the generated scenario suite and reports aggregate
+plan-quality and runtime metrics side by side. Same scenarios, same load inputs,
+same cost accounting (every planner's financials come from
 ``EvaluateLoadsService``), so the only difference is load selection/sequencing.
 
 Note on objectives: ``ORToolsDistancePlanner`` minimises travel *distance*
@@ -10,8 +10,14 @@ Note on objectives: ``ORToolsDistancePlanner`` minimises travel *distance*
 the driver's HOS budget. ``ORToolsProfitAwarePlanner`` (Phase 2.2) instead
 minimises *negative expected profit* — cost-model-priced deadhead plus
 profit-proportional penalties for skipping loads — so it may decline freight
-that is not worth its empty miles. The three-way result is a clean ablation:
-heuristic baseline, distance objective, business objective.
+that is not worth its empty miles. ``ORToolsDestinationAwarePlanner`` (Phase
+3.2) adds one more term: each load is additionally discounted by the Phase 3.1
+model's *expected onward-deadhead cost*, so it declines freight that would
+strand the truck in a weak market even when the immediate trip is profitable.
+The four-way result is a clean ablation: heuristic baseline, distance objective,
+business objective, business objective + learned destination desirability. The
+destination-aware column appears only when the trained model artifact exists
+locally (it is gitignored).
 
 Examples
 --------
@@ -35,6 +41,12 @@ from adapters.inbound.api.mappers import load_from_dto, truck_from_dto
 from adapters.inbound.api.schemas import LoadDTO, TruckStateDTO
 from application.ortools_distance_planner import ORToolsDistancePlanner
 from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
+from application.ortools_destination_aware_planner import (
+    ORToolsDestinationAwarePlanner,
+)
+from application.destination_desirability_service import (
+    DestinationDesirabilityService,
+)
 from domain.models.load import Load
 from domain.models.plan import Plan
 from domain.models.truck_state import TruckState
@@ -161,6 +173,30 @@ def main() -> None:
         ),
     ]
 
+    # Phase 3.2: a destination-aware planner that additionally discounts each
+    # load by the Phase 3.1 model's expected onward-deadhead cost. Artifact-
+    # gated — the trained ``.joblib`` is gitignored, so the comparison still
+    # runs (three-way) wherever the model has not been built locally.
+    model_path = ROOT / "ml" / "artifacts" / "destination_desirability_model.joblib"
+    if model_path.exists():
+        service = DestinationDesirabilityService.from_artifact(model_path)
+        planners.append(
+            (
+                "ortools_destination_aware",
+                "OR-Tools Destination-Aware",
+                ORToolsDestinationAwarePlanner(
+                    objective_weights=container.config.ortools_objective_weights,
+                    destination_service=service,
+                    **ortools_kwargs,
+                ).build_plan,
+            )
+        )
+    else:
+        print(
+            f"(destination-aware planner skipped: no model artifact at {model_path}; "
+            "train it with `python -m ml.training.train_destination_model`)"
+        )
+
     print("=" * 78)
     print(f"Planner comparison over {len(scenarios)} scenarios "
           f"(OR-Tools {args.time_limit:.2f}s/solve)")
@@ -180,6 +216,9 @@ def main() -> None:
                  results["ortools_profit_aware"], results["heuristic"])
     _print_delta("OR-Tools Profit-Aware vs OR-Tools Distance",
                  results["ortools_profit_aware"], results["ortools_distance"])
+    if "ortools_destination_aware" in results:
+        _print_delta("OR-Tools Destination-Aware vs OR-Tools Profit-Aware",
+                     results["ortools_destination_aware"], results["ortools_profit_aware"])
     print("=" * 78)
 
     if args.out:
