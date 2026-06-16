@@ -380,6 +380,71 @@ python -m ml.training.evaluate_destination_model --config config/ml_config.yaml
 > (`Days-to-Pay`, credit/bond) are observable but describe *load winnability*,
 > not onward deadhead, so they're deferred to a future Phase 4 quality model.
 
+## Phase 3.2 — Destination-Aware Planner (closing the loop)
+
+Phase 3.1 *predicted* onward deadhead but changed no decisions. Phase 3.2 wires
+that prediction into the optimizer so it actually **influences dispatch**.
+
+The profit-aware planner prices the deadhead needed to *reach* each load, but is
+blind to the deadhead a load's **destination** will impose on the *next* load.
+`ORToolsDestinationAwarePlanner` subclasses it and changes a **single objective
+hook** (`_drop_penalty`): each load's skip penalty becomes its static profit
+*net of its destination's expected onward-deadhead cost*, above the floor:
+
+```
+skip_penalty = max(0, static_profit − dest_cost − floor) × profit_multiplier
+dest_cost    = predict_next_deadhead(...) × deadhead_$_per_mile × weight
+```
+
+Folding `dest_cost` in *before* the floor keeps the solver's serve-vs-skip
+break-even exact. A load delivering into a strong market keeps its full value; a
+load into a weak market loses skip-incentive, so the solver declines
+otherwise-profitable freight that would strand the truck. The penalty is
+**position-independent** (it depends only on the destination, arrival window and
+the visible board), so it stays a per-load disjunction penalty — no
+path-dependent arc cost. With `destination_service=None` the planner is
+byte-for-byte the profit-aware planner: **the ML signal is a feature flag, not a
+fork** (and `destination_weight` scales it).
+
+**The domain ↔ ML boundary (kept honest).** The planner speaks the domain's
+trailer vocabulary (`Dry Van`/`Reefer`/`Flatbed`); the model trained on hot-shot
+board codes. Two small, deliberately coarse adapters bridge them: an equipment
+map (`Flatbed→F`, `Dry Van→FSDV`, everything else→`HS`) and a `_BoardLoad`
+wrapper that re-shapes a domain `Load` into the feature builder's board contract
+— the same contract a real Truckstop feed would satisfy. The decision-time board
+is the prefiltered candidate set (each candidate excluded from its own board).
+
+**A/B result** (1000-scenario suite, OR-Tools 0.2 s/solve, `weight=1.0`):
+
+| Planner | Avg profit | Avg deadhead | Avg loads | Feasible | Median solve |
+| --- | --- | --- | --- | --- | --- |
+| Heuristic (scoring) | $396.38 | 11.3 mi | 0.91 | 88.1% | 0.2 ms |
+| OR-Tools Distance | $240.14 | 8.9 mi | 0.88 | 82.4% | 202 ms |
+| OR-Tools Profit-Aware | **$396.79** | 12.0 mi | 0.91 | 88.1% | 202 ms |
+| OR-Tools Destination-Aware | $393.23 | **10.5 mi** | 0.89 | 86.1% | 275 ms |
+
+Destination-aware vs. its profit-aware parent: **−0.9% profit, −12.9% deadhead,
+−2.4% loads.** (The ~80 ms extra solve time is the per-candidate ML inference.)
+
+**Reading this honestly.** This is a *one-shot* benchmark: each scenario plans
+once from a fixed truck position, so the planner can only ever *decline* a load —
+it never gets to collect the better next load its choice sets up. Even so, the
+trade is favorable: it gives up just **0.9% of immediate profit to cut deadhead
+12.9%**, declining loads bound for weak markets that the profit-aware planner
+takes blindly. That's the safety behavior we wanted, and it's nearly free here.
+The *full* payoff (actually collecting the closer next load) only materializes
+under **sequential replanning** — a rolling multi-day simulation is the natural
+next step (Phase 3.3) to measure it end-to-end. Charging the full predicted cost
+(`weight=1.0`) in a one-shot plan is intentionally the most conservative setting;
+`destination_weight` tunes the profit-vs-repositioning trade.
+
+Reproduce (destination-aware column appears only when the gitignored model
+artifact exists locally):
+
+```bash
+python -m benchmarks.compare_planners --time-limit 0.2 --out benchmarks/compare_results.json
+```
+
 ## Tests
 
 ```bash

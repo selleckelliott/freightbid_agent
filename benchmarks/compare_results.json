@@ -13,8 +13,8 @@
         "avg_deadhead_miles": 11.287646437767325,
         "avg_loads_selected": 0.907,
         "total_loads_selected": 907,
-        "avg_runtime_ms": 0.17062950000399724,
-        "median_runtime_ms": 0.15954999798850622
+        "avg_runtime_ms": 0.1524112999859426,
+        "median_runtime_ms": 0.1551500004097761
       }
     },
     {
@@ -28,8 +28,8 @@
         "avg_deadhead_miles": 8.930239239940937,
         "avg_loads_selected": 0.875,
         "total_loads_selected": 875,
-        "avg_runtime_ms": 199.19379750002918,
-        "median_runtime_ms": 201.53540000137582
+        "avg_runtime_ms": 199.3059822000032,
+        "median_runtime_ms": 201.6089000003376
       }
     },
     {
@@ -43,8 +43,23 @@
         "avg_deadhead_miles": 12.030616934356622,
         "avg_loads_selected": 0.909,
         "total_loads_selected": 909,
-        "avg_runtime_ms": 197.31541500006642,
-        "median_runtime_ms": 201.59500000045227
+        "avg_runtime_ms": 197.33302350000577,
+        "median_runtime_ms": 201.6275999994832
+      }
+    },
+    {
+      "key": "ortools_destination_aware",
+      "label": "OR-Tools Destination-Aware",
+      "metrics": {
+        "scenarios": 1000,
+        "feasible_rate": 0.861,
+        "avg_profit": 393.23069514511315,
+        "total_profit": 393230.69514511316,
+        "avg_deadhead_miles": 10.48274306106968,
+        "avg_loads_selected": 0.887,
+        "total_loads_selected": 887,
+        "avg_runtime_ms": 281.54543539997667,
+        "median_runtime_ms": 274.57684999990306
       }
     }
   ]
