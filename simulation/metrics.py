@@ -185,3 +185,48 @@ def summarize_episodes(episodes: Sequence[RollingReplayMetrics]) -> Dict[str, ob
     sel_n = sum(m.selected_predicted_onward_count for m in episodes)
     out["mean_selected_predicted_onward"] = (sel_sum / sel_n) if sel_n else None
     return out
+
+
+# ---------------------------------------------------------------------------
+# Paired comparison (Phase 3.4 stress testing)
+# ---------------------------------------------------------------------------
+
+def paired_comparison(
+    control: Sequence[float],
+    treatment: Sequence[float],
+    *,
+    lower_is_better: bool = False,
+) -> Dict[str, float]:
+    """Per-episode paired delta (``treatment - control``) with bootstrap CI.
+
+    Because the two policies agree on most episodes, the *paired* delta is far
+    more sensitive than comparing the two independent cross-episode means. The
+    returned ``mean``/``ci_low``/``ci_high`` are always on the raw
+    ``treatment - control`` scale; ``wins``/``ties``/``losses`` count episodes
+    where the treatment is better/equal/worse, honouring ``lower_is_better`` (set
+    it for deadhead, where a negative delta is a win).
+    """
+    if len(control) != len(treatment):
+        raise ValueError("control and treatment must be the same length")
+    deltas = [t - c for c, t in zip(control, treatment)]
+    rng = random.Random(_BOOTSTRAP_SEED)
+    s = _stats(deltas, rng)
+    eps = 1e-9
+    if lower_is_better:
+        wins = sum(1 for d in deltas if d < -eps)
+        losses = sum(1 for d in deltas if d > eps)
+    else:
+        wins = sum(1 for d in deltas if d > eps)
+        losses = sum(1 for d in deltas if d < -eps)
+    ties = len(deltas) - wins - losses
+    return {
+        "mean": s["mean"],
+        "se": s["se"],
+        "ci_low": s["ci_low"],
+        "ci_high": s["ci_high"],
+        "median": s.get("median", 0.0),
+        "n": s["n"],
+        "wins": wins,
+        "ties": ties,
+        "losses": losses,
+    }

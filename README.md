@@ -517,7 +517,7 @@ onward-deadhead barely tracks the *realized* onward miles in this loop
 (correlation ≈ 0.02, MAE ≈ 17.8 mi) — the realized proxy is shaped by HOS timing
 and the next snapshot, not destination strength alone — yet the **aggregate
 dispatch nudge is still net-positive**. Tightening that signal (and multi-truck /
-finer HOS) is the natural Phase 3.4+ direction. See
+finer HOS) is the natural Phase 4+ direction. See
 `benchmarks/rolling_replay_comparison.png` for the full distribution view.
 
 Reproduce (destination-aware trajectory appears only when the gitignored model
@@ -526,6 +526,99 @@ artifact exists locally):
 ```bash
 python -m benchmarks.run_rolling_replay --episodes 150 --out benchmarks/rolling_replay_summary.json
 python -m benchmarks.chart_rolling_replay
+```
+
+## Phase 3.4 — Sequential Policy Stress Testing (is the edge robust?)
+
+Phase 3.3 showed the destination-aware policy wins **in one synthetic world**. The
+question a skeptical reviewer asks next — and the one that separates a portfolio
+*toy* from a portfolio *result* — is whether that win is real or an artifact of the
+baseline market. Phase 3.4 answers it by replaying the same rolling A/B under **18
+shifted market conditions** and asking: does the advantage survive?
+
+**Design.** One *condition* is a perturbation of the baseline world / economics /
+HOS. The sweep is **one-factor-at-a-time** (OFAT) — move a single axis, hold the
+rest at baseline — plus three **combined stress corners**:
+
+* **market density** — 25 / 120 loads per snapshot (baseline 60)
+* **unposted-rate fraction** — 0.35 / 0.50 (baseline 0.15)
+* **load-view competition** — 25% / 50% of visible loads skimmed first by rival
+  demand, biased toward high-view (contested) loads (`simulation/snapshot_board.py`)
+* **fuel / deadhead cost** — $0.95/mi fuel, or 1.5× empty-mile burn — rebuilds the
+  *whole* cost stack: the realized evaluator **and** the planners' objective
+  weights, so they optimise the same economics they're scored on
+* **HOS strictness** — 8 h / 14 h daily drive cap (baseline 11 h)
+* **equipment mix** — pin every truck to hot-shot, or to flatbed
+* **horizon length** — 3 / 14 days (baseline 7)
+* **corners** — thin market (scarce + half-unpriced + half-contested), expensive
+  miles under a tight HOS cap, and a worst case combining all of it over 14 days
+
+Two choices keep it honest. (1) **The model artifact never changes** — it is the
+same one trained on the baseline distribution, so every condition is an
+**inference-time distribution shift, not a retrain** (testing whether a fixed
+learned signal generalises). (2) Every condition shares the baseline's seed stream
+(**Common Random Numbers**), so a condition's only difference from baseline is the
+perturbed parameter — a variance-reduced comparison. Each condition earns a paired
+verdict: **HOLDS** (paired profit CI ≥ 0 *and* deadhead no worse), **REGRESSION**
+(paired profit CI entirely < 0), otherwise **NEUTRAL**.
+
+**Result** (18 conditions × 30 episodes × 2 planners, OR-Tools 0.2 s/decision,
+68.7 min; Δ = destination-aware − profit-aware, 95% paired bootstrap CIs):
+
+| Condition | Shift from baseline | Verdict | Profit Δ% `[95% CI]` | Deadhead Δ% |
+| --- | --- | --- | --- | --- |
+| `baseline` | the Phase 3.3 world | **HOLDS** | **+3.9** `[+0.3, +7.8]` | −16.4 |
+| `density_low` | 25 loads/snapshot | neutral | +0.5 `[−1.5, +2.9]` | +2.3 |
+| `density_high` | 120 loads/snapshot | neutral | +1.3 `[−0.8, +4.1]` | −4.8 |
+| `unposted_035` | 35% "call for rate" | **HOLDS** | **+8.1** `[+3.5, +13.3]` | −5.5 |
+| `unposted_050` | 50% "call for rate" | **HOLDS** | **+5.4** `[+1.5, +10.5]` | −2.6 |
+| `competition_025` | 25% of board skimmed | neutral | +5.1 `[−0.0, +11.3]` | −11.2 |
+| `competition_050` | 50% of board skimmed | neutral | +2.3 `[−0.3, +5.4]` | −6.8 |
+| `fuel_095` | fuel $0.55→$0.95/mi | **HOLDS** | **+9.6** `[+2.7, +16.9]` | −1.8 |
+| `deadhead_15` | 1.5× empty-mile burn | neutral | +3.8 `[−0.2, +9.8]` | −10.8 |
+| `hos_strict_8` | 8 h daily drive cap | neutral | +2.9 `[−1.6, +7.9]` | −4.4 |
+| `hos_relaxed_14` | 14 h daily drive cap | neutral | +1.7 `[−2.8, +6.7]` | −9.2 |
+| `equip_hs` | all trucks hot-shot | **HOLDS** | **+3.7** `[+1.2, +6.8]` | −14.0 |
+| `equip_f` | all trucks flatbed | neutral | +3.4 `[−0.4, +8.4]` | −9.0 |
+| `horizon_3` | 3-day horizon | **HOLDS** | **+6.9** `[+0.9, +14.0]` | −33.1 |
+| `horizon_14` | 14-day horizon | **HOLDS** | **+6.7** `[+2.4, +11.7]` | −6.7 |
+| `corner_thin_market` | scarce + unpriced + contested | neutral | +3.0 `[−1.8, +9.5]` | −4.3 |
+| `corner_expensive_miles` | costly miles + tight HOS | neutral | +4.2 `[−5.1, +12.4]` | −15.1 |
+| `corner_worst_case` | everything hostile, 14-day | neutral | −2.8 `[−14.2, +6.6]` | −17.8 |
+
+**The headline: zero regressions across all 18 conditions.** Profit improves in
+**17/18** (the lone dip is the deliberately brutal worst-case corner at −2.8%, whose
+CI `[−14.2, +6.6]` straddles zero — not a significant loss), and deadhead falls in
+**17/18**. The advantage is **significant (HOLDS) in 7** conditions and
+**directionally positive but not individually significant (neutral) in 11**.
+
+**Reading this honestly.** At 30 episodes/condition the per-condition CIs are wide,
+so most shifts land "neutral": the point estimate favours destination-awareness but
+the interval still includes zero. What's compelling is not any single cell — it's
+the **consistency of sign**. The edge never reverses, and it is strongest exactly
+where the economics say it should be: expensive empty miles (`fuel_095` **+9.6%**),
+a sparse *priced* board (`unposted_035` **+8.1%**), and longer horizons that let
+decisions compound (`horizon_14` **+6.7%**). Even the worst-case corner — scarce,
+contested, expensive, HOS-throttled, over two weeks — still **cuts deadhead 17.8%**
+while giving back only a statistically-insignificant slice of profit. The one place
+deadhead ticks *up* (`density_low`, +2.3%) is also not significant.
+
+The caveat from Phase 3.3 carries over and bounds the magnitudes: a single truck
+with a simple daily-HOS model completes only ~5–6 loads/week, so there is limited
+room for a per-load signal to compound. The robustness claim here is deliberately
+modest and precise — **sign stability of the destination-aware advantage across a
+wide spread of markets**, not a large effect in any one of them. That a fixed
+signal trained on one distribution stays net-positive under density, competition,
+cost, HOS, equipment, and horizon shifts is the evidence that the Phase 3.1→3.3
+loop learned something real rather than overfitting the baseline world. See
+`benchmarks/stress_test_comparison.png` for the forest plot.
+
+Reproduce (destination-aware trajectory appears only when the gitignored model
+artifact exists locally; otherwise every condition is reported `DEST_SKIPPED`):
+
+```bash
+python -m benchmarks.run_stress_test --episodes 30 --out benchmarks/stress_test_summary.json
+python -m benchmarks.chart_stress_test
 ```
 
 ## Tests

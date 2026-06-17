@@ -15,7 +15,7 @@ LA = (34.05, -118.24)
 
 def make_record(seq=1, snapshot_time=T0, origin=DENVER, equipment="HS",
                 total_rate=1200.0, pickup_offset_h=4.0, pickup_len_h=4.0,
-                miles=300.0):
+                miles=300.0, load_views="low"):
     o_lat, o_lon = origin
     pickup_start = snapshot_time + timedelta(hours=pickup_offset_h)
     pickup_end = pickup_start + timedelta(hours=pickup_len_h)
@@ -40,6 +40,7 @@ def make_record(seq=1, snapshot_time=T0, origin=DENVER, equipment="HS",
         loaded_miles=miles,
         posted_at=snapshot_time - timedelta(hours=2.0),
         total_rate=total_rate,
+        load_views=load_views,
     )
 
 
@@ -108,3 +109,54 @@ def test_active_and_next_snapshot_clock():
     assert board.active_snapshot_time(s1 - timedelta(hours=1)) is None
     assert board.next_snapshot_after(s1) == s2
     assert board.next_snapshot_after(s2) is None
+
+
+# --------------------------------------------------------- competition thinning
+def test_competition_take_rate_zero_is_noop():
+    records = [make_record(seq=i) for i in range(1, 21)]
+    board = SnapshotBoard(records, competition_take_rate=0.0, competition_seed=1)
+    assert board.competition_taken_ids == set()
+    assert len(board.visible_loads_at(T0, *DENVER, 250.0, "HS")) == 20
+
+
+def test_competition_thinning_removes_expected_fraction():
+    records = [make_record(seq=i) for i in range(1, 101)]
+    board = SnapshotBoard(records, competition_take_rate=0.4, competition_seed=7)
+    assert len(board.competition_taken_ids) == 40
+    visible = board.visible_loads_at(T0, *DENVER, 250.0, "HS")
+    assert len(visible) == 60
+    assert all(not board.is_competition_taken(l.load_id) for l in visible)
+
+
+def test_competition_thinning_is_deterministic_per_seed():
+    records = [make_record(seq=i) for i in range(1, 51)]
+    a = SnapshotBoard(records, competition_take_rate=0.5, competition_seed=99)
+    b = SnapshotBoard(records, competition_take_rate=0.5, competition_seed=99)
+    assert a.competition_taken_ids == b.competition_taken_ids
+    other = SnapshotBoard(records, competition_take_rate=0.5, competition_seed=100)
+    assert other.competition_taken_ids != a.competition_taken_ids
+
+
+def test_competition_thinning_is_fair_across_planners():
+    # Two boards built for the same world with identical thinning args (one per
+    # planner trajectory) must expose exactly the same visible board.
+    records = [make_record(seq=i) for i in range(1, 41)]
+    board_a = SnapshotBoard(records, competition_take_rate=0.3, competition_seed=5)
+    board_b = SnapshotBoard(records, competition_take_rate=0.3, competition_seed=5)
+    seen_a = {l.load_id for l in board_a.visible_loads_at(T0, *DENVER, 250.0, "HS")}
+    seen_b = {l.load_id for l in board_b.visible_loads_at(T0, *DENVER, 250.0, "HS")}
+    assert seen_a == seen_b
+
+
+def test_competition_thinning_is_view_biased():
+    # 50 heavily-viewed loads + 50 "be the first" loads; with a 50% take rate the
+    # contested high-view loads should be removed far more often.
+    high = [make_record(seq=i, load_views="high") for i in range(1, 51)]
+    quiet = [make_record(seq=i, load_views="be_the_first") for i in range(51, 101)]
+    board = SnapshotBoard(high + quiet, competition_take_rate=0.5, competition_seed=3)
+    taken = board.competition_taken_ids
+    taken_high = sum(1 for i in range(1, 51) if i in taken)
+    taken_quiet = sum(1 for i in range(51, 101) if i in taken)
+    assert taken_high > taken_quiet
+    # the bias should be strong, not marginal
+    assert taken_high >= 2 * taken_quiet

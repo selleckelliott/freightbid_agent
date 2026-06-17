@@ -1,0 +1,152 @@
+# Phase 3.4 — Sequential policy stress-test conditions.
+#
+# Drives benchmarks/run_stress_test.py. Each entry is one *condition*: a
+# perturbation of the Phase 3.3 baseline world / economics / HOS that the rolling
+# A/B (profit-aware vs destination-aware) is replayed under. The baseline world
+# parameters themselves live in config/rolling_replay.yaml (single source of
+# truth); a condition only lists the fields it overrides. Unlisted fields fall
+# back to that baseline, so the `baseline` condition below reproduces the shipped
+# Phase 3.3 result exactly (reconciliation guard in tests).
+#
+# Recognised override keys (must match simulation.experiment.ConditionSpec):
+#   loads_per_snapshot_mean   market density (Poisson mean loads/snapshot)
+#   unposted_rate_fraction    share of "call for rate" (non-viable) postings
+#   competition_take_rate     fraction of visible loads removed by rival demand,
+#                             view-biased toward high-`load_views` loads (0 = off)
+#   fuel_cost_per_mile        $/mi fuel (rebuilds CostModel -> evaluator + weights)
+#   deadhead_fuel_multiplier  extra fuel burden on empty miles
+#   daily_drive_hours         HOS daily drive cap restored each duty day
+#   force_equipment           pin the truck trailer (HS | F | FSDV)
+#   horizon_days              episode length
+#
+# Every condition is replayed with Common Random Numbers (shared base seed), so a
+# condition's only difference from the baseline is the perturbed parameter.
+
+conditions:
+  - name: baseline
+    rationale: >-
+      Canonical Phase 3.3 world (density 60, unposted 0.15, no competition,
+      fuel 0.55x1.0, HOS 11h, hub-sampled equipment, 7-day horizon). Reconciles
+      with the shipped rolling-replay result.
+
+  # --- OFAT: market density ------------------------------------------------
+  - name: density_low
+    loads_per_snapshot_mean: 25
+    rationale: >-
+      Thin board (25 loads/snapshot). Fewer onward options near every
+      destination — does the destination signal still find the good exits when
+      supply is scarce, or does it just chase a near-empty market?
+
+  - name: density_high
+    loads_per_snapshot_mean: 120
+    rationale: >-
+      Flooded board (120 loads/snapshot). With options everywhere, deadhead is
+      easy to avoid for either policy — the destination edge may compress.
+
+  # --- OFAT: unposted-rate fraction ---------------------------------------
+  - name: unposted_035
+    unposted_rate_fraction: 0.35
+    rationale: >-
+      35% of postings are "call for rate" (non-viable). Shrinks the priced
+      board and the onward supply the model reasons over.
+
+  - name: unposted_050
+    unposted_rate_fraction: 0.50
+    rationale: >-
+      Half the board is unpriced. A stress on label sparsity: the learned
+      onward-deadhead signal must survive a much thinner priced market.
+
+  # --- OFAT: load-view competition ----------------------------------------
+  - name: competition_025
+    competition_take_rate: 0.25
+    rationale: >-
+      A quarter of visible loads are taken first by rival demand, biased toward
+      high-view (contested) loads. Both policies face the same thinned board —
+      does destination-awareness help when the best loads vanish?
+
+  - name: competition_050
+    competition_take_rate: 0.50
+    rationale: >-
+      Half the visible board is skimmed by rivals (view-biased). The strongest
+      single test of whether the onward signal survives a hostile market.
+
+  # --- OFAT: fuel / deadhead cost -----------------------------------------
+  - name: fuel_095
+    fuel_cost_per_mile: 0.95
+    rationale: >-
+      Fuel jumps 0.55 -> 0.95 $/mi (rebuilds the cost stack end-to-end). Every
+      empty mile hurts more, so reducing onward deadhead should matter more.
+
+  - name: deadhead_15
+    deadhead_fuel_multiplier: 1.5
+    rationale: >-
+      Empty miles burn 1.5x fuel (loaded miles unchanged). Directly amplifies
+      the quantity the destination model is built to reduce.
+
+  # --- OFAT: HOS strictness ------------------------------------------------
+  - name: hos_strict_8
+    daily_drive_hours: 8
+    rationale: >-
+      Strict 8h daily drive cap. Less reach per day, so a bad destination is
+      costlier to recover from — sequential positioning should matter more.
+
+  - name: hos_relaxed_14
+    daily_drive_hours: 14
+    rationale: >-
+      Relaxed 14h cap. The truck can drive out of a bad spot more easily, which
+      may wash out the destination advantage.
+
+  # --- OFAT: equipment mix -------------------------------------------------
+  - name: equip_hs
+    force_equipment: HS
+    rationale: >-
+      Pin every truck to hot-shot (HS/Reefer). Tests the signal on a single
+      equipment market instead of the hub-weighted mix.
+
+  - name: equip_f
+    force_equipment: F
+    rationale: >-
+      Pin every truck to flatbed (F). A different supply geography — does the
+      destination edge hold for a thinner, more specialised trailer class?
+
+  # --- OFAT: horizon length ------------------------------------------------
+  - name: horizon_3
+    horizon_days: 3
+    rationale: >-
+      Short 3-day horizon. Fewer sequential decisions to compound the signal —
+      expect a smaller but ideally still-positive effect.
+
+  - name: horizon_14
+    horizon_days: 14
+    rationale: >-
+      Long 14-day horizon. More decisions to compound — the destination
+      advantage should, if real, grow with sequence length.
+
+  # --- Stress corners (combined perturbations) -----------------------------
+  - name: corner_thin_market
+    loads_per_snapshot_mean: 25
+    unposted_rate_fraction: 0.35
+    competition_take_rate: 0.50
+    rationale: >-
+      Thin + unpriced + contested all at once: scarce supply, half unpriced,
+      half the rest skimmed by rivals. Can the signal still position well when
+      good exits are genuinely rare?
+
+  - name: corner_expensive_miles
+    fuel_cost_per_mile: 0.95
+    deadhead_fuel_multiplier: 1.5
+    daily_drive_hours: 8
+    rationale: >-
+      Expensive empty miles under a tight HOS cap. The economics most favour
+      cutting onward deadhead — the destination policy should look best here.
+
+  - name: corner_worst_case
+    loads_per_snapshot_mean: 25
+    competition_take_rate: 0.50
+    fuel_cost_per_mile: 0.95
+    daily_drive_hours: 8
+    horizon_days: 14
+    rationale: >-
+      Everything hostile: scarce, contested, expensive, HOS-constrained, over a
+      long horizon. The decisive robustness test — if the edge survives here it
+      is not a one-world artifact.

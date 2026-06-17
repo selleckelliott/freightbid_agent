@@ -1,0 +1,4846 @@
+{
+  "config": {
+    "episodes_per_condition": 30,
+    "condition_count": 18,
+    "snapshots_per_day": 8,
+    "baseline_loads_per_snapshot_mean": 60.0,
+    "radius_mi": 400.0,
+    "solver_time_limit_seconds": 0.2,
+    "base_seed": 1000,
+    "destination_weight": 1.0,
+    "model_artifact_present": true
+  },
+  "elapsed_seconds": 4121.842224,
+  "tally": {
+    "HOLDS": 7,
+    "NEUTRAL": 11,
+    "REGRESSION": 0,
+    "DEST_SKIPPED": 0
+  },
+  "conditions": [
+    {
+      "name": "baseline",
+      "rationale": "Canonical Phase 3.3 world (density 60, unposted 0.15, no competition, fuel 0.55x1.0, HOS 11h, hub-sampled equipment, 7-day horizon). Reconciles with the shipped rolling-replay result.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1662.9038180985547,
+            "se": 134.65627430315945,
+            "ci_low": 1393.2029065999047,
+            "ci_high": 1914.2244231110656,
+            "median": 1646.45458458777,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 132.40262486914528,
+            "se": 18.96681132906456,
+            "ci_low": 98.94365917060901,
+            "ci_high": 174.17613444751106,
+            "median": 113.87827197332622,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1804.98,
+            "se": 125.91496897309013,
+            "ci_low": 1559.7266666666667,
+            "ci_high": 2033.8466666666666,
+            "median": 1870.4,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.633333333333334,
+            "se": 0.39966461035008277,
+            "ci_low": 4.833333333333333,
+            "ci_high": 6.366666666666666,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 64.33963716067593,
+            "se": 7.039883082843982,
+            "ci_low": 51.8298672817963,
+            "ci_high": 79.2130419898426,
+            "median": 56.97741351916667,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 237.5576882997935,
+            "se": 19.236610614737067,
+            "ci_low": 202.19092849302555,
+            "ci_high": 272.4780845138059,
+            "median": 235.20779779825284,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 20.746938092706003,
+            "se": 2.6307246656521377,
+            "ci_low": 15.92207176047606,
+            "ci_high": 25.882195421539212,
+            "median": 17.299196829734292,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 271.9771114479641,
+            "se": 22.294826260831098,
+            "ci_low": 228.2068995249136,
+            "ci_high": 313.5779685707587,
+            "median": 295.6448287267085,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06616333028043848,
+            "se": 0.008951248752576123,
+            "ci_low": 0.05094546824311983,
+            "ci_high": 0.08468228891668035,
+            "median": 0.05535681727040983,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.617025969281691,
+            "se": 0.041904065969309415,
+            "ci_low": 0.5301407764709546,
+            "ci_high": 0.690491892212522,
+            "median": 0.6608487290525794,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.25619796712094334,
+            "se": 0.02188798053854587,
+            "ci_low": 0.21239767880051802,
+            "ci_high": 0.2968826001750352,
+            "median": 0.28,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 24.3,
+            "se": 1.0658222232127894,
+            "ci_low": 22.366666666666667,
+            "ci_high": 26.466666666666665,
+            "median": 23.5,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 169,
+          "decision_overlap_rate": 0.9230769230769231,
+          "divergence_rate": 0.07692307692307687
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1727.3080829458324,
+            "se": 137.78268222709005,
+            "ci_low": 1452.5147028774072,
+            "ci_high": 1985.5800889903262,
+            "median": 1724.8986306845675,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 110.72214656175134,
+            "se": 12.62512464238127,
+            "ci_low": 88.78604711591194,
+            "ci_high": 135.8267031679213,
+            "median": 104.00844007704947,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1802.02,
+            "se": 126.58090415442497,
+            "ci_low": 1560.9433333333334,
+            "ci_high": 2030.3100000000002,
+            "median": 1878.8500000000001,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.633333333333334,
+            "se": 0.39677821284890485,
+            "ci_low": 4.833333333333333,
+            "ci_high": 6.333333333333333,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 64.74987452871297,
+            "se": 7.109537255841875,
+            "ci_low": 52.147535046768525,
+            "ci_high": 79.5029284173426,
+            "median": 54.79852576347222,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 246.75829756369032,
+            "se": 19.683240318155725,
+            "ci_low": 210.73878722281162,
+            "ci_high": 283.1826510071835,
+            "median": 246.41409009779534,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 17.503168147090644,
+            "se": 1.7698785407607196,
+            "ci_low": 14.2331572372298,
+            "ci_high": 21.028702778672947,
+            "median": 16.26832456761803,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 281.9882170691948,
+            "se": 22.698609989400676,
+            "ci_low": 237.72020807976955,
+            "ci_high": 323.33097859078055,
+            "median": 301.8057559179298,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.05630409210260342,
+            "se": 0.0065219919170448545,
+            "ci_low": 0.04471844723780146,
+            "ci_high": 0.06904996134988599,
+            "median": 0.050975240187553804,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6145840801862323,
+            "se": 0.042318674141915924,
+            "ci_low": 0.5259044209484679,
+            "ci_high": 0.6879942333089175,
+            "median": 0.6738182990269511,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.2573613054871342,
+            "se": 0.022226836946594743,
+            "ci_low": 0.2139918254837266,
+            "ci_high": 0.2980390247905813,
+            "median": 0.2746153846153846,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 24.333333333333332,
+            "se": 1.1103829031333656,
+            "ci_low": 22.2,
+            "ci_high": 26.5,
+            "median": 23.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 24.602791104403792
+      },
+      "headline_delta": {
+        "profit_pct": 3.8729999983354872,
+        "deadhead_pct": -16.374658983400785,
+        "deadhead_per_load_pct": -15.634933362797138,
+        "idle_hours_pct": 0.6376121876667431,
+        "loads_pct": 0.0
+      },
+      "paired_profit": {
+        "mean": 64.40426484727759,
+        "se": 33.56799200598096,
+        "ci_low": 5.324186485079948,
+        "ci_high": 130.3812960529632,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 20,
+        "losses": 2
+      },
+      "paired_deadhead": {
+        "mean": -21.680478307393933,
+        "se": 14.180889299662379,
+        "ci_low": -52.19561401650287,
+        "ci_high": -1.329180334744485,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 20,
+        "losses": 2
+      },
+      "divergence": {
+        "shadow_decision_count": 169,
+        "decision_overlap_rate": 0.9230769230769231,
+        "divergence_rate": 0.07692307692307687
+      },
+      "onward_diagnostic": {
+        "pairs": 142,
+        "correlation": -0.02371608492366893,
+        "signed_bias_miles": 4.635692512532332,
+        "mae_miles": 18.002006348037703,
+        "mean_predicted": 25.5691595013642,
+        "mean_realized": 20.93346698883187
+      }
+    },
+    {
+      "name": "density_low",
+      "rationale": "Thin board (25 loads/snapshot). Fewer onward options near every destination \u2014 does the destination signal still find the good exits when supply is scarce, or does it just chase a near-empty market?",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 25,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1343.9026402943523,
+            "se": 114.30003710720868,
+            "ci_low": 1128.8295060192609,
+            "ci_high": 1558.7343237279408,
+            "median": 1389.3946240165815,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 88.82870002804385,
+            "se": 11.41122329905139,
+            "ci_low": 68.49405122827764,
+            "ci_high": 111.51849215436904,
+            "median": 84.65054107010283,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1483.1866666666667,
+            "se": 112.21089316814954,
+            "ci_low": 1263.0766666666666,
+            "ci_high": 1685.4266666666667,
+            "median": 1589.7,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.633333333333334,
+            "se": 0.36978817587797086,
+            "ci_low": 3.9,
+            "ci_high": 5.333333333333333,
+            "median": 5.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 86.13313435071296,
+            "se": 5.911344452551837,
+            "ci_low": 75.95907038229629,
+            "ci_high": 98.1705523323889,
+            "median": 75.60624562666666,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 191.98609147062177,
+            "se": 16.32857672960124,
+            "ci_low": 159.84219318394153,
+            "ci_high": 223.3411995180068,
+            "median": 198.48494628808305,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 16.81093420412406,
+            "se": 1.7309101057919165,
+            "ci_low": 13.825958069250941,
+            "ci_high": 20.28053214328295,
+            "median": 16.742695981477357,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 274.1899739959501,
+            "se": 24.824624069689264,
+            "ci_low": 226.6560049670392,
+            "ci_high": 321.46965203807275,
+            "median": 282.2082924651114,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.053914613311882645,
+            "se": 0.006585140954635262,
+            "ci_low": 0.04243104943546395,
+            "ci_high": 0.0673970337871384,
+            "median": 0.05154882703988428,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.48730277172194664,
+            "se": 0.035186574122332365,
+            "ci_low": 0.4174745203990851,
+            "ci_high": 0.5509557522598104,
+            "median": 0.5499628236507937,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.23337454393383278,
+            "se": 0.02178998694672914,
+            "ci_low": 0.19164641676082936,
+            "ci_high": 0.2738780412499358,
+            "median": 0.24867724867724866,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 20.9,
+            "se": 0.8350786321293824,
+            "ci_low": 19.3,
+            "ci_high": 22.533333333333335,
+            "median": 21.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 139,
+          "decision_overlap_rate": 0.9712230215827338,
+          "divergence_rate": 0.02877697841726623
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1350.6679927179935,
+            "se": 116.29180696227898,
+            "ci_low": 1131.3458421214948,
+            "ci_high": 1567.445398713269,
+            "median": 1390.218753200017,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 90.90657598225896,
+            "se": 11.39110196663963,
+            "ci_low": 70.9158830576437,
+            "ci_high": 113.43974876251963,
+            "median": 84.65054107010283,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1489.2466666666667,
+            "se": 111.19882459617494,
+            "ci_low": 1268.3166666666666,
+            "ci_high": 1691.0866666666666,
+            "median": 1593.0500000000002,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.666666666666667,
+            "se": 0.36619614533503425,
+            "ci_low": 3.966666666666667,
+            "ci_high": 5.366666666666666,
+            "median": 5.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 87.79574827305555,
+            "se": 6.102765706767129,
+            "ci_low": 76.84308847648148,
+            "ci_high": 100.03913564049074,
+            "median": 76.84475574,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 192.95257038828476,
+            "se": 16.61311528032557,
+            "ci_low": 160.59350675692156,
+            "ci_high": 224.35387227345973,
+            "median": 198.60267902857385,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 17.153752704399942,
+            "se": 1.744047493440501,
+            "ci_low": 14.087810425712776,
+            "ci_high": 20.599255613522025,
+            "median": 17.752994478600975,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 273.53635072501106,
+            "se": 25.66975090873527,
+            "ci_low": 226.07090204710207,
+            "ci_high": 323.6372251558071,
+            "median": 274.48541168899806,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.05507090580592035,
+            "se": 0.006573991889609684,
+            "ci_low": 0.043676632956405545,
+            "ci_high": 0.06830757692280652,
+            "median": 0.052423476735046895,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.4774062602794312,
+            "se": 0.036325986349804336,
+            "ci_low": 0.4046401767641094,
+            "ci_high": 0.5440299832193563,
+            "median": 0.5425907396428572,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.23172418945739134,
+            "se": 0.021945183171484587,
+            "ci_low": 0.1895595361426262,
+            "ci_high": 0.2730455540143788,
+            "median": 0.24404761904761904,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 21.433333333333334,
+            "se": 0.9621376264654325,
+            "ci_low": 19.633333333333333,
+            "ci_high": 23.3,
+            "median": 21.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 21.16076571729976
+      },
+      "headline_delta": {
+        "profit_pct": 0.5034109034981403,
+        "deadhead_pct": 2.339194374744989,
+        "deadhead_per_load_pct": 2.0392590686113214,
+        "idle_hours_pct": 1.9302837808883526,
+        "loads_pct": 0.719424460431652
+      },
+      "paired_profit": {
+        "mean": 6.765352423641021,
+        "se": 14.862087869942927,
+        "ci_low": -20.42119903612879,
+        "ci_high": 39.34570690102605,
+        "median": 0.0,
+        "n": 30,
+        "wins": 2,
+        "ties": 26,
+        "losses": 2
+      },
+      "paired_deadhead": {
+        "mean": 2.0778759542150924,
+        "se": 1.45015544965983,
+        "ci_low": 0.011751681154087142,
+        "ci_high": 5.47272521798918,
+        "median": 0.0,
+        "n": 30,
+        "wins": 0,
+        "ties": 26,
+        "losses": 4
+      },
+      "divergence": {
+        "shadow_decision_count": 139,
+        "decision_overlap_rate": 0.9712230215827338,
+        "divergence_rate": 0.02877697841726623
+      },
+      "onward_diagnostic": {
+        "pairs": 113,
+        "correlation": 0.07629713306928622,
+        "signed_bias_miles": -0.5135775207768218,
+        "mae_miles": 12.51651279673903,
+        "mean_predicted": 20.47693682368099,
+        "mean_realized": 20.990514344457814
+      }
+    },
+    {
+      "name": "density_high",
+      "rationale": "Flooded board (120 loads/snapshot). With options everywhere, deadhead is easy to avoid for either policy \u2014 the destination edge may compress.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 120,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1795.7225709173847,
+            "se": 137.4567244664638,
+            "ci_low": 1527.8747333456447,
+            "ci_high": 2047.1919979976037,
+            "median": 1902.001030804709,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 161.00874993953127,
+            "se": 21.498650063810647,
+            "ci_low": 123.02256621389989,
+            "ci_high": 204.6978902560945,
+            "median": 130.25418917184427,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1936.5066666666667,
+            "se": 132.60468516309317,
+            "ci_low": 1673.3300000000002,
+            "ci_high": 2180.75,
+            "median": 2110.2,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 6.2,
+            "se": 0.38774324956884404,
+            "ci_low": 5.433333333333334,
+            "ci_high": 6.866666666666666,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 55.06090059754629,
+            "se": 7.003191737355148,
+            "ci_low": 43.79361342479629,
+            "ci_high": 69.80442360278704,
+            "median": 44.61356571444445,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 256.5317958453407,
+            "se": 19.636674923780543,
+            "ci_low": 216.76248422369315,
+            "ci_high": 292.217493337392,
+            "median": 271.7144329721013,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 23.247132369433174,
+            "se": 3.0526030363406744,
+            "ci_low": 17.78720168948657,
+            "ci_high": 29.28660096785962,
+            "median": 18.667230113676084,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 262.5751169588688,
+            "se": 21.132107777147333,
+            "ci_low": 221.77588317689563,
+            "ci_high": 303.54209641801486,
+            "median": 271.7144329721013,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.07502127024395182,
+            "se": 0.009527843781864278,
+            "ci_low": 0.05797376256715238,
+            "ci_high": 0.09422615456761359,
+            "median": 0.06415561187611377,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6722565440622243,
+            "se": 0.04168566510330445,
+            "ci_low": 0.5849212969933312,
+            "ci_high": 0.742634965745205,
+            "median": 0.7344430612235449,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.2680668711080162,
+            "se": 0.01786912327546235,
+            "ci_low": 0.23137376596754264,
+            "ci_high": 0.299322739064113,
+            "median": 0.28,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 25.7,
+            "se": 1.3537092507743986,
+            "ci_low": 23.3,
+            "ci_high": 28.433333333333334,
+            "median": 24.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 186,
+          "decision_overlap_rate": 0.9516129032258065,
+          "divergence_rate": 0.048387096774193505
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1818.6000784584758,
+            "se": 138.90086837755993,
+            "ci_low": 1553.3465659597289,
+            "ci_high": 2075.6266725705177,
+            "median": 1938.6660720796053,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 153.21179007783527,
+            "se": 17.287059580588092,
+            "ci_low": 121.28719388421472,
+            "ci_high": 189.43046263601843,
+            "median": 131.25377994995353,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1941.28,
+            "se": 133.46890708558564,
+            "ci_low": 1673.79,
+            "ci_high": 2180.153333333333,
+            "median": 2103.6499999999996,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 6.166666666666667,
+            "se": 0.3868033844701309,
+            "ci_low": 5.4,
+            "ci_high": 6.833333333333333,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 55.77967649366666,
+            "se": 7.009448267567779,
+            "ci_low": 43.89570733350926,
+            "ci_high": 70.82062668926851,
+            "median": 44.71661336583334,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 259.8000112083537,
+            "se": 19.842981196794277,
+            "ci_low": 219.8098275544165,
+            "ci_high": 295.9782525910068,
+            "median": 276.9522960113722,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 22.39638608793332,
+            "se": 2.5241849612205627,
+            "ci_low": 17.667390484273476,
+            "ci_high": 27.263340243005715,
+            "median": 18.939962391642737,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 266.5712955599949,
+            "se": 20.619445769693094,
+            "ci_low": 226.5866112996134,
+            "ci_high": 304.4874189203294,
+            "median": 276.9522960113722,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.07147532236129289,
+            "se": 0.007782371232577648,
+            "ci_low": 0.05725232457069041,
+            "ci_high": 0.08706138712379345,
+            "median": 0.06542718580822196,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.667978116109127,
+            "se": 0.041722906354570106,
+            "ci_low": 0.5793341353396715,
+            "ci_high": 0.7371179439146825,
+            "median": 0.7338296823462301,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.26535995198123347,
+            "se": 0.01789722843030615,
+            "ci_low": 0.22765732191361482,
+            "ci_high": 0.29694647140299313,
+            "median": 0.28,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 25.833333333333332,
+            "se": 1.3494003209031928,
+            "ci_low": 23.433333333333334,
+            "ci_high": 28.6,
+            "median": 24.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 26.609567045683374
+      },
+      "headline_delta": {
+        "profit_pct": 1.2740001106854486,
+        "deadhead_pct": -4.842569030952812,
+        "deadhead_per_load_pct": -3.659575159551599,
+        "idle_hours_pct": 1.3054197957532157,
+        "loads_pct": -0.5376344086021486
+      },
+      "paired_profit": {
+        "mean": 22.877507541090782,
+        "se": 22.94490475272625,
+        "ci_low": -14.33428594390789,
+        "ci_high": 74.23504338572336,
+        "median": 0.0,
+        "n": 30,
+        "wins": 5,
+        "ties": 21,
+        "losses": 4
+      },
+      "paired_deadhead": {
+        "mean": -7.796959861695999,
+        "se": 9.13326683661574,
+        "ci_low": -27.776059475418165,
+        "ci_high": 5.099104351717652,
+        "median": 0.0,
+        "n": 30,
+        "wins": 6,
+        "ties": 21,
+        "losses": 3
+      },
+      "divergence": {
+        "shadow_decision_count": 186,
+        "decision_overlap_rate": 0.9516129032258065,
+        "divergence_rate": 0.048387096774193505
+      },
+      "onward_diagnostic": {
+        "pairs": 158,
+        "correlation": 0.05538370323924075,
+        "signed_bias_miles": 1.2597799954753117,
+        "mae_miles": 21.42108633669105,
+        "mean_predicted": 26.78613556461922,
+        "mean_realized": 25.52635556914391
+      }
+    },
+    {
+      "name": "unposted_035",
+      "rationale": "35% of postings are \"call for rate\" (non-viable). Shrinks the priced board and the onward supply the model reasons over.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.35,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1510.6112978236345,
+            "se": 123.59434825646602,
+            "ci_low": 1258.8059412599348,
+            "ci_high": 1735.1198823957684,
+            "median": 1527.8554974823674,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 116.23904233311664,
+            "se": 15.237558444098754,
+            "ci_low": 89.15431624502187,
+            "ci_high": 146.39929530922024,
+            "median": 104.95320982400276,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1723.6899999999998,
+            "se": 123.83677469421862,
+            "ci_low": 1481.5,
+            "ci_high": 1956.3166666666666,
+            "median": 1842.1,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.4,
+            "se": 0.3971160402518228,
+            "ci_low": 4.6,
+            "ci_high": 6.133333333333334,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 67.03000105834259,
+            "se": 6.963124392318971,
+            "ci_low": 54.842329999268514,
+            "ci_high": 81.68272375318519,
+            "median": 54.76541025666667,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 215.80161397480495,
+            "se": 17.65633546520943,
+            "ci_low": 183.2456724522225,
+            "ci_high": 248.10871248603897,
+            "median": 218.2650710689096,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 19.033767620936075,
+            "se": 2.1120106253367013,
+            "ci_low": 15.277718304017007,
+            "ci_high": 23.441498242107812,
+            "median": 17.64568684343539,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 257.0948487211846,
+            "se": 20.619360631258672,
+            "ci_low": 216.7172712594344,
+            "ci_high": 294.0179698426571,
+            "median": 264.51484777477697,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.060761643501985506,
+            "se": 0.007544991786925785,
+            "ci_low": 0.04673342460762654,
+            "ci_high": 0.07799434420957009,
+            "median": 0.05526115179450901,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6010118984622465,
+            "se": 0.04144716900189863,
+            "ci_low": 0.5164853523883929,
+            "ci_high": 0.6738547581503528,
+            "median": 0.6740154151388889,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.271371458251893,
+            "se": 0.024930299294315027,
+            "ci_low": 0.22339661814299497,
+            "ci_high": 0.31882094448761117,
+            "median": 0.28285714285714286,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 22.2,
+            "se": 0.9993101068513079,
+            "ci_low": 20.366666666666667,
+            "ci_high": 24.2,
+            "median": 21.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 162,
+          "decision_overlap_rate": 0.9135802469135802,
+          "divergence_rate": 0.0864197530864198
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1632.4939965738408,
+            "se": 130.0722891513201,
+            "ci_low": 1377.5112881400373,
+            "ci_high": 1870.1993471718665,
+            "median": 1631.1566543484316,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 109.87822788452696,
+            "se": 12.292264244896884,
+            "ci_low": 88.70202671606233,
+            "ci_high": 133.38481085649772,
+            "median": 106.01203424012425,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1748.04,
+            "se": 122.79856906950195,
+            "ci_low": 1506.4966666666667,
+            "ci_high": 1975.7299999999998,
+            "median": 1856.4499999999998,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.433333333333334,
+            "se": 0.38561291213814775,
+            "ci_low": 4.666666666666667,
+            "ci_high": 6.1,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 67.28630635434259,
+            "se": 6.93060016588572,
+            "ci_low": 54.91106262913889,
+            "ci_high": 82.16141596267592,
+            "median": 56.544298821805555,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 233.21342808197727,
+            "se": 18.581755593045724,
+            "ci_low": 197.92367939842174,
+            "ci_high": 268.1989749007023,
+            "median": 233.02237919263308,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 18.005059503796364,
+            "se": 1.745466855968946,
+            "ci_low": 14.706019696762047,
+            "ci_high": 21.580229567743938,
+            "median": 18.01923181113441,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 276.1158589563897,
+            "se": 22.00669542531822,
+            "ci_low": 231.77729027174306,
+            "ci_high": 316.63887960079353,
+            "median": 295.1717653782157,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.05640229422523864,
+            "se": 0.005536343756679878,
+            "ci_low": 0.045712427975939225,
+            "ci_high": 0.06659350343776842,
+            "median": 0.0543656612906922,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5994862717003416,
+            "se": 0.04125357241598643,
+            "ci_low": 0.5149468675437059,
+            "ci_high": 0.6707073305597443,
+            "median": 0.6634267927273478,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.2663933345237693,
+            "se": 0.024122783290062646,
+            "ci_low": 0.22220267990195527,
+            "ci_high": 0.31318017194828784,
+            "median": 0.2727272727272727,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 22.666666666666668,
+            "se": 1.0026784054093962,
+            "ci_low": 20.766666666666666,
+            "ci_high": 24.666666666666668,
+            "median": 22.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 25.41868249492854
+      },
+      "headline_delta": {
+        "profit_pct": 8.068435535058226,
+        "deadhead_pct": -5.4721841482149545,
+        "deadhead_per_load_pct": -5.4046478743818955,
+        "idle_hours_pct": 0.382373999631757,
+        "loads_pct": 0.6172839506172817
+      },
+      "paired_profit": {
+        "mean": 121.88269875020633,
+        "se": 39.45448126275702,
+        "ci_low": 53.05768542847283,
+        "ci_high": 201.13541835537097,
+        "median": 0.0,
+        "n": 30,
+        "wins": 11,
+        "ties": 19,
+        "losses": 0
+      },
+      "paired_deadhead": {
+        "mean": -6.360814448589669,
+        "se": 11.966836900855615,
+        "ci_low": -27.593222395040346,
+        "ci_high": 17.60882568334931,
+        "median": 0.0,
+        "n": 30,
+        "wins": 7,
+        "ties": 19,
+        "losses": 4
+      },
+      "divergence": {
+        "shadow_decision_count": 162,
+        "decision_overlap_rate": 0.9135802469135802,
+        "divergence_rate": 0.0864197530864198
+      },
+      "onward_diagnostic": {
+        "pairs": 136,
+        "correlation": -0.02039592743201401,
+        "signed_bias_miles": 3.605545727466421,
+        "mae_miles": 17.266503091425907,
+        "mean_predicted": 25.11545897386896,
+        "mean_realized": 21.509913246402537
+      }
+    },
+    {
+      "name": "unposted_050",
+      "rationale": "Half the board is unpriced. A stress on label sparsity: the learned onward-deadhead signal must survive a much thinner priced market.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.5,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1491.8373814276229,
+            "se": 129.66027244749338,
+            "ci_low": 1245.231308790336,
+            "ci_high": 1731.500956131045,
+            "median": 1564.7178992771703,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 89.94444981226175,
+            "se": 8.611382672307846,
+            "ci_low": 73.21731992586062,
+            "ci_high": 106.09017948230702,
+            "median": 95.07850018458245,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1638.95,
+            "se": 132.93517508869527,
+            "ci_low": 1389.1866666666667,
+            "ci_high": 1887.2566666666667,
+            "median": 1822.05,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.1,
+            "se": 0.41619513548886855,
+            "ci_low": 4.266666666666667,
+            "ci_high": 5.866666666666666,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 72.57884628219445,
+            "se": 7.081205857721169,
+            "ci_low": 60.2552055725,
+            "ci_high": 87.4010585985,
+            "median": 63.37038472416667,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 213.11962591823183,
+            "se": 18.52289606392763,
+            "ci_low": 178.966133266444,
+            "ci_high": 248.25079458397155,
+            "median": 223.5311284681672,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 15.714770243302238,
+            "se": 1.2297745900977055,
+            "ci_low": 13.245506328819255,
+            "ci_high": 17.917094064667587,
+            "median": 16.642829752850293,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 271.46819563165116,
+            "se": 20.98834166081267,
+            "ci_low": 230.4140397001834,
+            "ci_high": 309.5470515729455,
+            "median": 291.36182478338344,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.04918107958786049,
+            "se": 0.004308428916486366,
+            "ci_low": 0.04106158090931357,
+            "ci_high": 0.05767447977550439,
+            "median": 0.05186403670334577,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5679830578440808,
+            "se": 0.04215003486738791,
+            "ci_low": 0.4824120621775794,
+            "ci_high": 0.6407354609401456,
+            "median": 0.6227953290228174,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.26098052655156573,
+            "se": 0.026810035794991072,
+            "ci_low": 0.2107771724319712,
+            "ci_high": 0.310760676418201,
+            "median": 0.27350427350427353,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 21.8,
+            "se": 1.0039004392637862,
+            "ci_low": 19.933333333333334,
+            "ci_high": 23.866666666666667,
+            "median": 21.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 153,
+          "decision_overlap_rate": 0.934640522875817,
+          "divergence_rate": 0.065359477124183
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1572.5805343495936,
+            "se": 139.91923186317953,
+            "ci_low": 1313.5462785714637,
+            "ci_high": 1836.6861814081092,
+            "median": 1622.9715123484602,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 87.56589854945292,
+            "se": 8.230840023732172,
+            "ci_low": 71.35245871907874,
+            "ci_high": 102.97577139266212,
+            "median": 96.70405009256103,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1652.0800000000002,
+            "se": 132.94061040273914,
+            "ci_low": 1398.9966666666667,
+            "ci_high": 1905.05,
+            "median": 1822.05,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.1,
+            "se": 0.4134241650289507,
+            "ci_low": 4.266666666666667,
+            "ci_high": 5.866666666666666,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 73.2953847534074,
+            "se": 7.014158397236503,
+            "ci_low": 60.45931239083333,
+            "ci_high": 88.11934345909259,
+            "median": 61.4281220498611,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 224.65436204994197,
+            "se": 19.988461694739932,
+            "ci_low": 187.49618352076772,
+            "ci_high": 262.14807285986956,
+            "median": 231.85307319263717,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 15.2729897450731,
+            "se": 1.1547566186055451,
+            "ci_low": 12.957906260921401,
+            "ci_high": 17.316346482441563,
+            "median": 16.013426001081452,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 286.7624780638722,
+            "se": 23.068956322413374,
+            "ci_low": 242.24934912026865,
+            "ci_high": 329.21049794720125,
+            "median": 306.2445643080351,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.0474878330073253,
+            "se": 0.0040363775131205485,
+            "ci_low": 0.03990164364256141,
+            "ci_high": 0.05534575772142732,
+            "median": 0.05015683865527716,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5637179478963845,
+            "se": 0.04175094284069347,
+            "ci_low": 0.4801218333762677,
+            "ci_high": 0.6365531233959436,
+            "median": 0.6343564163698744,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.2546017831441677,
+            "se": 0.026623391758732663,
+            "ci_low": 0.20507714764894397,
+            "ci_high": 0.3041712195557094,
+            "median": 0.27350427350427353,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 22.4,
+            "se": 1.037902393922639,
+            "ci_low": 20.4,
+            "ci_high": 24.4,
+            "median": 21.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 24.1522237657125
+      },
+      "headline_delta": {
+        "profit_pct": 5.4123293816852245,
+        "deadhead_pct": -2.644466965747751,
+        "deadhead_per_load_pct": -2.8112437623288176,
+        "idle_hours_pct": 0.9872552512435607,
+        "loads_pct": 0.0
+      },
+      "paired_profit": {
+        "mean": 80.74315292197093,
+        "se": 35.132383731115986,
+        "ci_low": 22.472388275193346,
+        "ci_high": 156.788072826623,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 21,
+        "losses": 1
+      },
+      "paired_deadhead": {
+        "mean": -2.3785512628088123,
+        "se": 2.596833782150331,
+        "ci_low": -7.344557302967502,
+        "ci_high": 2.781882154343663,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 21,
+        "losses": 1
+      },
+      "divergence": {
+        "shadow_decision_count": 153,
+        "decision_overlap_rate": 0.934640522875817,
+        "divergence_rate": 0.065359477124183
+      },
+      "onward_diagnostic": {
+        "pairs": 126,
+        "correlation": 0.11016780447446732,
+        "signed_bias_miles": 6.200219557868036,
+        "mae_miles": 13.71593113105163,
+        "mean_predicted": 24.144795029065662,
+        "mean_realized": 17.944575471197627
+      }
+    },
+    {
+      "name": "competition_025",
+      "rationale": "A quarter of visible loads are taken first by rival demand, biased toward high-view (contested) loads. Both policies face the same thinned board \u2014 does destination-awareness help when the best loads vanish?",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.25,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1434.2630003213985,
+            "se": 118.33968009372136,
+            "ci_low": 1198.7897838948434,
+            "ci_high": 1649.1723402057537,
+            "median": 1536.9157127577105,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 117.94887267045677,
+            "se": 15.569144879555415,
+            "ci_low": 89.87615766367318,
+            "ci_high": 148.49040614604561,
+            "median": 100.5920302316102,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1654.96,
+            "se": 119.74465827838375,
+            "ci_low": 1424.77,
+            "ci_high": 1873.5800000000002,
+            "median": 1796.3,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.333333333333333,
+            "se": 0.3963434402199234,
+            "ci_low": 4.533333333333333,
+            "ci_high": 6.033333333333333,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 72.23734942715741,
+            "se": 6.972696821138787,
+            "ci_low": 59.31643990692592,
+            "ci_high": 86.78203397413888,
+            "median": 61.73786909416667,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 204.89471433162834,
+            "se": 16.905668584817334,
+            "ci_low": 173.61874327458776,
+            "ci_high": 236.46888542924233,
+            "median": 219.5593875368158,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 19.530417215441947,
+            "se": 2.3254563092471403,
+            "ci_low": 15.205380385662975,
+            "ci_high": 24.057418970938535,
+            "median": 17.847429005571158,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 247.37386102291666,
+            "se": 19.176060109142067,
+            "ci_low": 208.4736767791132,
+            "ci_high": 281.45196674442246,
+            "median": 257.1397776701843,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06394427142202325,
+            "se": 0.0082351352246242,
+            "ci_low": 0.04930691284571173,
+            "ci_high": 0.08026012426183969,
+            "median": 0.05488988756560173,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5700157772193012,
+            "se": 0.04150414774487373,
+            "ci_low": 0.48068310238249556,
+            "ci_high": 0.6411907765791446,
+            "median": 0.6325126839632937,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.23938591590942776,
+            "se": 0.02162876614840159,
+            "ci_low": 0.19579416740675973,
+            "ci_high": 0.27789731027843667,
+            "median": 0.24962962962962962,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 24.333333333333332,
+            "se": 1.0015313944653041,
+            "ci_low": 22.533333333333335,
+            "ci_high": 26.4,
+            "median": 23.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 160,
+          "decision_overlap_rate": 0.9375,
+          "divergence_rate": 0.0625
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1507.416556353754,
+            "se": 136.51672274678612,
+            "ci_low": 1256.0777698525733,
+            "ci_high": 1755.1339171431948,
+            "median": 1536.9157127577105,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 104.73665010521292,
+            "se": 12.991581935705119,
+            "ci_low": 81.33073260015293,
+            "ci_high": 132.09146736688965,
+            "median": 97.32355231655227,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1632.65,
+            "se": 123.72753656562351,
+            "ci_low": 1394.2466666666667,
+            "ci_high": 1861.6033333333332,
+            "median": 1770.5,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.233333333333333,
+            "se": 0.40023939196589087,
+            "ci_low": 4.4,
+            "ci_high": 5.966666666666667,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 72.58190864692592,
+            "se": 7.329099868445548,
+            "ci_low": 59.25266102524074,
+            "ci_high": 87.73652306911112,
+            "median": 64.26568676236111,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 215.34522233625057,
+            "se": 19.502388963826586,
+            "ci_low": 179.40445079780588,
+            "ci_high": 253.89104028750893,
+            "median": 219.5593875368158,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 18.050708077790805,
+            "se": 2.0882000479785434,
+            "ci_low": 14.261846973327033,
+            "ci_high": 22.11303944829755,
+            "median": 15.856612526697216,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 267.17509894647395,
+            "se": 23.35119947901589,
+            "ci_low": 221.67853569077798,
+            "ci_high": 310.41252831737745,
+            "median": 257.1397776701843,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.0588684029732739,
+            "se": 0.007396964223768806,
+            "ci_low": 0.04530122039868174,
+            "ci_high": 0.07333184855657014,
+            "median": 0.05399146233930443,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5679648294825838,
+            "se": 0.04362559445503302,
+            "ci_low": 0.4778465039662699,
+            "ci_high": 0.646073879721616,
+            "median": 0.617466150224041,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.23934791608982145,
+            "se": 0.023531283337489495,
+            "ci_low": 0.19340272920993745,
+            "ci_high": 0.28317801224399236,
+            "median": 0.25462962962962965,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 24.5,
+            "se": 1.124185528926732,
+            "ci_low": 22.366666666666667,
+            "ci_high": 26.766666666666666,
+            "median": 23.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 23.27033280178352
+      },
+      "headline_delta": {
+        "profit_pct": 5.100428304708605,
+        "deadhead_pct": -11.201652263483803,
+        "deadhead_per_load_pct": -7.576433833073431,
+        "idle_hours_pct": 0.4769820909832234,
+        "loads_pct": -1.8749999999999933
+      },
+      "paired_profit": {
+        "mean": 73.15355603235562,
+        "se": 45.16802994922433,
+        "ci_low": -0.26807936795409354,
+        "ci_high": 162.08327758228145,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 21,
+        "losses": 1
+      },
+      "paired_deadhead": {
+        "mean": -13.212222565243858,
+        "se": 8.545973815924983,
+        "ci_low": -31.352984263117257,
+        "ci_high": -0.056101838759667545,
+        "median": 0.0,
+        "n": 30,
+        "wins": 7,
+        "ties": 21,
+        "losses": 2
+      },
+      "divergence": {
+        "shadow_decision_count": 160,
+        "decision_overlap_rate": 0.9375,
+        "divergence_rate": 0.0625
+      },
+      "onward_diagnostic": {
+        "pairs": 130,
+        "correlation": -0.017579220526832525,
+        "signed_bias_miles": 1.4920995766451353,
+        "mae_miles": 15.31562632434433,
+        "mean_predicted": 22.69142661264245,
+        "mean_realized": 21.199327035997314
+      }
+    },
+    {
+      "name": "competition_050",
+      "rationale": "Half the visible board is skimmed by rivals (view-biased). The strongest single test of whether the onward signal survives a hostile market.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.5,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1201.3528771707845,
+            "se": 113.6835040155209,
+            "ci_low": 999.4101518373149,
+            "ci_high": 1431.278727092448,
+            "median": 1269.52113585317,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 105.71258237113834,
+            "se": 13.934372439637684,
+            "ci_low": 79.76973212496927,
+            "ci_high": 132.6435760633784,
+            "median": 98.08452424171847,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1492.97,
+            "se": 115.96073901089981,
+            "ci_low": 1271.2,
+            "ci_high": 1700.4333333333334,
+            "median": 1660.4,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.866666666666666,
+            "se": 0.4003829584409927,
+            "ci_low": 4.066666666666666,
+            "ci_high": 5.6,
+            "median": 5.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 79.2921602190463,
+            "se": 6.9794430013084945,
+            "ci_low": 66.65205087476852,
+            "ci_high": 93.59894820193519,
+            "median": 74.77937432,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 171.62183959582634,
+            "se": 16.240500573645843,
+            "ci_low": 141.21872977518004,
+            "ci_high": 204.01861789294472,
+            "median": 181.3601622647386,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 19.278396479618056,
+            "se": 2.3013862978284028,
+            "ci_low": 14.983456962967363,
+            "ci_high": 23.771059948145787,
+            "median": 17.883493347555714,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 230.6153120679341,
+            "se": 20.286769798920268,
+            "ci_low": 190.86948941281358,
+            "ci_high": 267.5781606319527,
+            "median": 237.84407190647238,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06411070384397285,
+            "se": 0.008666584085976602,
+            "ci_low": 0.048333981891873996,
+            "ci_high": 0.08168110947947553,
+            "median": 0.05303447732617275,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5280228558390101,
+            "se": 0.04154430357921723,
+            "ci_low": 0.4423975426769731,
+            "ci_high": 0.6007190022126323,
+            "median": 0.5548846766666666,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.24641830142669277,
+            "se": 0.025055388244107964,
+            "ci_low": 0.19674023059876625,
+            "ci_high": 0.2942479147924461,
+            "median": 0.2638888888888889,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 21.733333333333334,
+            "se": 0.9600446988316685,
+            "ci_low": 20.0,
+            "ci_high": 23.633333333333333,
+            "median": 21.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 146,
+          "decision_overlap_rate": 0.952054794520548,
+          "divergence_rate": 0.047945205479452024
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1229.2381992250769,
+            "se": 115.91561116021848,
+            "ci_low": 1022.3969243124558,
+            "ci_high": 1462.976811881164,
+            "median": 1234.9224605567242,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 98.52765043759469,
+            "se": 12.084887578131518,
+            "ci_low": 76.24239683117307,
+            "ci_high": 122.93896285218032,
+            "median": 95.41968673250261,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1470.5966666666668,
+            "se": 115.33169719954357,
+            "ci_low": 1252.6333333333334,
+            "ci_high": 1678.29,
+            "median": 1591.35,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.8,
+            "se": 0.3994248738937743,
+            "ci_low": 4.0,
+            "ci_high": 5.5,
+            "median": 5.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 81.48734491543519,
+            "se": 6.757307766772271,
+            "ci_low": 69.22340834071296,
+            "ci_high": 95.24920882891666,
+            "median": 75.38960716430554,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 175.60545703215382,
+            "se": 16.559373022888355,
+            "ci_low": 145.04544386817696,
+            "ci_high": 208.2213630509902,
+            "median": 176.4174943652463,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 18.50566360406938,
+            "se": 2.0394616708197537,
+            "ci_low": 14.768781684164972,
+            "ci_high": 22.55475060945457,
+            "median": 17.975723140569933,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 240.68513838399437,
+            "se": 21.162781072405963,
+            "ci_low": 200.02235368416547,
+            "ci_high": 279.6971922947794,
+            "median": 242.81635341289194,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06059446038322881,
+            "se": 0.007300225970243491,
+            "ci_low": 0.04759251677493694,
+            "ci_high": 0.07529125024979161,
+            "median": 0.05691477718003409,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5149562802652667,
+            "se": 0.040222070040311135,
+            "ci_low": 0.43319001263993606,
+            "ci_high": 0.5846355377805336,
+            "median": 0.551252338307705,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.23736822840603153,
+            "se": 0.024555773160845625,
+            "ci_low": 0.19026048317540853,
+            "ci_high": 0.28373332091598347,
+            "median": 0.25,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 22.233333333333334,
+            "se": 0.9938701010583717,
+            "ci_low": 20.366666666666667,
+            "ci_high": 24.2,
+            "median": 21.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 20.420429681231663
+      },
+      "headline_delta": {
+        "profit_pct": 2.3211599675827967,
+        "deadhead_pct": -6.79666674712251,
+        "deadhead_per_load_pct": -4.008283968874916,
+        "idle_hours_pct": 2.7684763415760747,
+        "loads_pct": -1.3698630136986254
+      },
+      "paired_profit": {
+        "mean": 27.885322054292367,
+        "se": 18.493597445426488,
+        "ci_low": -4.064773907220725,
+        "ci_high": 64.34720507795505,
+        "median": 0.0,
+        "n": 30,
+        "wins": 6,
+        "ties": 23,
+        "losses": 1
+      },
+      "paired_deadhead": {
+        "mean": -7.1849319335436705,
+        "se": 6.902391496582724,
+        "ci_low": -21.896022879853543,
+        "ci_high": 1.052798129603756,
+        "median": 0.0,
+        "n": 30,
+        "wins": 5,
+        "ties": 23,
+        "losses": 2
+      },
+      "divergence": {
+        "shadow_decision_count": 146,
+        "decision_overlap_rate": 0.952054794520548,
+        "divergence_rate": 0.047945205479452024
+      },
+      "onward_diagnostic": {
+        "pairs": 117,
+        "correlation": 0.008792550417087276,
+        "signed_bias_miles": -1.6588432099995272,
+        "mae_miles": 13.653319646359556,
+        "mean_predicted": 20.200482875615688,
+        "mean_realized": 21.859326085615216
+      }
+    },
+    {
+      "name": "fuel_095",
+      "rationale": "Fuel jumps 0.55 -> 0.95 $/mi (rebuilds the cost stack end-to-end). Every empty mile hurts more, so reducing onward deadhead should matter more.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.95,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1020.3290986297156,
+            "se": 95.26808496474344,
+            "ci_low": 833.6666830358232,
+            "ci_high": 1203.3278814988032,
+            "median": 969.8519563396843,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 86.65162087725396,
+            "se": 6.93470154628459,
+            "ci_low": 72.95654915049383,
+            "ci_high": 98.8433937419689,
+            "median": 95.04627071697004,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1643.65,
+            "se": 119.43326764155886,
+            "ci_low": 1408.3433333333332,
+            "ci_high": 1862.263333333333,
+            "median": 1821.85,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.2,
+            "se": 0.38774324956884404,
+            "ci_low": 4.433333333333334,
+            "ci_high": 5.9,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 70.28530846288889,
+            "se": 7.0557373448553635,
+            "ci_low": 57.078225641648146,
+            "ci_high": 84.3735192236852,
+            "median": 58.83415368583333,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 145.76129980424508,
+            "se": 13.609726423534775,
+            "ci_low": 121.13596595201916,
+            "ci_high": 171.91559813644932,
+            "median": 138.55027947709777,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 15.228237559242777,
+            "se": 1.1706576496503405,
+            "ci_low": 12.900205348605626,
+            "ci_high": 17.29141615284527,
+            "median": 15.76938894609387,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 181.53273254673326,
+            "se": 16.470782542609843,
+            "ci_low": 150.5019582160007,
+            "ci_high": 212.48446525019716,
+            "median": 176.13273662335826,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.048197801370324894,
+            "se": 0.0038596904156186335,
+            "ci_low": 0.04016729860030912,
+            "ci_high": 0.05572493493151984,
+            "median": 0.050975240187553804,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5816350686732804,
+            "se": 0.04199843657652002,
+            "ci_low": 0.49215269031211417,
+            "ci_high": 0.6538924442668651,
+            "median": 0.649796704250992,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.22962654088215542,
+            "se": 0.021811186598320605,
+            "ci_low": 0.18736031232372197,
+            "ci_high": 0.26893132366858563,
+            "median": 0.245,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 25.5,
+            "se": 1.153455577868061,
+            "ci_low": 23.4,
+            "ci_high": 27.733333333333334,
+            "median": 25.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 156,
+          "decision_overlap_rate": 0.8461538461538461,
+          "divergence_rate": 0.15384615384615385
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1118.4285605183802,
+            "se": 101.6659426082014,
+            "ci_low": 926.9922479496565,
+            "ci_high": 1311.7882337250978,
+            "median": 1056.5016288572983,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 85.08748946831653,
+            "se": 7.368447985830925,
+            "ci_low": 70.6265665188776,
+            "ci_high": 99.01700653841823,
+            "median": 92.74695638021447,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1589.6833333333334,
+            "se": 118.57455068808493,
+            "ci_low": 1361.09,
+            "ci_high": 1812.07,
+            "median": 1696.4999999999998,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.966666666666667,
+            "se": 0.37595344947025344,
+            "ci_low": 4.233333333333333,
+            "ci_high": 5.633333333333334,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 74.93695766678704,
+            "se": 6.762957231707808,
+            "ci_low": 62.466956700518516,
+            "ci_high": 88.93573819260185,
+            "median": 67.111691465,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 159.77550864548292,
+            "se": 14.523706086885914,
+            "ci_low": 132.9384958110703,
+            "ci_high": 185.74710763543783,
+            "median": 150.9288041224712,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 15.544895493671527,
+            "se": 1.2318378948062356,
+            "ci_low": 13.05329755449142,
+            "ci_high": 17.841478989578224,
+            "median": 15.625327932755933,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 209.45127690759784,
+            "se": 19.126369609399323,
+            "ci_low": 174.07407653088873,
+            "ci_high": 246.25275600091933,
+            "median": 235.50177267632296,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.049432098494425106,
+            "se": 0.004529719406471699,
+            "ci_low": 0.0407333416234383,
+            "ci_high": 0.058364703024557145,
+            "median": 0.04993913397666919,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5539466805548391,
+            "se": 0.04025569780778456,
+            "ci_low": 0.469809128157683,
+            "ci_high": 0.6249743303799603,
+            "median": 0.6005256460416667,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.20487328855233164,
+            "se": 0.019909296368275774,
+            "ci_low": 0.167862252106061,
+            "ci_high": 0.2429432510402508,
+            "median": 0.2105911330049261,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 26.933333333333334,
+            "se": 1.0795202567225544,
+            "ci_low": 24.833333333333332,
+            "ci_high": 28.933333333333334,
+            "median": 27.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 21.97358211735026
+      },
+      "headline_delta": {
+        "profit_pct": 9.614492228087041,
+        "deadhead_pct": -1.805080381765844,
+        "deadhead_per_load_pct": 2.079412888043338,
+        "idle_hours_pct": 6.618238299906228,
+        "loads_pct": -4.487179487179488
+      },
+      "paired_profit": {
+        "mean": 98.0994618886647,
+        "se": 37.63933813786792,
+        "ci_low": 28.045141047820398,
+        "ci_high": 172.59460236339865,
+        "median": 17.642978194985687,
+        "n": 30,
+        "wins": 15,
+        "ties": 13,
+        "losses": 2
+      },
+      "paired_deadhead": {
+        "mean": -1.5641314089374454,
+        "se": 3.0803621422336205,
+        "ci_low": -7.981275853648201,
+        "ci_high": 4.187448877778275,
+        "median": 0.0,
+        "n": 30,
+        "wins": 10,
+        "ties": 13,
+        "losses": 7
+      },
+      "divergence": {
+        "shadow_decision_count": 156,
+        "decision_overlap_rate": 0.8461538461538461,
+        "divergence_rate": 0.15384615384615385
+      },
+      "onward_diagnostic": {
+        "pairs": 122,
+        "correlation": 0.19549169278741135,
+        "signed_bias_miles": 3.7591191274936606,
+        "mae_miles": 12.250016015565206,
+        "mean_predicted": 21.76254479079879,
+        "mean_realized": 18.00342566330513
+      }
+    },
+    {
+      "name": "deadhead_15",
+      "rationale": "Empty miles burn 1.5x fuel (loaded miles unchanged). Directly amplifies the quantity the destination model is built to reduce.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.5,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1623.643381407446,
+            "se": 138.7339052146221,
+            "ci_low": 1351.6330948154148,
+            "ci_high": 1883.0016415435953,
+            "median": 1612.4216696680842,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 110.33822938491726,
+            "se": 12.444461886746428,
+            "ci_low": 88.77860112232953,
+            "ci_high": 134.378882017049,
+            "median": 100.64944014441966,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1779.2866666666666,
+            "se": 127.06057897515623,
+            "ci_low": 1533.22,
+            "ci_high": 2014.24,
+            "median": 1854.1000000000001,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.533333333333333,
+            "se": 0.3945995593770176,
+            "ci_low": 4.733333333333333,
+            "ci_high": 6.233333333333333,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 65.99153842975001,
+            "se": 7.019403057851311,
+            "ci_low": 53.496238929851856,
+            "ci_high": 80.95907323467593,
+            "median": 59.26210595055556,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 231.94905448677804,
+            "se": 19.819129316374585,
+            "ci_low": 195.27512076304268,
+            "ci_high": 268.074975361875,
+            "median": 230.34595280972627,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 17.84873741586386,
+            "se": 1.7614158354059866,
+            "ci_low": 14.628138534940904,
+            "ci_high": 21.393262722806966,
+            "median": 17.100926139451268,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 267.955382520047,
+            "se": 22.423228274106403,
+            "ci_low": 224.0448305722771,
+            "ci_high": 310.1775295925029,
+            "median": 294.9659438514061,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.05663256730842772,
+            "se": 0.006168762298802093,
+            "ci_low": 0.04533797082252079,
+            "ci_high": 0.06946596537587217,
+            "median": 0.05528392383350783,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6071932236324405,
+            "se": 0.04178216105863876,
+            "ci_low": 0.5202202055074956,
+            "ci_high": 0.6788970705632165,
+            "median": 0.6472493693419312,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.24919754667529698,
+            "se": 0.021959426508730027,
+            "ci_low": 0.2078607119724742,
+            "ci_high": 0.29108087001986027,
+            "median": 0.25462962962962965,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 24.6,
+            "se": 1.067384815719048,
+            "ci_low": 22.633333333333333,
+            "ci_high": 26.733333333333334,
+            "median": 25.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 166,
+          "decision_overlap_rate": 0.927710843373494,
+          "divergence_rate": 0.07228915662650603
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1685.838415570863,
+            "se": 134.58733434154755,
+            "ci_low": 1418.4352730584326,
+            "ci_high": 1938.094810366765,
+            "median": 1680.0130180502192,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 98.44933999747975,
+            "se": 8.461245557471084,
+            "ci_low": 82.07650210057021,
+            "ci_high": 114.3639123747107,
+            "median": 100.34679274995568,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1773.1899999999998,
+            "se": 123.36579420755078,
+            "ci_low": 1534.2866666666666,
+            "ci_high": 1995.6433333333334,
+            "median": 1878.8500000000001,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.533333333333333,
+            "se": 0.39167583750574114,
+            "ci_low": 4.733333333333333,
+            "ci_high": 6.233333333333333,
+            "median": 6.5,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 66.4509069583426,
+            "se": 6.984224915193362,
+            "ci_low": 53.877589081148145,
+            "ci_high": 81.20025772125,
+            "median": 54.79852576347222,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 240.83405936726612,
+            "se": 19.22676204879251,
+            "ci_low": 205.49818770991953,
+            "ci_high": 276.39500888740025,
+            "median": 240.00185972145988,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 16.02865807056963,
+            "se": 1.2525828929329483,
+            "ci_low": 13.544729451143917,
+            "ci_high": 18.27045046819797,
+            "median": 16.26832456761803,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 279.9416962172635,
+            "se": 22.425087164663204,
+            "ci_low": 237.47481368541503,
+            "ci_high": 320.9990537612631,
+            "median": 303.24106825516867,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.051027516255079244,
+            "se": 0.004606342872889744,
+            "ci_low": 0.04235806531074361,
+            "ci_high": 0.06009172375510816,
+            "median": 0.050975240187553804,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6044588871527227,
+            "se": 0.041572767352341444,
+            "ci_low": 0.5169636333939044,
+            "ci_high": 0.6782902666224647,
+            "median": 0.6738182990269511,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.24716760090522125,
+            "se": 0.02143353298864213,
+            "ci_low": 0.20576334116676445,
+            "ci_high": 0.28714043936923866,
+            "median": 0.2554347826086957,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 24.733333333333334,
+            "se": 1.074183285943682,
+            "ci_low": 22.733333333333334,
+            "ci_high": 26.866666666666667,
+            "median": 24.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 25.105260045849423
+      },
+      "headline_delta": {
+        "profit_pct": 3.8305846515078663,
+        "deadhead_pct": -10.774950308440113,
+        "deadhead_per_load_pct": -10.197244224549754,
+        "idle_hours_pct": 0.696102166312736,
+        "loads_pct": 0.0
+      },
+      "paired_profit": {
+        "mean": 62.195034163416786,
+        "se": 44.202824932437885,
+        "ci_low": -3.933770439995025,
+        "ci_high": 159.39645967071002,
+        "median": 0.0,
+        "n": 30,
+        "wins": 7,
+        "ties": 21,
+        "losses": 2
+      },
+      "paired_deadhead": {
+        "mean": -11.888889387437498,
+        "se": 6.488157509085288,
+        "ci_low": -25.74950621942623,
+        "ci_high": -1.7871563063346565,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 21,
+        "losses": 1
+      },
+      "divergence": {
+        "shadow_decision_count": 166,
+        "decision_overlap_rate": 0.927710843373494,
+        "divergence_rate": 0.07228915662650603
+      },
+      "onward_diagnostic": {
+        "pairs": 139,
+        "correlation": -0.007577632031597398,
+        "signed_bias_miles": 7.360398495953112,
+        "mae_miles": 16.352575673077432,
+        "mean_predicted": 26.09685975844216,
+        "mean_realized": 18.736461262489048
+      }
+    },
+    {
+      "name": "hos_strict_8",
+      "rationale": "Strict 8h daily drive cap. Less reach per day, so a bad destination is costlier to recover from \u2014 sequential positioning should matter more.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 8,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 974.4541647157763,
+            "se": 127.89322580028583,
+            "ci_low": 733.5128669440048,
+            "ci_high": 1217.7121195916172,
+            "median": 1205.519519871042,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 78.38913809416574,
+            "se": 10.66622031328376,
+            "ci_low": 58.53467071111143,
+            "ci_high": 98.3666836698047,
+            "median": 108.04249455026785,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1120.1399999999999,
+            "se": 143.44300671246629,
+            "ci_low": 847.0566666666667,
+            "ci_high": 1388.0466666666666,
+            "median": 1521.0,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.233333333333333,
+            "se": 0.546006048834612,
+            "ci_low": 3.1333333333333333,
+            "ci_high": 5.233333333333333,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 93.10991336535184,
+            "se": 9.441728908286215,
+            "ci_low": 75.36850960663888,
+            "ci_high": 111.48543314366665,
+            "median": 72.9956736675,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 139.20773781653946,
+            "se": 18.27046082861226,
+            "ci_low": 104.87498775091295,
+            "ci_high": 175.343666646385,
+            "median": 172.2170742672917,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 12.958039685827606,
+            "se": 1.6764527421269617,
+            "ci_low": 9.778602640422328,
+            "ci_high": 16.0794518649287,
+            "median": 16.26832456761803,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 163.9708238843187,
+            "se": 21.638805327985594,
+            "ci_low": 120.66907696189493,
+            "ci_high": 204.8580068971114,
+            "median": 210.17738426933167,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.048749704048206874,
+            "se": 0.006294609486281328,
+            "ci_low": 0.03685247853249407,
+            "ci_high": 0.06038616762179342,
+            "median": 0.061714344108462105,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.445774325206239,
+            "se": 0.05620076731122747,
+            "ci_low": 0.336336918789407,
+            "ci_high": 0.5462357142851081,
+            "median": 0.5655019424553571,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.1725650895146645,
+            "se": 0.02512763528164916,
+            "ci_low": 0.12349954509658198,
+            "ci_high": 0.22073651829159888,
+            "median": 0.1967741935483871,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 32.233333333333334,
+            "se": 2.0480904104804347,
+            "ci_low": 28.3,
+            "ci_high": 36.46666666666667,
+            "median": 30.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 127,
+          "decision_overlap_rate": 0.9448818897637795,
+          "divergence_rate": 0.055118110236220486
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1002.9426188727648,
+            "se": 129.9022557561868,
+            "ci_low": 760.5009429438686,
+            "ci_high": 1247.9283584368984,
+            "median": 1335.4192668561682,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 74.9241590843419,
+            "se": 10.700648816870578,
+            "ci_low": 55.145533526133796,
+            "ci_high": 95.01181557105218,
+            "median": 79.91195506725282,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1099.02,
+            "se": 142.01355523774612,
+            "ci_low": 834.9766666666667,
+            "ci_high": 1370.8033333333333,
+            "median": 1423.35,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 4.166666666666667,
+            "se": 0.5426273532033236,
+            "ci_low": 3.066666666666667,
+            "ci_high": 5.166666666666667,
+            "median": 5.5,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 93.17478586333333,
+            "se": 9.427595885772828,
+            "ci_low": 74.9904245127315,
+            "ci_high": 111.83096827021296,
+            "median": 77.65475844194445,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 143.27751698182357,
+            "se": 18.557465108026687,
+            "ci_low": 109.06217271158707,
+            "ci_high": 179.73825558251758,
+            "median": 190.7741809794526,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 12.49179372787258,
+            "se": 1.661948125454209,
+            "ci_low": 9.441041688359073,
+            "ci_high": 15.609705147114171,
+            "median": 15.475995384615683,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 172.0354124325428,
+            "se": 22.267240053540732,
+            "ci_low": 126.94282369550297,
+            "ci_high": 213.82229768728607,
+            "median": 216.08950024500842,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.047221164367491866,
+            "se": 0.006306871330973453,
+            "ci_low": 0.03553931342964154,
+            "ci_high": 0.0591510090533327,
+            "median": 0.057019069074256676,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.44538817938492065,
+            "se": 0.056116642177219206,
+            "ci_low": 0.33493109803698196,
+            "ci_high": 0.546201367743276,
+            "median": 0.5377692949884258,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.17065389912599482,
+            "se": 0.025297451966282764,
+            "ci_low": 0.12346564351519215,
+            "ci_high": 0.2193826022039106,
+            "median": 0.18605990783410137,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 32.233333333333334,
+            "se": 2.049212539160187,
+            "ci_low": 28.333333333333332,
+            "ci_high": 36.36666666666667,
+            "median": 30.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 19.505576310875743
+      },
+      "headline_delta": {
+        "profit_pct": 2.9235294166245223,
+        "deadhead_pct": -4.420228483264491,
+        "deadhead_per_load_pct": -3.5981210835846267,
+        "idle_hours_pct": 0.06967303011756791,
+        "loads_pct": -1.5748031496062938
+      },
+      "paired_profit": {
+        "mean": 28.488454156988503,
+        "se": 24.27904261189351,
+        "ci_low": -15.89488482438461,
+        "ci_high": 76.59145506965805,
+        "median": 0.0,
+        "n": 30,
+        "wins": 5,
+        "ties": 24,
+        "losses": 1
+      },
+      "paired_deadhead": {
+        "mean": -3.464979009823863,
+        "se": 2.068657140975724,
+        "ci_low": -7.580110619354664,
+        "ci_high": 0.28381901812440635,
+        "median": 0.0,
+        "n": 30,
+        "wins": 5,
+        "ties": 24,
+        "losses": 1
+      },
+      "divergence": {
+        "shadow_decision_count": 127,
+        "decision_overlap_rate": 0.9448818897637795,
+        "divergence_rate": 0.055118110236220486
+      },
+      "onward_diagnostic": {
+        "pairs": 104,
+        "correlation": 0.12188962414071958,
+        "signed_bias_miles": 0.9746927777218553,
+        "mae_miles": 11.170051644273626,
+        "mean_predicted": 20.392617272935748,
+        "mean_realized": 19.417924495213892
+      }
+    },
+    {
+      "name": "hos_relaxed_14",
+      "rationale": "Relaxed 14h cap. The truck can drive out of a bad spot more easily, which may wash out the destination advantage.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 14,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 2174.7444030919014,
+            "se": 87.80246586621172,
+            "ci_low": 2005.1103507250739,
+            "ci_high": 2342.2914216722916,
+            "median": 2218.2305318592817,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 201.43275556937564,
+            "se": 24.283336751796142,
+            "ci_low": 158.64625879575968,
+            "ci_high": 252.35616338976814,
+            "median": 143.93418024312655,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 2470.9933333333333,
+            "se": 74.00625663723264,
+            "ci_low": 2314.9466666666663,
+            "ci_high": 2608.8433333333332,
+            "median": 2539.3,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 6.766666666666667,
+            "se": 0.23820851164296603,
+            "ci_low": 6.3,
+            "ci_high": 7.233333333333333,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 40.71189927715741,
+            "se": 4.101402684323563,
+            "ci_low": 33.07542176675926,
+            "ci_high": 49.47372513567593,
+            "median": 39.748553172083334,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 310.6777718702716,
+            "se": 12.543209409458818,
+            "ci_low": 285.60431879647484,
+            "ci_high": 334.25411408485274,
+            "median": 316.89007597989746,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 30.25045423832756,
+            "se": 3.71589611696159,
+            "ci_low": 23.71641399691804,
+            "ci_high": 37.426851606935855,
+            "median": 19.96595493656424,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 326.2648940584602,
+            "se": 12.62980578910466,
+            "ci_low": 302.80670063801165,
+            "ci_high": 349.057263986845,
+            "median": 313.1778196286415,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.08435455993124298,
+            "se": 0.011025736870994703,
+            "ci_low": 0.06365029411143794,
+            "ci_high": 0.10576190206951581,
+            "median": 0.051405100737337506,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.7576672662073964,
+            "se": 0.024413111216211685,
+            "ci_low": 0.7108489612765101,
+            "ci_high": 0.8029953726236221,
+            "median": 0.7634014692137896,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.394436643871721,
+            "se": 0.028573838364041326,
+            "ci_low": 0.34078838580025117,
+            "ci_high": 0.450237843656566,
+            "median": 0.3709150326797386,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 19.166666666666668,
+            "se": 1.0614275069407337,
+            "ci_low": 17.166666666666668,
+            "ci_high": 21.3,
+            "median": 18.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 203,
+          "decision_overlap_rate": 0.9310344827586207,
+          "divergence_rate": 0.06896551724137934
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 2210.8323278236735,
+            "se": 74.18423109024134,
+            "ci_low": 2062.4565645417715,
+            "ci_high": 2351.811082164207,
+            "median": 2222.151454759838,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 182.96633489903581,
+            "se": 22.063233839721264,
+            "ci_low": 144.77699504305193,
+            "ci_high": 227.01617456417824,
+            "median": 137.7024884740782,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 2441.0533333333337,
+            "se": 70.74351271721585,
+            "ci_low": 2301.5299999999997,
+            "ci_high": 2575.61,
+            "median": 2526.75,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 6.933333333333334,
+            "se": 0.2488286736135137,
+            "ci_low": 6.466666666666667,
+            "ci_high": 7.4,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 40.06079169675,
+            "se": 4.070336409011808,
+            "ci_low": 32.47812031285185,
+            "ci_high": 48.644528572805555,
+            "median": 37.54930169777778,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 315.83318968909623,
+            "se": 10.597747298605906,
+            "ci_low": 294.82990083913836,
+            "ci_high": 334.75761822389205,
+            "median": 317.45020782283405,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 26.48917878729763,
+            "se": 3.111115937332321,
+            "ci_low": 20.934018838279496,
+            "ci_high": 32.760785887628955,
+            "median": 19.820739632711646,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 327.1905801496775,
+            "se": 12.380655597978391,
+            "ci_low": 303.4579908685307,
+            "ci_high": 350.9080422604122,
+            "median": 326.76970325959314,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.07441907286480869,
+            "se": 0.008521551365495166,
+            "ci_low": 0.05968381065415258,
+            "ci_high": 0.09123069254394282,
+            "median": 0.05459732717963821,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.7615429065669643,
+            "se": 0.024228192910784565,
+            "ci_low": 0.7134770527400243,
+            "ci_high": 0.8047623632645503,
+            "median": 0.7764922517989419,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.4000493602032981,
+            "se": 0.028761283461621438,
+            "ci_low": 0.3448224943473548,
+            "ci_high": 0.4554056556091375,
+            "median": 0.3764705882352941,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 19.266666666666666,
+            "se": 1.0192777850346462,
+            "ci_low": 17.4,
+            "ci_high": 21.2,
+            "median": 17.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 25.546744876380107
+      },
+      "headline_delta": {
+        "profit_pct": 1.6594099371155882,
+        "deadhead_pct": -9.167536142839387,
+        "deadhead_per_load_pct": -12.43378172571163,
+        "idle_hours_pct": -1.599305343076264,
+        "loads_pct": 2.4630541871921223
+      },
+      "paired_profit": {
+        "mean": 36.087924731772354,
+        "se": 53.790800425698116,
+        "ci_low": -60.357937894464825,
+        "ci_high": 146.0598271692384,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 16,
+        "losses": 6
+      },
+      "paired_deadhead": {
+        "mean": -18.466420670339787,
+        "se": 19.273646368971956,
+        "ci_low": -59.09005361844562,
+        "ci_high": 15.704283710786433,
+        "median": 0.0,
+        "n": 30,
+        "wins": 7,
+        "ties": 16,
+        "losses": 7
+      },
+      "divergence": {
+        "shadow_decision_count": 203,
+        "decision_overlap_rate": 0.9310344827586207,
+        "divergence_rate": 0.06896551724137934
+      },
+      "onward_diagnostic": {
+        "pairs": 178,
+        "correlation": -0.005166939664207983,
+        "signed_bias_miles": -1.8280618596647003,
+        "mae_miles": 23.953056931249474,
+        "mean_predicted": 25.780445828463517,
+        "mean_realized": 27.608507688128217
+      }
+    },
+    {
+      "name": "equip_hs",
+      "rationale": "Pin every truck to hot-shot (HS/Reefer). Tests the signal on a single equipment market instead of the hub-weighted mix.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": "HS",
+        "horizon_days": 7
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1817.5865942278356,
+            "se": 149.34822188491285,
+            "ci_low": 1528.9442499885752,
+            "ci_high": 2100.2837165197298,
+            "median": 1759.62236142544,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 132.21422477613757,
+            "se": 17.865431922839598,
+            "ci_low": 100.59119561952504,
+            "ci_high": 172.41996428957546,
+            "median": 113.63907057742114,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1921.2366666666667,
+            "se": 132.29203766478886,
+            "ci_low": 1658.9399999999998,
+            "ci_high": 2159.6833333333334,
+            "median": 2062.75,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.933333333333334,
+            "se": 0.389321051609149,
+            "ci_low": 5.1,
+            "ci_high": 6.6,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 61.241601018740745,
+            "se": 6.8051703025731465,
+            "ci_low": 49.8165830168426,
+            "ci_high": 75.24399289650927,
+            "median": 52.61565448916667,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 259.65522774683365,
+            "se": 21.335460269273266,
+            "ci_low": 218.9415251089173,
+            "ci_high": 300.6407383884826,
+            "median": 251.37462306077714,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 19.77043654814507,
+            "se": 2.50074252452035,
+            "ci_low": 15.434767473150613,
+            "ci_high": 24.80961315398579,
+            "median": 17.556938847051754,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 280.5288763726815,
+            "se": 24.168949116513343,
+            "ci_low": 234.32273157721417,
+            "ci_high": 326.8703607184625,
+            "median": 280.12957691401124,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06407717555061429,
+            "se": 0.008896037692540843,
+            "ci_low": 0.04922821048117061,
+            "ci_high": 0.08289973147341258,
+            "median": 0.050646771522334766,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6354666606027337,
+            "se": 0.040506966086744915,
+            "ci_low": 0.5520709470561067,
+            "ci_high": 0.7053041986592262,
+            "median": 0.6868115804216269,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.28134719714111284,
+            "se": 0.020922701805893812,
+            "ci_low": 0.2376034438184122,
+            "ci_high": 0.31823609049749846,
+            "median": 0.2950310559006211,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 22.633333333333333,
+            "se": 0.8115308838725285,
+            "ci_low": 21.1,
+            "ci_high": 24.166666666666668,
+            "median": 21.5,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 178,
+          "decision_overlap_rate": 0.9438202247191011,
+          "divergence_rate": 0.0561797752808989
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1884.4018024807372,
+            "se": 155.85953267222843,
+            "ci_low": 1582.1867427342427,
+            "ci_high": 2183.56931499021,
+            "median": 1870.1508597551688,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 113.66601739994924,
+            "se": 10.640924459830762,
+            "ci_low": 93.33558259451584,
+            "ci_high": 135.74533265175683,
+            "median": 113.63907057742114,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1947.4233333333332,
+            "se": 133.34816788309382,
+            "ci_low": 1683.3866666666665,
+            "ci_high": 2181.2566666666667,
+            "median": 2062.75,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 6.0,
+            "se": 0.38655567174253413,
+            "ci_low": 5.2,
+            "ci_high": 6.666666666666667,
+            "median": 7.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 58.88284347032407,
+            "se": 7.0088296214105315,
+            "ci_low": 46.80165640212963,
+            "ci_high": 73.4661983596852,
+            "median": 48.1659901325,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 269.2002574972482,
+            "se": 22.265647524604056,
+            "ci_low": 225.92837311999483,
+            "ci_high": 311.2600159964108,
+            "median": 267.1644085364527,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 16.9494543349336,
+            "se": 1.4973247885924914,
+            "ci_low": 14.132559760992551,
+            "ci_high": 19.8388348453896,
+            "median": 16.562106070243498,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 285.724680220474,
+            "se": 24.26833534502661,
+            "ci_low": 239.40354200397195,
+            "ci_high": 330.8675453602286,
+            "median": 287.66104426698575,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.05506394755711319,
+            "se": 0.006217596897886982,
+            "ci_low": 0.044167531266086704,
+            "ci_high": 0.06840007184023672,
+            "median": 0.04899089082739927,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6495068841052138,
+            "se": 0.04171922393696745,
+            "ci_low": 0.5621552760230379,
+            "ci_high": 0.7193128378482694,
+            "median": 0.7132976777827381,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.29162835555675554,
+            "se": 0.02142848456825323,
+            "ci_low": 0.24741103197167272,
+            "ci_high": 0.3299784255788316,
+            "median": 0.31126482213438733,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 22.2,
+            "se": 0.8515030659160118,
+            "ci_low": 20.6,
+            "ci_high": 23.766666666666666,
+            "median": 21.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 20.63832138726934
+      },
+      "headline_delta": {
+        "profit_pct": 3.6760398907589136,
+        "deadhead_pct": -14.028904535494405,
+        "deadhead_per_load_pct": -14.26868954735421,
+        "idle_hours_pct": -3.851560882111598,
+        "loads_pct": 1.1235955056179736
+      },
+      "paired_profit": {
+        "mean": 66.81520825290174,
+        "se": 26.47406104655496,
+        "ci_low": 22.54575104601528,
+        "ci_high": 122.80643184164782,
+        "median": 0.0,
+        "n": 30,
+        "wins": 9,
+        "ties": 21,
+        "losses": 0
+      },
+      "paired_deadhead": {
+        "mean": -18.548207376188337,
+        "se": 14.198210086285195,
+        "ci_low": -48.63966914337742,
+        "ci_high": 1.8933561532587257,
+        "median": 0.0,
+        "n": 30,
+        "wins": 4,
+        "ties": 21,
+        "losses": 5
+      },
+      "divergence": {
+        "shadow_decision_count": 178,
+        "decision_overlap_rate": 0.9438202247191011,
+        "divergence_rate": 0.0561797752808989
+      },
+      "onward_diagnostic": {
+        "pairs": 153,
+        "correlation": 0.05138158088977506,
+        "signed_bias_miles": 1.0129622746136768,
+        "mae_miles": 12.93514072448127,
+        "mean_predicted": 20.874268235548087,
+        "mean_realized": 19.86130596093441
+      }
+    },
+    {
+      "name": "equip_f",
+      "rationale": "Pin every truck to flatbed (F). A different supply geography \u2014 does the destination edge hold for a thinner, more specialised trailer class?",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": "F",
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1504.4201310076444,
+            "se": 116.13123504648536,
+            "ci_low": 1271.9230156825072,
+            "ci_high": 1709.919573239643,
+            "median": 1522.0721891962517,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 124.12448608562768,
+            "se": 15.69550361463244,
+            "ci_low": 95.79337656837657,
+            "ci_high": 156.36461440374015,
+            "median": 111.98734826986772,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1709.55,
+            "se": 121.17297484725434,
+            "ci_low": 1469.2,
+            "ci_high": 1923.0033333333333,
+            "median": 1834.1,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.366666666666666,
+            "se": 0.38799020408694984,
+            "ci_low": 4.6,
+            "ci_high": 6.066666666666666,
+            "median": 6.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 68.23804205555555,
+            "se": 6.844488075363281,
+            "ci_low": 56.52644676581482,
+            "ci_high": 82.3446467329537,
+            "median": 58.012849672499996,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 214.9171615725206,
+            "se": 16.590176435212193,
+            "ci_low": 182.92158604557738,
+            "ci_high": 245.69343736807267,
+            "median": 217.4388841708931,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 20.516387422843422,
+            "se": 2.3322302897795786,
+            "ci_low": 16.0597323924985,
+            "ci_high": 25.319991963847148,
+            "median": 18.86137352890499,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 263.71620727589846,
+            "se": 22.78754185984385,
+            "ci_low": 219.06220378359978,
+            "ci_high": 306.44577397266437,
+            "median": 266.5778022630129,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06691466086027881,
+            "se": 0.009035195263540057,
+            "ci_low": 0.050874004695471604,
+            "ci_high": 0.08578805464569705,
+            "median": 0.05829411665825113,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5938211782407408,
+            "se": 0.040741000448590955,
+            "ci_low": 0.5077179947699515,
+            "ci_high": 0.6658285814543651,
+            "median": 0.6546854186160714,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.22974927586066524,
+            "se": 0.020898606009866025,
+            "ci_low": 0.1885987075063458,
+            "ci_high": 0.2702458312008599,
+            "median": 0.23205128205128206,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 25.866666666666667,
+            "se": 1.0479682952707683,
+            "ci_low": 23.9,
+            "ci_high": 27.933333333333334,
+            "median": 26.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 161,
+          "decision_overlap_rate": 0.9192546583850931,
+          "divergence_rate": 0.08074534161490687
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 1556.2338860504778,
+            "se": 117.00073570200641,
+            "ci_low": 1319.2562843092996,
+            "ci_high": 1754.6057121250167,
+            "median": 1649.357102327971,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 112.90238413634704,
+            "se": 13.952804432969621,
+            "ci_low": 89.27270840769312,
+            "ci_high": 141.37646797867208,
+            "median": 100.47969546517791,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1682.9533333333336,
+            "se": 112.36946508515962,
+            "ci_low": 1456.8566666666668,
+            "ci_high": 1881.6200000000001,
+            "median": 1836.75,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 5.266666666666667,
+            "se": 0.37118429085533483,
+            "ci_low": 4.566666666666666,
+            "ci_high": 5.933333333333334,
+            "median": 5.5,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 70.46712021148149,
+            "se": 6.487725844273791,
+            "ci_low": 59.26197488040741,
+            "ci_high": 84.1976203873889,
+            "median": 59.73777815277778,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 222.31912657863967,
+            "se": 16.714390814572344,
+            "ci_low": 190.1390470843689,
+            "ci_high": 253.47402941572312,
+            "median": 235.62244318971017,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 19.150800651996043,
+            "se": 2.1573844621910174,
+            "ci_low": 14.95001575587821,
+            "ci_high": 23.646137325319486,
+            "median": 17.485759432726525,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 275.9795846334081,
+            "se": 23.232188423785686,
+            "ci_low": 230.16570101294437,
+            "ci_high": 318.5649198275929,
+            "median": 298.253269424044,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06190425391573983,
+            "se": 0.008215834345634717,
+            "ci_low": 0.047262768134282714,
+            "ci_high": 0.07865294955026018,
+            "median": 0.05789422202653985,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5805528558840388,
+            "se": 0.038617415739724936,
+            "ci_low": 0.49991498400121254,
+            "ci_high": 0.6461694773223655,
+            "median": 0.6444179871858466,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.2167712810453886,
+            "se": 0.018301811356359488,
+            "ci_low": 0.18103934629421886,
+            "ci_high": 0.25251689313774295,
+            "median": 0.22474747474747475,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 26.3,
+            "se": 0.9470462247029644,
+            "ci_low": 24.566666666666666,
+            "ci_high": 28.133333333333333,
+            "median": 26.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 25.039825783895484
+      },
+      "headline_delta": {
+        "profit_pct": 3.4441014165457333,
+        "deadhead_pct": -9.041005770238629,
+        "deadhead_per_load_pct": -6.656078103335596,
+        "idle_hours_pct": 3.266620918154632,
+        "loads_pct": -1.8633540372670743
+      },
+      "paired_profit": {
+        "mean": 51.81375504283346,
+        "se": 36.183396880657334,
+        "ci_low": -5.791671064695636,
+        "ci_high": 126.32364769119833,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 19,
+        "losses": 3
+      },
+      "paired_deadhead": {
+        "mean": -11.22210194928065,
+        "se": 6.452521551039543,
+        "ci_low": -25.34831636741753,
+        "ci_high": -1.5408643417561705,
+        "median": 0.0,
+        "n": 30,
+        "wins": 9,
+        "ties": 19,
+        "losses": 2
+      },
+      "divergence": {
+        "shadow_decision_count": 161,
+        "decision_overlap_rate": 0.9192546583850931,
+        "divergence_rate": 0.08074534161490687
+      },
+      "onward_diagnostic": {
+        "pairs": 131,
+        "correlation": -0.01730306553353321,
+        "signed_bias_miles": 1.4156068147550906,
+        "mae_miles": 18.053846405101,
+        "mean_predicted": 24.569219241715757,
+        "mean_realized": 23.153612426960667
+      }
+    },
+    {
+      "name": "horizon_3",
+      "rationale": "Short 3-day horizon. Fewer sequential decisions to compound the signal \u2014 expect a smaller but ideally still-positive effect.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 3
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 672.1576663488047,
+            "se": 78.77080551102382,
+            "ci_low": 526.4815336680408,
+            "ci_high": 832.6331519362659,
+            "median": 620.8911710124289,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 58.02851341812609,
+            "se": 14.446488286808139,
+            "ci_low": 35.21515349760619,
+            "ci_high": 91.88770772401503,
+            "median": 43.643340596486254,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 763.4300000000001,
+            "se": 62.92422904692138,
+            "ci_low": 638.4266666666666,
+            "ci_high": 883.45,
+            "median": 811.75,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 2.3666666666666667,
+            "se": 0.1886633767634852,
+            "ci_low": 2.0,
+            "ci_high": 2.7,
+            "median": 3.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 28.80629499689815,
+            "se": 3.252924673112735,
+            "ci_low": 22.925136091787035,
+            "ci_high": 35.5962443440463,
+            "median": 20.996905748750002,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 224.05255544960158,
+            "se": 26.25693517034127,
+            "ci_low": 176.0346814234094,
+            "ci_high": 274.7515386372209,
+            "median": 206.96372367080966,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 21.211572871635962,
+            "se": 4.747101347020095,
+            "ci_low": 13.659205022537869,
+            "ci_high": 31.197250792465752,
+            "median": 16.55275023941887,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 264.5540303750927,
+            "se": 29.28793228768783,
+            "ci_low": 211.6854892354216,
+            "ci_high": 320.01893048678545,
+            "median": 226.15052415347174,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.06936436487520511,
+            "se": 0.016739424662638037,
+            "ci_low": 0.04280527185412362,
+            "ci_high": 0.10757698826834049,
+            "median": 0.04901640979812953,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5999125694875257,
+            "se": 0.04517950934878799,
+            "ci_low": 0.5079860086109825,
+            "ci_high": 0.6815025556637089,
+            "median": 0.7083763090451389,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.2478175664205076,
+            "se": 0.022874086843802127,
+            "ci_low": 0.2002346999405823,
+            "ci_high": 0.2900234487734487,
+            "median": 0.2928571428571428,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 11.1,
+            "se": 0.6330913028159125,
+            "ci_low": 9.933333333333334,
+            "ci_high": 12.333333333333334,
+            "median": 10.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 71,
+          "decision_overlap_rate": 0.8873239436619719,
+          "divergence_rate": 0.11267605633802813
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 718.7279012151423,
+            "se": 77.62431753501691,
+            "ci_low": 571.6028872089188,
+            "ci_high": 869.2019472634181,
+            "median": 678.4515724604152,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 38.848967950736956,
+            "se": 4.166623423004828,
+            "ci_low": 31.27961978753433,
+            "ci_high": 46.89648084001554,
+            "median": 40.76424545495044,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 740.4633333333334,
+            "se": 62.43114560974829,
+            "ci_low": 619.9733333333334,
+            "ci_high": 863.14,
+            "median": 790.5,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 2.3,
+            "se": 0.1866215052101353,
+            "ci_low": 1.9333333333333333,
+            "ci_high": 2.6333333333333333,
+            "median": 3.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 29.22356538874074,
+            "se": 3.3570728914717898,
+            "ci_low": 22.995554739129627,
+            "ci_high": 36.37184959962963,
+            "median": 24.272491151666667,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 239.57596707171408,
+            "se": 25.874772511672305,
+            "ci_low": 192.62330069775402,
+            "ci_high": 291.2055308739856,
+            "median": 226.15052415347174,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 15.11754710237244,
+            "se": 1.459344975702747,
+            "ci_low": 12.299900239596093,
+            "ci_high": 17.829177341819957,
+            "median": 15.800750419399773,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 287.79973174992455,
+            "se": 28.59932050150802,
+            "ci_low": 236.74077291914966,
+            "ci_high": 341.65102402996524,
+            "median": 258.3150545839807,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.047980247221325066,
+            "se": 0.005127881741637721,
+            "ci_low": 0.038302010257171795,
+            "ci_high": 0.05799900482362662,
+            "median": 0.04447791270779891,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.5941171473786008,
+            "se": 0.04662601238155264,
+            "ci_low": 0.4987057729633487,
+            "ci_high": 0.6768781636738682,
+            "median": 0.662882067337963,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.24544577154871272,
+            "se": 0.026114886856069372,
+            "ci_low": 0.19517725738313974,
+            "ci_high": 0.29462870462870466,
+            "median": 0.26136363636363635,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 11.233333333333333,
+            "se": 0.6586006295715414,
+            "ci_low": 10.0,
+            "ci_high": 12.466666666666667,
+            "median": 10.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 28.42413954014161
+      },
+      "headline_delta": {
+        "profit_pct": 6.928468899166106,
+        "deadhead_pct": -33.051933157739846,
+        "deadhead_per_load_pct": -28.729721299510192,
+        "idle_hours_pct": 1.448538910982908,
+        "loads_pct": -2.816901408450713
+      },
+      "paired_profit": {
+        "mean": 46.57023486633757,
+        "se": 24.132537865670894,
+        "ci_low": 6.176172432799181,
+        "ci_high": 94.07687784584868,
+        "median": 0.0,
+        "n": 30,
+        "wins": 6,
+        "ties": 23,
+        "losses": 1
+      },
+      "paired_deadhead": {
+        "mean": -19.179545467389136,
+        "se": 13.812174195355356,
+        "ci_low": -47.28623595574676,
+        "ci_high": 0.15591143184850711,
+        "median": 0.0,
+        "n": 30,
+        "wins": 4,
+        "ties": 23,
+        "losses": 3
+      },
+      "divergence": {
+        "shadow_decision_count": 71,
+        "decision_overlap_rate": 0.8873239436619719,
+        "divergence_rate": 0.11267605633802813
+      },
+      "onward_diagnostic": {
+        "pairs": 42,
+        "correlation": 0.10249735209433719,
+        "signed_bias_miles": -1.552651651643277,
+        "mae_miles": 11.090384429485827,
+        "mean_predicted": 17.88441868368276,
+        "mean_realized": 19.437070335326034
+      }
+    },
+    {
+      "name": "horizon_14",
+      "rationale": "Long 14-day horizon. More decisions to compound \u2014 the destination advantage should, if real, grow with sequence length.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 14
+      },
+      "verdict": "HOLDS",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 3182.3878173624908,
+            "se": 244.96112477911774,
+            "ci_low": 2714.305854748241,
+            "ci_high": 3614.1694452844245,
+            "median": 3088.050746708467,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 246.3681409862175,
+            "se": 25.09923726814847,
+            "ci_low": 199.22614231905646,
+            "ci_high": 300.0314421554213,
+            "median": 237.1142662204046,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 3527.8533333333335,
+            "se": 236.44882116084335,
+            "ci_low": 3049.7566666666667,
+            "ci_high": 3944.7466666666664,
+            "median": 3692.8499999999995,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 11.233333333333333,
+            "se": 0.7621556442444285,
+            "ci_low": 9.666666666666666,
+            "ci_high": 12.566666666666666,
+            "median": 13.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 132.92949685937037,
+            "se": 13.484695493659428,
+            "ci_low": 109.62423210507407,
+            "ci_high": 161.62101466508332,
+            "median": 111.09993059708333,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 227.3134155258922,
+            "se": 17.49722319850841,
+            "ci_low": 193.96174526255956,
+            "ci_high": 259.025557964876,
+            "median": 220.57505333631912,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 19.570780652245027,
+            "se": 1.7978567834680972,
+            "ci_low": 16.199305603397608,
+            "ci_high": 22.890378890418038,
+            "median": 18.81965053513831,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 261.1233404738175,
+            "se": 21.39982032827072,
+            "ci_low": 219.31167801514871,
+            "ci_high": 301.78386241696955,
+            "median": 284.5865525198899,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.0632743297881177,
+            "se": 0.006254730193308668,
+            "ci_low": 0.05198538911198328,
+            "ci_high": 0.07619792217732169,
+            "median": 0.0576603998217701,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6043764974423501,
+            "se": 0.04013302230255782,
+            "ci_low": 0.5189557020609292,
+            "ci_high": 0.673933539141121,
+            "median": 0.6693454446515377,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.24747801932528135,
+            "se": 0.01872335582060136,
+            "ci_low": 0.20939073837600383,
+            "ci_high": 0.281074011355881,
+            "median": 0.263768115942029,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 48.46666666666667,
+            "se": 1.602249376699551,
+            "ci_low": 45.56666666666667,
+            "ci_high": 51.8,
+            "median": 46.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 337,
+          "decision_overlap_rate": 0.9258160237388724,
+          "divergence_rate": 0.0741839762611276
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 3395.8666429237865,
+            "se": 256.987001704527,
+            "ci_low": 2893.4141611905784,
+            "ci_high": 3863.9987599201904,
+            "median": 3521.4487904893913,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 229.9518875848058,
+            "se": 19.23864418946091,
+            "ci_low": 192.87466448092624,
+            "ci_high": 265.84167360991574,
+            "median": 232.64868191635713,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 3557.3766666666666,
+            "se": 239.94226253213944,
+            "ci_low": 3095.016666666667,
+            "ci_high": 3977.173333333333,
+            "median": 3696.2999999999993,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 11.366666666666667,
+            "se": 0.7678651302393852,
+            "ci_low": 9.8,
+            "ci_high": 12.666666666666666,
+            "median": 13.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 130.40871128285184,
+            "se": 13.487492702938441,
+            "ci_low": 106.18910673971297,
+            "ci_high": 159.31794066593517,
+            "median": 110.24024767083333,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 242.56190306598475,
+            "se": 18.35621440746622,
+            "ci_low": 206.78920369387407,
+            "ci_high": 276.12582264865864,
+            "median": 251.53205646352797,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 18.110327648476968,
+            "se": 1.3700721977946995,
+            "ci_low": 15.33710815941716,
+            "ci_high": 20.58580398636731,
+            "median": 19.013666874078258,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 275.0417029219304,
+            "se": 22.04647591084686,
+            "ci_low": 231.74714625594632,
+            "ci_high": 316.05372011525947,
+            "median": 297.20012739801757,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.05922989930947032,
+            "se": 0.00527574495346744,
+            "ci_low": 0.049377439388031505,
+            "ci_high": 0.06922967218707046,
+            "median": 0.05568826601760178,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.6118788354677028,
+            "se": 0.04014134733017393,
+            "ci_low": 0.5295770262061563,
+            "ci_high": 0.6809951098322585,
+            "median": 0.6719040247891865,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.25041361761109066,
+            "se": 0.01907475685287094,
+            "ci_low": 0.2126629890306327,
+            "ci_high": 0.2849824560176511,
+            "median": 0.28130434782608693,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 48.63333333333333,
+            "se": 1.6873316575603516,
+            "ci_low": 45.46666666666667,
+            "ci_high": 52.03333333333333,
+            "median": 47.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 24.46172257332682
+      },
+      "headline_delta": {
+        "profit_pct": 6.7081335717977755,
+        "deadhead_pct": -6.663302055085955,
+        "deadhead_per_load_pct": -7.462415678347127,
+        "idle_hours_pct": -1.8963327448574787,
+        "loads_pct": 1.1869436201780532
+      },
+      "paired_profit": {
+        "mean": 213.47882556129565,
+        "se": 76.86584926020788,
+        "ci_low": 74.85426506914624,
+        "ci_high": 370.8205976289058,
+        "median": 0.0,
+        "n": 30,
+        "wins": 12,
+        "ties": 16,
+        "losses": 2
+      },
+      "paired_deadhead": {
+        "mean": -16.41625340141168,
+        "se": 16.147625865014657,
+        "ci_low": -50.365510004609625,
+        "ci_high": 10.396269655312578,
+        "median": 0.0,
+        "n": 30,
+        "wins": 8,
+        "ties": 16,
+        "losses": 6
+      },
+      "divergence": {
+        "shadow_decision_count": 337,
+        "decision_overlap_rate": 0.9258160237388724,
+        "divergence_rate": 0.0741839762611276
+      },
+      "onward_diagnostic": {
+        "pairs": 314,
+        "correlation": -0.013461779248652227,
+        "signed_bias_miles": 3.6202956756730895,
+        "mae_miles": 16.400133620193213,
+        "mean_predicted": 24.478399316137292,
+        "mean_realized": 20.8581036404642
+      }
+    },
+    {
+      "name": "corner_thin_market",
+      "rationale": "Thin + unpriced + contested all at once: scarce supply, half unpriced, half the rest skimmed by rivals. Can the signal still position well when good exits are genuinely rare?",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 25,
+        "unposted_rate_fraction": 0.35,
+        "competition_take_rate": 0.5,
+        "fuel_cost_per_mile": 0.55,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 11.0,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 815.661205690891,
+            "se": 111.35418000764457,
+            "ci_low": 611.3051228465888,
+            "ci_high": 1043.4821869293557,
+            "median": 712.7574513589179,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 51.8828975844908,
+            "se": 8.189829528231794,
+            "ci_low": 37.04331449742028,
+            "ci_high": 68.22389937746689,
+            "median": 44.415093758075045,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 923.1433333333333,
+            "se": 104.5685539513621,
+            "ci_low": 717.55,
+            "ci_high": 1121.7833333333333,
+            "median": 1014.6,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 2.933333333333333,
+            "se": 0.3421814176798091,
+            "ci_low": 2.2666666666666666,
+            "ci_high": 3.566666666666667,
+            "median": 3.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 114.94498812111111,
+            "se": 5.8979489552768,
+            "ci_low": 103.88111276285186,
+            "ci_high": 126.25714930235185,
+            "median": 102.26426006472224,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 116.52302938441302,
+            "se": 15.907740001092083,
+            "ci_low": 88.14844034640892,
+            "ci_high": 146.7293212101523,
+            "median": 101.822493051274,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 14.101808290001268,
+            "se": 1.676860435807754,
+            "ci_low": 10.811881513520003,
+            "ci_high": 17.201331613643983,
+            "median": 14.9414999608549,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 226.87234592134266,
+            "se": 25.637497349918387,
+            "ci_low": 177.71494604228886,
+            "ci_high": 276.2561809292738,
+            "median": 221.27146243110903,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.044595913200911046,
+            "se": 0.005553876981226088,
+            "ci_low": 0.0338529941267322,
+            "ci_high": 0.055689488318595035,
+            "median": 0.041452673062054066,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.3158036421362434,
+            "se": 0.03510683901950476,
+            "ci_low": 0.24806772322012788,
+            "ci_high": 0.37939149640531306,
+            "median": 0.39128416628141527,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.22824159500630087,
+            "se": 0.028531062090360552,
+            "ci_low": 0.17298444474915062,
+            "ci_high": 0.2830184113272348,
+            "median": 0.26666666666666666,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 14.133333333333333,
+            "se": 0.8245281943602772,
+            "ci_low": 12.566666666666666,
+            "ci_high": 15.8,
+            "median": 14.5,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 88,
+          "decision_overlap_rate": 0.9659090909090909,
+          "divergence_rate": 0.03409090909090906
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 839.8867353663089,
+            "se": 109.82391510210144,
+            "ci_low": 641.1106194287116,
+            "ci_high": 1063.4855535543647,
+            "median": 715.9482743868192,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 49.665274316804066,
+            "se": 7.98411742024632,
+            "ci_low": 35.002987051621744,
+            "ci_high": 65.44832523418499,
+            "median": 44.415093758075045,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 904.7800000000001,
+            "se": 102.80575215357392,
+            "ci_low": 700.8366666666666,
+            "ci_high": 1103.87,
+            "median": 913.65,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 2.8333333333333335,
+            "se": 0.33247014673115083,
+            "ci_low": 2.1666666666666665,
+            "ci_high": 3.466666666666667,
+            "median": 3.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 115.7548733155926,
+            "se": 5.800287048523219,
+            "ci_low": 105.09359577537037,
+            "ci_high": 126.77328500616666,
+            "median": 106.06882697333333,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 119.98381933804414,
+            "se": 15.689130728871634,
+            "ci_low": 91.87513662090403,
+            "ci_high": 149.20263565713304,
+            "median": 102.27832491240275,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 13.966192609064,
+            "se": 1.6711347161751124,
+            "ci_low": 10.652118439834315,
+            "ci_high": 17.08761265393749,
+            "median": 14.770749168922602,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 257.147477273401,
+            "se": 31.886234944115255,
+            "ci_low": 196.89100055881428,
+            "ci_high": 317.784962947525,
+            "median": 243.9935126184518,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.04339874447931041,
+            "se": 0.005461199212693758,
+            "ci_low": 0.03298859952156938,
+            "ci_high": 0.054150224465763015,
+            "median": 0.04030809770898184,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.31098289693099646,
+            "se": 0.03452551814597154,
+            "ci_low": 0.24382418238007056,
+            "ci_high": 0.3746880489473104,
+            "median": 0.36863793468253964,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.22105355156825743,
+            "se": 0.02823980950747003,
+            "ci_low": 0.1664675602175602,
+            "ci_high": 0.2772918938360115,
+            "median": 0.25,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 14.266666666666667,
+            "se": 0.8589399151150083,
+            "ci_low": 12.566666666666666,
+            "ci_high": 16.0,
+            "median": 14.5,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 20.43747038196229
+      },
+      "headline_delta": {
+        "profit_pct": 2.9700480427897853,
+        "deadhead_pct": -4.274285691301945,
+        "deadhead_per_load_pct": -0.9616900056244835,
+        "idle_hours_pct": 0.7045850434367478,
+        "loads_pct": -3.409090909090897
+      },
+      "paired_profit": {
+        "mean": 24.22552967541788,
+        "se": 25.58380975951484,
+        "ci_low": -14.637306268540495,
+        "ci_high": 77.3148012765525,
+        "median": 0.0,
+        "n": 30,
+        "wins": 2,
+        "ties": 27,
+        "losses": 1
+      },
+      "paired_deadhead": {
+        "mean": -2.217623267686731,
+        "se": 1.6447082368686026,
+        "ci_low": -5.90654459218227,
+        "ci_high": 0.0,
+        "median": 0.0,
+        "n": 30,
+        "wins": 3,
+        "ties": 27,
+        "losses": 0
+      },
+      "divergence": {
+        "shadow_decision_count": 88,
+        "decision_overlap_rate": 0.9659090909090909,
+        "divergence_rate": 0.03409090909090906
+      },
+      "onward_diagnostic": {
+        "pairs": 60,
+        "correlation": 0.25830068309266824,
+        "signed_bias_miles": -0.4466336216845314,
+        "mae_miles": 10.804088973129485,
+        "mean_predicted": 18.993451614857698,
+        "mean_realized": 19.440085236542227
+      }
+    },
+    {
+      "name": "corner_expensive_miles",
+      "rationale": "Expensive empty miles under a tight HOS cap. The economics most favour cutting onward deadhead \u2014 the destination policy should look best here.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 60.0,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.0,
+        "fuel_cost_per_mile": 0.95,
+        "deadhead_fuel_multiplier": 1.5,
+        "daily_drive_hours": 8,
+        "force_equipment": null,
+        "horizon_days": 7
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 614.8281339333126,
+            "se": 82.65650228802174,
+            "ci_low": 459.41851158568574,
+            "ci_high": 781.4545204697947,
+            "median": 750.0846816052908,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 63.746784135402876,
+            "se": 8.830854024785724,
+            "ci_low": 47.08218588447887,
+            "ci_high": 80.24744627846749,
+            "median": 69.69922707389358,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 1020.56,
+            "se": 132.7964070972217,
+            "ci_low": 769.3,
+            "ci_high": 1272.6333333333334,
+            "median": 1315.9499999999998,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 3.8666666666666667,
+            "se": 0.5068118364323121,
+            "ci_low": 2.8333333333333335,
+            "ci_high": 4.8,
+            "median": 5.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 98.5573242859537,
+            "se": 8.939188267865186,
+            "ci_low": 81.85821105030556,
+            "ci_high": 116.28914961778703,
+            "median": 89.18476379569444,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 87.8325905619018,
+            "se": 11.808071755431678,
+            "ci_low": 66.10266575771657,
+            "ci_high": 111.13485500780475,
+            "median": 107.15495451504154,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 11.673138293155988,
+            "se": 1.550477466910847,
+            "ci_low": 8.65051379522684,
+            "ci_high": 14.570697323585366,
+            "median": 14.099727651804912,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 114.90565208346203,
+            "se": 15.6793322075834,
+            "ci_low": 85.13361953434242,
+            "ci_high": 144.66377386639672,
+            "median": 136.03924344670708,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.04429356420169381,
+            "se": 0.00597963216304367,
+            "ci_low": 0.033454655352831875,
+            "ci_high": 0.05568157582485193,
+            "median": 0.052688827836185545,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.41334926020265655,
+            "se": 0.053209453975388,
+            "ci_low": 0.3082890633799603,
+            "ci_high": 0.5082114226493607,
+            "median": 0.469138310739914,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.1498373944348067,
+            "se": 0.023114109749736978,
+            "ci_low": 0.1061831960988058,
+            "ci_high": 0.19493548498384625,
+            "median": 0.13721804511278196,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 33.63333333333333,
+            "se": 2.005442785592131,
+            "ci_low": 29.733333333333334,
+            "ci_high": 37.666666666666664,
+            "median": 32.0,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 116,
+          "decision_overlap_rate": 0.7844827586206896,
+          "divergence_rate": 0.2155172413793104
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 640.469697344207,
+            "se": 85.97721106681497,
+            "ci_low": 473.9704890093828,
+            "ci_high": 813.7172482026127,
+            "median": 755.5094876572707,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 54.10799234251351,
+            "se": 7.717051582933788,
+            "ci_low": 39.626168310911126,
+            "ci_high": 69.13442932974819,
+            "median": 58.93860800008725,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 927.9633333333333,
+            "se": 125.62182212903598,
+            "ci_low": 684.7333333333333,
+            "ci_high": 1162.3366666666666,
+            "median": 1133.65,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 3.466666666666667,
+            "se": 0.47156704605729505,
+            "ci_low": 2.566666666666667,
+            "ci_high": 4.366666666666666,
+            "median": 4.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 106.35829436449075,
+            "se": 8.101604006177213,
+            "ci_low": 91.20297735566666,
+            "ci_high": 121.77581934246297,
+            "median": 95.96564318569445,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 91.49567104917243,
+            "se": 12.282458723830711,
+            "ci_low": 68.48729565868696,
+            "ci_high": 115.37442712516817,
+            "median": 107.92992680818153,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 11.086821079485812,
+            "se": 1.5112979118430423,
+            "ci_low": 8.190267924947982,
+            "ci_high": 13.917799502875464,
+            "median": 13.37456568028805,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 133.31162295337737,
+            "se": 17.3674656475568,
+            "ci_low": 99.1071170928504,
+            "ci_high": 165.10858876399126,
+            "median": 156.30852122552187,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.041522293910828664,
+            "se": 0.005736049085707184,
+            "ci_low": 0.030912385628414436,
+            "ci_high": 0.052391643435293365,
+            "median": 0.049643243613595706,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.36691491449707897,
+            "se": 0.04822383337010246,
+            "ci_low": 0.2748491835233686,
+            "ci_high": 0.4558433488835979,
+            "median": 0.42877593341848547,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.12160211578750303,
+            "se": 0.018776960933057002,
+            "ci_low": 0.08487343896752969,
+            "ci_high": 0.15740623672044574,
+            "median": 0.12639553429027112,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 35.166666666666664,
+            "se": 1.7837602883469303,
+            "ci_low": 31.866666666666667,
+            "ci_high": 38.8,
+            "median": 32.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 18.514670547773907
+      },
+      "headline_delta": {
+        "profit_pct": 4.170525386802744,
+        "deadhead_pct": -15.120436150027365,
+        "deadhead_per_load_pct": -5.022789921146881,
+        "idle_hours_pct": 7.915160172067329,
+        "loads_pct": -10.344827586206893
+      },
+      "paired_profit": {
+        "mean": 25.6415634108944,
+        "se": 27.583630593491186,
+        "ci_low": -31.115210872104626,
+        "ci_high": 76.51643416570228,
+        "median": 0.0,
+        "n": 30,
+        "wins": 12,
+        "ties": 14,
+        "losses": 4
+      },
+      "paired_deadhead": {
+        "mean": -9.63879179288937,
+        "se": 4.532547223757068,
+        "ci_low": -18.71772762549282,
+        "ci_high": -1.4888082703600536,
+        "median": 0.0,
+        "n": 30,
+        "wins": 11,
+        "ties": 14,
+        "losses": 5
+      },
+      "divergence": {
+        "shadow_decision_count": 116,
+        "decision_overlap_rate": 0.7844827586206896,
+        "divergence_rate": 0.2155172413793104
+      },
+      "onward_diagnostic": {
+        "pairs": 83,
+        "correlation": 0.16747807634960293,
+        "signed_bias_miles": 2.4745677589806903,
+        "mae_miles": 9.771368651255159,
+        "mean_predicted": 18.85992567741845,
+        "mean_realized": 16.38535791843776
+      }
+    },
+    {
+      "name": "corner_worst_case",
+      "rationale": "Everything hostile: scarce, contested, expensive, HOS-constrained, over a long horizon. The decisive robustness test \u2014 if the edge survives here it is not a one-world artifact.",
+      "episode_count": 30,
+      "effective": {
+        "loads_per_snapshot_mean": 25,
+        "unposted_rate_fraction": 0.15,
+        "competition_take_rate": 0.5,
+        "fuel_cost_per_mile": 0.95,
+        "deadhead_fuel_multiplier": 1.0,
+        "daily_drive_hours": 8,
+        "force_equipment": null,
+        "horizon_days": 14
+      },
+      "verdict": "NEUTRAL",
+      "profit_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 485.77823356167204,
+            "se": 87.01910133947294,
+            "ci_low": 321.2784238156659,
+            "ci_high": 665.8874360102335,
+            "median": 398.4980762029279,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 57.377281064242865,
+            "se": 11.797700976511491,
+            "ci_low": 35.861211781973566,
+            "ci_high": 81.5090149807758,
+            "median": 40.69217658158244,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 884.6566666666666,
+            "se": 161.5716423909351,
+            "ci_low": 585.72,
+            "ci_high": 1204.4133333333334,
+            "median": 661.5,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 3.3,
+            "se": 0.614293351615562,
+            "ci_low": 2.1333333333333333,
+            "ci_high": 4.466666666666667,
+            "median": 2.5,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 279.92449505074075,
+            "se": 9.89092992750816,
+            "ci_low": 261.48468816651854,
+            "ci_high": 298.23847135426854,
+            "median": 289.9134498113889,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 34.698445254405144,
+            "se": 6.215650095676638,
+            "ci_low": 23.288328948647848,
+            "ci_high": 47.19821714840415,
+            "median": 28.464148300209136,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 11.332919799736263,
+            "se": 1.589973346532328,
+            "ci_low": 8.32913902569383,
+            "ci_high": 14.333063612428264,
+            "median": 13.248382505302299,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 110.06094994375349,
+            "se": 14.691262898524748,
+            "ci_low": 79.41940578897886,
+            "ci_high": 137.1971942960848,
+            "median": 134.3185935361961,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.04193583332696219,
+            "se": 0.006006309420252443,
+            "ci_low": 0.030686031764924186,
+            "ci_high": 0.05364979481542072,
+            "median": 0.049606802298383296,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.16689138377755733,
+            "se": 0.029437291450917148,
+            "ci_low": 0.11365778170695547,
+            "ci_high": 0.22306681686072535,
+            "median": 0.1371623517518188,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.08965432421681323,
+            "se": 0.017750763389963887,
+            "ci_low": 0.0549693094111647,
+            "ci_high": 0.1253384488360852,
+            "median": 0.06514830508474576,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 41.166666666666664,
+            "se": 2.459830539595137,
+            "ci_low": 36.53333333333333,
+            "ci_high": 45.833333333333336,
+            "median": 38.5,
+            "n": 30
+          }
+        },
+        "divergence": {
+          "shadow_decision_count": 99,
+          "decision_overlap_rate": 0.8686868686868687,
+          "divergence_rate": 0.13131313131313127
+        },
+        "mean_selected_predicted_onward": null
+      },
+      "destination_aware": {
+        "episode_count": 30,
+        "metrics": {
+          "total_profit": {
+            "mean": 472.0381808706188,
+            "se": 85.12720356502355,
+            "ci_low": 311.5151561953482,
+            "ci_high": 641.7381718904473,
+            "median": 397.0752975285852,
+            "n": 30
+          },
+          "total_deadhead_miles": {
+            "mean": 47.1806624558927,
+            "se": 10.102966363801654,
+            "ci_low": 29.934274005136743,
+            "ci_high": 67.97684375951106,
+            "median": 38.38757209169309,
+            "n": 30
+          },
+          "total_loaded_miles": {
+            "mean": 789.2900000000001,
+            "se": 149.35469610770627,
+            "ci_low": 520.6166666666667,
+            "ci_high": 1086.14,
+            "median": 559.1,
+            "n": 30
+          },
+          "loads_completed": {
+            "mean": 2.933333333333333,
+            "se": 0.5651433209196377,
+            "ci_low": 1.9,
+            "ci_high": 4.066666666666666,
+            "median": 2.0,
+            "n": 30
+          },
+          "idle_hours": {
+            "mean": 284.8082276537592,
+            "se": 9.398929319018965,
+            "ci_low": 266.1607570011389,
+            "ci_high": 302.06052511602775,
+            "median": 297.0934056855556,
+            "n": 30
+          },
+          "profit_per_day": {
+            "mean": 33.71701291932992,
+            "se": 6.080514540358826,
+            "ci_low": 22.485239761026662,
+            "ci_high": 45.241846686329474,
+            "median": 28.3625212520418,
+            "n": 30
+          },
+          "deadhead_per_load": {
+            "mean": 10.566866649383538,
+            "se": 1.4518121659946748,
+            "ci_low": 7.8314659890934895,
+            "ci_high": 13.203882853460675,
+            "median": 12.499995969460898,
+            "n": 30
+          },
+          "profit_per_load": {
+            "mean": 119.87846545566025,
+            "se": 15.976095896238286,
+            "ci_low": 87.4431553188244,
+            "ci_high": 149.20488837666034,
+            "median": 143.55561783122968,
+            "n": 30
+          },
+          "deadhead_ratio": {
+            "mean": 0.039038563552138174,
+            "se": 0.005486891149444441,
+            "ci_low": 0.028692953754111836,
+            "ci_high": 0.049775704821767255,
+            "median": 0.04646547514152871,
+            "n": 30
+          },
+          "utilization_rate": {
+            "mean": 0.15235646531619268,
+            "se": 0.02797300392565168,
+            "ci_low": 0.1020700451178902,
+            "ci_high": 0.20685555114880955,
+            "median": 0.11579343545965609,
+            "n": 30
+          },
+          "feasible_decision_rate": {
+            "mean": 0.07987414438825137,
+            "se": 0.016928841521127863,
+            "ci_low": 0.049212353601017396,
+            "ci_high": 0.11376195922145661,
+            "median": 0.06066176470588235,
+            "n": 30
+          },
+          "decision_count": {
+            "mean": 41.766666666666666,
+            "se": 2.487986460644931,
+            "ci_low": 37.0,
+            "ci_high": 46.5,
+            "median": 42.0,
+            "n": 30
+          }
+        },
+        "divergence": null,
+        "mean_selected_predicted_onward": 16.494023412237382
+      },
+      "headline_delta": {
+        "profit_pct": -2.8284619898081234,
+        "deadhead_pct": -17.77117775401984,
+        "deadhead_per_load_pct": -6.759539146924455,
+        "idle_hours_pct": 1.7446606814931358,
+        "loads_pct": -11.111111111111112
+      },
+      "paired_profit": {
+        "mean": -13.740052691053195,
+        "se": 25.707628897026563,
+        "ci_low": -69.09782936618235,
+        "ci_high": 32.025458668917665,
+        "median": 0.0,
+        "n": 30,
+        "wins": 6,
+        "ties": 20,
+        "losses": 4
+      },
+      "paired_deadhead": {
+        "mean": -10.196618608350168,
+        "se": 6.340459669815313,
+        "ci_low": -24.489193431478572,
+        "ci_high": -0.47214546224320486,
+        "median": 0.0,
+        "n": 30,
+        "wins": 7,
+        "ties": 20,
+        "losses": 3
+      },
+      "divergence": {
+        "shadow_decision_count": 99,
+        "decision_overlap_rate": 0.8686868686868687,
+        "divergence_rate": 0.13131313131313127
+      },
+      "onward_diagnostic": {
+        "pairs": 67,
+        "correlation": 0.1824585528948238,
+        "signed_bias_miles": -1.1680439595141299,
+        "mae_miles": 7.675070688989573,
+        "mean_predicted": 15.94058547823914,
+        "mean_realized": 17.10862943775327
+      }
+    }
+  ]
+}
