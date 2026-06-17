@@ -16,6 +16,8 @@ benchmarks/reproduced/
 
 # Phase 3.1 ML — generated history + trained binaries (seeded, regenerable).
 # Metadata JSON is committed as a result artifact; the model binary is not.
+# (Phase 4.1 winnability artifacts — winnability_{snapshots,outcomes,trials}.jsonl
+# — are seeded & regenerable and fall under data/*.jsonl below.)
 data/synthetic_load_history.jsonl
 data/*.jsonl
 ml/artifacts/*.joblib

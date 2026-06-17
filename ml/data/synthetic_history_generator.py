@@ -17,6 +17,12 @@ learn:
   Truckstop — hot-shot ``equipment_type`` (HS/F/FSD/FSDV), ``weight``/``length``
   (and usually-blank ``width``/``height``), ``mode`` (TL/PTL/LTL), and a
   ``load_views`` competition bucket that grows with time-on-board and rate.
+* Phase 4.1: each load is posted by a broker sampled from ``ml/brokers.py`` (home
+  markets make quality correlate with origin geography), and the load's
+  *observable* broker columns + quality flags (``commodity``, ``tarp_required``,
+  ``appointment_required``) are attached. Broker/quality randomness is drawn from a
+  per-load auxiliary stream, so the original Phase 3.1 generation is byte-identical
+  and the destination model is unaffected.
 
 Everything is seeded and reproducible.
 
@@ -35,6 +41,13 @@ from pathlib import Path
 from typing import List, Sequence
 
 from ml.config import SyntheticDataConfig, load_ml_config
+from ml.brokers import (
+    BrokerPoolParams,
+    BrokerProfile,
+    build_broker_pool,
+    observable_broker_columns,
+    sample_broker_for_origin,
+)
 from ml.data.load_history_schema import LoadSnapshotRecord, write_jsonl
 from ml.geo import haversine_miles
 from ml.markets import MARKET_PROFILES, MarketProfile
@@ -65,6 +78,25 @@ _DIM_PRESENT_FRACTION = 0.4
 MODE_WEIGHTS = (("TL", 0.55), ("PTL", 0.33), ("LTL", 0.12))
 # "Load Views" competition buckets, keyed by a synthetic view count (descending).
 _VIEW_BUCKETS = ((30, "high"), (10, "med"), (1, "low"), (0, "be_the_first"))
+
+# -- Phase 4.1 load-quality synthesis ---------------------------------------
+# Commodity vocab by hot-shot equipment class (decision-time observable).
+_COMMODITIES = {
+    "HS":   ("general freight", "auto parts", "palletized goods", "tools", "equipment"),
+    "F":    ("steel", "lumber", "building materials", "pipe", "machinery"),
+    "FSD":  ("machinery", "steel coils", "construction equip", "pipe", "lumber"),
+    "FSDV": ("machinery", "palletized goods", "building materials", "steel", "equipment"),
+}
+# Open-deck freight gets tarped far more often than enclosed hot-shot loads.
+_TARP_PROB = {"HS": 0.08, "F": 0.45, "FSD": 0.45, "FSDV": 0.30}
+_APPOINTMENT_PROB = 0.30
+
+
+def _pick_quality(rng: random.Random, equipment: str) -> tuple[str, bool, bool]:
+    commodity = rng.choice(_COMMODITIES.get(equipment, _COMMODITIES["HS"]))
+    tarp_required = rng.random() < _TARP_PROB.get(equipment, 0.1)
+    appointment_required = rng.random() < _APPOINTMENT_PROB
+    return commodity, tarp_required, appointment_required
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +237,7 @@ def _generate_load(
     load_seq: int,
     snapshot_time: datetime,
     params: GeneratorParams,
+    pool: Sequence[BrokerProfile],
 ) -> LoadSnapshotRecord:
     origin = _weighted_choice(
         rng, MARKET_PROFILES, [m.outbound_density for m in MARKET_PROFILES]
@@ -243,6 +276,14 @@ def _generate_load(
     load_age_hours = (snapshot_time - posted_at).total_seconds() / 3600.0
     load_views = _load_views_bucket(rng, origin, load_age_hours, rpm)
 
+    # Phase 4.1: attach an observable broker (market-correlated) + quality flags.
+    # Draw from a per-load auxiliary stream so the original Phase 3.1 generation
+    # draws above are byte-identical — the destination dataset/model is unchanged.
+    aux = random.Random(f"{params.seed}:bq:{load_seq}")
+    broker = sample_broker_for_origin(aux, pool, origin.name)
+    broker_columns = observable_broker_columns(broker)
+    commodity, tarp_required, appointment_required = _pick_quality(aux, equipment)
+
     return LoadSnapshotRecord(
         snapshot_time=snapshot_time,
         load_id=f"L-{load_seq:06d}",
@@ -268,11 +309,20 @@ def _generate_load(
         height=height,
         mode=mode,
         load_views=load_views,
+        commodity=commodity,
+        tarp_required=tarp_required,
+        appointment_required=appointment_required,
+        **broker_columns,
     )
 
 
-def generate_history(params: GeneratorParams) -> List[LoadSnapshotRecord]:
+def generate_history(
+    params: GeneratorParams,
+    pool: Sequence[BrokerProfile] | None = None,
+) -> List[LoadSnapshotRecord]:
     rng = random.Random(params.seed)
+    if pool is None:
+        pool = build_broker_pool(BrokerPoolParams())
     records: List[LoadSnapshotRecord] = []
     interval = 24.0 / params.snapshots_per_day
     load_seq = 0
@@ -289,7 +339,7 @@ def generate_history(params: GeneratorParams) -> List[LoadSnapshotRecord]:
             n_loads = _poisson(rng, lam)
             for _ in range(n_loads):
                 records.append(
-                    _generate_load(rng, load_seq, snapshot_time, params)
+                    _generate_load(rng, load_seq, snapshot_time, params, pool)
                 )
                 load_seq += 1
     return records
