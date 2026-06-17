@@ -17,7 +17,18 @@ Visibility rules at decision time ``t`` for a truck at ``(lat, lon)`` carrying a
   Phase 3.1 labeling convention;
 * drop loads whose pickup window has already closed (``pickup_end < t``);
 * keep only loads whose origin is within ``radius_mi`` of the truck;
-* drop loads already consumed earlier in the episode.
+* drop loads already consumed earlier in the episode;
+* drop loads "taken" by competitors (optional view-biased thinning, see below).
+
+**Competition thinning (Phase 3.4).** To stress-test the planners under a busier
+board, an optional ``competition_take_rate`` removes that fraction of the world's
+loads up front — modelling rival trucks covering them before our truck can bid.
+Selection is *view-biased* (high ``load_views`` loads are likelier to be taken,
+since they are the contested ones) and fully deterministic given
+``competition_seed`` (Efraimidis-Spirakis weighted sampling without replacement),
+so the **same** loads vanish for every planner facing the same world — the A/B
+stays fair. ``competition_take_rate = 0.0`` (the default) is a no-op, preserving
+Phase 3.3 behaviour exactly.
 
 Surviving records are adapted to domain ``Load`` objects. The native record is
 retained (keyed by the integer load id) so the simulator can recover the chosen
@@ -25,6 +36,7 @@ load's true destination when advancing the truck.
 """
 from __future__ import annotations
 
+import random
 from bisect import bisect_right
 from datetime import datetime
 from typing import Dict, List, Optional, Sequence
@@ -47,6 +59,17 @@ EQUIPMENT_ML_TO_DOMAIN: Dict[str, str] = {
 }
 ROUND_TRIP_ML_EQUIPMENT = tuple(EQUIPMENT_ML_TO_DOMAIN.keys())
 
+# Relative likelihood that a competitor grabs a load before our truck bids, keyed
+# by its ``load_views`` bucket: heavily-viewed loads are the contested ones and so
+# disappear first. Monotonic high > med > low > be_the_first.
+_VIEW_TAKE_WEIGHT: Dict[str, float] = {
+    "high": 8.0,
+    "med": 4.0,
+    "low": 2.0,
+    "be_the_first": 1.0,
+}
+_DEFAULT_TAKE_WEIGHT = 2.0
+
 
 def record_int_id(native_id: str) -> int:
     """Map a generator load id (``L-000042``) to its stable integer sequence.
@@ -64,13 +87,55 @@ def record_int_id(native_id: str) -> int:
 class SnapshotBoard:
     """Indexed, consumable view over a synthetic world's snapshot records."""
 
-    def __init__(self, records: Sequence[LoadSnapshotRecord]):
+    def __init__(
+        self,
+        records: Sequence[LoadSnapshotRecord],
+        *,
+        competition_take_rate: float = 0.0,
+        competition_seed: Optional[int] = None,
+    ):
         self._by_time: Dict[datetime, List[LoadSnapshotRecord]] = {}
         for rec in records:
             self._by_time.setdefault(rec.snapshot_time, []).append(rec)
         self._times: List[datetime] = sorted(self._by_time.keys())
         self._consumed: set[int] = set()
         self._record_by_int: Dict[int, LoadSnapshotRecord] = {}
+        self._competition_taken: set[int] = self._select_competition_taken(
+            records, competition_take_rate, competition_seed
+        )
+
+    @staticmethod
+    def _select_competition_taken(
+        records: Sequence[LoadSnapshotRecord],
+        take_rate: float,
+        seed: Optional[int],
+    ) -> set[int]:
+        """Deterministically pick the loads competitors grab (view-biased).
+
+        Aggregates each unique load to the highest ``load_views`` weight it ever
+        reaches, then draws a ``take_rate`` fraction without replacement using
+        Efraimidis-Spirakis weighted sampling (``key = u**(1/w)``, take the largest
+        keys), so heavier-viewed loads are preferentially removed. The whole load
+        is removed for the entire episode (a covered load does not reappear).
+        """
+        if not take_rate or take_rate <= 0.0:
+            return set()
+        weight_by_id: Dict[int, float] = {}
+        for rec in records:
+            iid = record_int_id(rec.load_id)
+            w = _VIEW_TAKE_WEIGHT.get(rec.load_views, _DEFAULT_TAKE_WEIGHT)
+            if w > weight_by_id.get(iid, 0.0):
+                weight_by_id[iid] = w
+        ids = sorted(weight_by_id)
+        n_take = int(round(min(take_rate, 1.0) * len(ids)))
+        if n_take <= 0:
+            return set()
+        rng = random.Random(seed)
+        keyed = [
+            (rng.random() ** (1.0 / weight_by_id[iid]), iid) for iid in ids
+        ]
+        keyed.sort(reverse=True)
+        return {iid for _, iid in keyed[:n_take]}
 
     # ------------------------------------------------------------- snapshot clock
     @property
@@ -112,7 +177,7 @@ class SnapshotBoard:
             if rec.pickup_end < t:  # pickup window already closed
                 continue
             int_id = record_int_id(rec.load_id)
-            if int_id in self._consumed:
+            if int_id in self._consumed or int_id in self._competition_taken:
                 continue
             if haversine_miles(lat, lon, rec.origin_lat, rec.origin_lon) > radius_mi:
                 continue
@@ -153,3 +218,12 @@ class SnapshotBoard:
 
     def mark_consumed(self, int_id: int) -> None:
         self._consumed.add(int_id)
+
+    # ------------------------------------------------------------- competition
+    @property
+    def competition_taken_ids(self) -> set[int]:
+        """Loads removed up front by the view-biased competition thinning."""
+        return set(self._competition_taken)
+
+    def is_competition_taken(self, int_id: int) -> bool:
+        return int_id in self._competition_taken
