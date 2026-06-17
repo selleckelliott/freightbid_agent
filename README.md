@@ -745,16 +745,7 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
 
-## Resume bullet
-> **FreightBid Agent — AI dispatch & bidding decision engine (Python, FastAPI,
-> OR-Tools, scikit-learn).** Built a hexagonal freight-dispatch system that ranks
-> loads, optimizes routes with OR-Tools CP-SAT, and folds a learned
-> destination-risk model (Hurdle GBM, MAE 49.3 vs 61.2 baseline) into planning; a
-> 150-episode rolling multi-day A/B simulation showed **+3.9% profit and −4.7%
-> deadhead**, validated as **sign-stable across 18 shifted markets (0
-> regressions)**, with reproducible benchmarks and 100 passing tests.
-
-**For recruiters / reviewers (the 90-second path):** read this section, the
-[results table](#results-at-a-glance), and the [demo](#demo); run
-`python -m benchmarks.reproduce`; then skim [What I learned](#what-i-learned). The
-per-phase sections below are the full deep dive.
+**Quick path (≈90 seconds):** skim the [results table](#results-at-a-glance) and
+the [demo](#demo), run `python -m benchmarks.reproduce`, then read
+[What I learned](#what-i-learned). The per-phase sections below are the full deep
+dive.
