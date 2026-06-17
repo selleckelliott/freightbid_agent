@@ -10,6 +10,10 @@ benchmarks/scenarios/gen/
 # Scratch/smoke artifacts (underscore-prefixed) from local benchmark runs.
 benchmarks/_*
 
+# Phase 3.5 — non-destructive reproduce output (regenerable; committed demo
+# assets live directly under benchmarks/).
+benchmarks/reproduced/
+
 # Phase 3.1 ML — generated history + trained binaries (seeded, regenerable).
 # Metadata JSON is committed as a result artifact; the model binary is not.
 data/synthetic_load_history.jsonl
