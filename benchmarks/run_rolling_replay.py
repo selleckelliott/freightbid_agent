@@ -63,6 +63,12 @@ def main() -> None:
     parser.add_argument("--time-limit", type=float, default=None,
                         help="OR-Tools solver time limit per decision (seconds).")
     parser.add_argument("--out", default=str(DEFAULT_OUT))
+    parser.add_argument(
+        "--model-path",
+        default=str(MODEL_PATH),
+        help="Destination model artifact (default: the canonical ml/artifacts path). "
+        "When absent the destination-aware planner is skipped.",
+    )
     args = parser.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
@@ -91,8 +97,9 @@ def main() -> None:
     )
 
     container = build_container(ROOT / "config")
-    if not MODEL_PATH.exists():
-        print(f"(destination-aware planner skipped: no model artifact at {MODEL_PATH})")
+    model_path = Path(args.model_path)
+    if not model_path.exists():
+        print(f"(destination-aware planner skipped: no model artifact at {model_path})")
 
     print("=" * 78)
     print(f"Rolling replay: {episode_count} episodes x {horizon_days}d horizon "
@@ -108,7 +115,7 @@ def main() -> None:
         base_seed=base_seed,
         solver_time_limit=time_limit,
         destination_weight=float(planners_cfg.get("destination_weight", 1.0)),
-        model_path=MODEL_PATH,
+        model_path=model_path,
     )
     elapsed = time.perf_counter() - t_start
 

@@ -1,19 +1,70 @@
 # FreightBid Agent
 
-An AI-powered dispatch and bidding decision system that helps hotshot operators
-maximize profit and reduce deadhead through heuristic scoring, route
-optimization, benchmarking — and eventually machine learning and agent-based
-planning.
+An AI-powered dispatch and bidding decision engine for hotshot trucking: it
+recommends profitable loads, cuts deadhead, and plans routes through heuristic
+scoring, OR-Tools optimization, a learned destination-risk model, and a rolling
+multi-day dispatch simulation — every recommendation explainable.
 
-**Phase 1** ships a deterministic **Dispatch Brain**: ranks loads and proposes a
-single-truck 48-hour plan with explanations. **Phase 2** adds OR-Tools
-constraint-programming planners, a three-way benchmark
-([results below](#phase-2--or-tools-route-optimization)), and an objective
-tuning harness that maps the profit-vs-deadhead
-[Pareto frontier](#phase-23--objective-tuning-and-the-pareto-frontier) of
-dispatch policies.
+![FreightBid Agent rolling-replay A/B: the destination-aware policy lifts cumulative profit while cutting deadhead across 150 sequential episodes](benchmarks/rolling_replay_comparison.png)
+
+## Results at a glance
+
+| Layer | Approach | Headline result |
+| --- | --- | --- |
+| [Heuristic baseline](#phase-2--or-tools-route-optimization) | rule-based scoring | $396.38 profit · 11.3 mi deadhead · 88.1% feasible |
+| [OR-Tools profit-aware](#phase-2--or-tools-route-optimization) | CP-SAT, profit objective | $396.79 profit · 12.0 mi deadhead |
+| [OR-Tools deadhead-control](#phase-23--objective-tuning-and-the-pareto-frontier) | tuned objective weights | $392.97 profit · **7.4 mi deadhead (−34.3%)** |
+| [ML destination model](#phase-31--destination-desirability-model-first-ml-layer) | Hurdle GBM | MAE 49.3 vs 61.2 zone baseline · ≤50 mi 76% |
+| [Destination-aware (one-shot)](#phase-32--destination-aware-planner-closing-the-loop) | model in the planner | −12.9% deadhead at ~free profit |
+| [**Rolling replay (sequential)**](#phase-33--rolling-replanning-simulation-measuring-the-sequential-payoff) | multi-day MPC A/B | **+3.9% profit · −4.7% deadhead** (150 episodes) |
+| [**Stress test (robustness)**](#phase-34--sequential-policy-stress-testing-is-the-edge-robust) | 18 shifted markets | **0 regressions** · advantage HOLDS 7/18, neutral 11/18 |
+
+Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
+dispatch gains across markets, not a magic number — see
+[What I learned](#what-i-learned) and [Limitations & next work](#limitations--next-work).
+
+## Demo
+
+The CLI ranks loads and proposes a single-truck plan, each with a full
+cost-and-bid rationale — rendered straight from the API against `sample_data/`
+(regenerate with `python -m benchmarks.render_demo --update-artifacts`).
+
+`freightbid rank sample_data/truck.json` — top loads with target bid + explanation:
+
+![CLI rank demo](benchmarks/demo_rank.svg)
+
+`freightbid plan sample_data/truck.json` — the proposed plan with per-stop economics:
+
+![CLI plan demo](benchmarks/demo_plan.svg)
 
 ## Architecture (Hexagonal / Ports & Adapters)
+
+**System** — a thin CLI/API over an application core that depends only on ports;
+adapters and planners plug in behind them.
+
+```mermaid
+flowchart LR
+    CLI[Typer CLI] --> API[FastAPI app]
+    API --> APP[Application use-cases<br/>rank · plan · evaluate · bid]
+    APP --> DOM[Domain core<br/>Load · TruckState · Plan · policies]
+    APP -. ports .-> ADP[Adapters<br/>in-memory / Postgres · Haversine · tolls]
+    APP --> PLN[Planners<br/>Heuristic · OR-Tools · destination-aware]
+    PLN --> ML[(Destination model<br/>Hurdle GBM)]
+```
+
+**Decision flow** — how a load board becomes a measured dispatch decision.
+
+```mermaid
+flowchart LR
+    GEN[Synthetic load board<br/>market-structured] --> BRD[Visible snapshot<br/>at decision time]
+    BRD --> PA[Profit-aware planner]
+    BRD --> DA[Destination-aware planner<br/>+ onward-risk model]
+    PA --> SIM[Rolling multi-day sim<br/>execute · advance · HOS reset]
+    DA --> SIM
+    SIM --> MET[Paired metrics<br/>profit · deadhead · CIs]
+```
+
+Detailed module layout:
 
 ```
 domain/          Pure business types (Load, TruckState, Plan, Bid, ScoreResult,
@@ -38,6 +89,23 @@ config/          Editable YAML for cost model, weights, constraints.
 > adapter** and a **real adapter** (Postgres, Haversine, FlatRate). The
 > `ScoringStrategy` is the swappable Strategy interface (heuristic today;
 > ML/LP-based variants later).
+
+## Reproduce
+
+One command regenerates the demo and a reduced rolling A/B **non-destructively**
+— it writes only to the gitignored `benchmarks/reproduced/` (so `git status`
+stays clean) and prints a run-metadata header plus the results table above:
+
+```bash
+python -m benchmarks.reproduce                     # fast smoke (~1-3 min), clean checkout OK
+python -m benchmarks.reproduce --update-artifacts  # refresh the committed demo SVGs
+python -m benchmarks.reproduce --full              # canonical long benchmark (~70 min)
+```
+
+On a fresh clone the gitignored model artifact is absent, so the fast path
+quick-trains a small seeded destination model into `benchmarks/reproduced/`
+(seconds) just to drive the reduced chart. `--full` regenerates the committed
+canonical artifacts (150-episode replay + 18×30 stress sweep).
 
 ## Cost Model
 Fuel, tolls, time (driver + opportunity cost), and deadhead are tracked
@@ -76,9 +144,10 @@ python -m adapters.inbound.cli.main rank sample_data/truck.json --top-n 10
 python -m adapters.inbound.cli.main plan sample_data/truck.json
 ```
 
-## Demo output
+## API response shapes (reference)
 
-A quick end-to-end run against the sample data (truck `101`, 4 loads):
+The same `sample_data` run as the [demo above](#demo), shown as raw JSON to
+document the `/rank` and `/plan` response contracts (truck `101`, 4 loads):
 
 **`GET /health`**
 ```json
@@ -639,3 +708,53 @@ config directory with `FREIGHTBID_CONFIG_DIR`.
 - Plan utilization (driver hours used / horizon hours)
 
 See `notebooks/experiments.ipynb` for ablation scaffolding.
+
+## What I learned
+- **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
+  destination model's per-decision predicted-vs-realized onward-deadhead
+  correlation is weak (~0.02), yet steering the *distribution* of accepted loads
+  toward stronger markets still produced **+3.9% profit / −4.7% deadhead**. The
+  value is shifting many decisions slightly, not nailing any single one.
+- **Sequence changes the verdict.** The same signal looks like a small *penalty*
+  in a one-shot benchmark (−0.9% profit) but flips to a *gain* once decisions
+  compound over a multi-day horizon — a dispatch policy has to be evaluated the
+  way it is actually used.
+- **Discipline is what makes the number trustworthy.** Decision-time-only
+  features, a split embargo, Common Random Numbers across A/B conditions, and a
+  one-shot↔rolling reconciliation test are what separate a real 3.9% from a leak.
+- **Honest caveats build credibility.** Documenting the weak in-loop correlation,
+  the censored labels, and the single-truck bound makes the result more
+  believable, not less.
+
+## Limitations & next work
+**Limitations**
+- **Single truck, simple HOS.** One unit with a basic daily drive-hour reset caps
+  how much the destination edge can compound; a fleet would amplify (or stress) it.
+- **Synthetic market.** The world is generated from market profiles informed by
+  real Truckstop board screenshots, but it is not real booking data — magnitudes
+  are indicative, not forecasts.
+- **Weak in-loop signal.** Predicted onward-deadhead correlates only weakly with
+  realized onward-deadhead inside the loop; the gain is aggregate, not per-decision.
+- **Censored labels.** Onward-deadhead is capped (300 mi) and ~8% censored, so the
+  regressor learns a truncated target.
+
+**Next work**
+- **Phase 4 — broker / load quality & winnability.** Fold in the deferred
+  days-to-pay / credit / bond signals and a bid-acceptance model.
+- **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
+- **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
+- **Agent orchestration.** Multi-agent search and negotiation over the planners.
+
+## Resume bullet
+> **FreightBid Agent — AI dispatch & bidding decision engine (Python, FastAPI,
+> OR-Tools, scikit-learn).** Built a hexagonal freight-dispatch system that ranks
+> loads, optimizes routes with OR-Tools CP-SAT, and folds a learned
+> destination-risk model (Hurdle GBM, MAE 49.3 vs 61.2 baseline) into planning; a
+> 150-episode rolling multi-day A/B simulation showed **+3.9% profit and −4.7%
+> deadhead**, validated as **sign-stable across 18 shifted markets (0
+> regressions)**, with reproducible benchmarks and 100 passing tests.
+
+**For recruiters / reviewers (the 90-second path):** read this section, the
+[results table](#results-at-a-glance), and the [demo](#demo); run
+`python -m benchmarks.reproduce`; then skim [What I learned](#what-i-learned). The
+per-phase sections below are the full deep dive.

@@ -5,7 +5,8 @@ from pathlib import Path
 import httpx
 import typer
 from rich.console import Console
-from rich.table import Table
+
+from adapters.inbound.cli.render import render_plan, render_rank
 
 app = typer.Typer(help="FreightBid Dispatch Brain CLI")
 console = Console()
@@ -59,28 +60,7 @@ def rank(
         r.raise_for_status()
         data = r.json()
 
-    table = Table(title=f"Top {len(data['ranked'])} loads for truck {data['truck_id']}")
-    for col in ["#", "Load", "Score", "Profit", "$/mi", "Deadhead", "Target Bid", "Pickup ETA"]:
-        table.add_column(col)
-    for i, row in enumerate(data["ranked"], 1):
-        table.add_row(
-            str(i),
-            str(row["load_id"]),
-            f"{row['score']:.2f}",
-            f"${row['expected_profit']:,.0f}",
-            f"${row['rate_per_mile']:.2f}",
-            f"{row['deadhead_miles']:.0f}mi",
-            f"${row['bid']['target_bid']:,.0f}",
-            row["pickup_eta"],
-        )
-    console.print(table)
-    for row in data["ranked"]:
-        console.print(
-            f"[dim]Load {row['load_id']}: {row['rationale']}[/dim]"
-        )
-        console.print(
-            f"[dim]  Bid: {row['bid']['rationale']}[/dim]"
-        )
+    render_rank(console, data)
 
 
 @app.command()
@@ -93,32 +73,7 @@ def plan(truck_file: Path, api: str = typer.Option(DEFAULT_API, "--api")):
         r.raise_for_status()
         data = r.json()
 
-    console.print(
-        f"[bold]Plan #{data['plan_id']}[/bold] truck={data['truck_id']} "
-        f"horizon={data['horizon_hours']}h feasible={data['feasible']}"
-    )
-    table = Table(title="Stops")
-    for col in ["Seq", "Load", "Pickup ETA", "Delivery ETA", "Deadhead", "Load mi", "Revenue", "Cost", "Profit"]:
-        table.add_column(col)
-    for i, s in enumerate(data["stops"], 1):
-        table.add_row(
-            str(i),
-            str(s["load_id"]),
-            s["pickup_eta"],
-            s["delivery_eta"],
-            f"{s['deadhead_miles']:.0f}",
-            f"{s['load_miles']:.0f}",
-            f"${s['revenue']:,.0f}",
-            f"${s['cost']:,.0f}",
-            f"${s['profit']:,.0f}",
-        )
-    console.print(table)
-    console.print(
-        f"[bold]Totals[/bold] revenue=${data['expected_revenue']:,.2f} "
-        f"cost=${data['expected_cost']:,.2f} profit=${data['expected_profit']:,.2f} "
-        f"deadhead={data['expected_deadhead_miles']:.0f}mi"
-    )
-    console.print(f"[dim]{data['rationale']}[/dim]")
+    render_plan(console, data)
 
 
 if __name__ == "__main__":
