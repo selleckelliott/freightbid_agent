@@ -54,12 +54,49 @@ class ArtifactConfig:
 
 
 @dataclass(frozen=True)
+class BrokersConfig:
+    """Phase 4.1 broker-pool knobs (see ``ml/brokers.py``)."""
+    pool_size: int = 40
+    bonded_fraction: float = 0.45
+    unknown_credit_fraction: float = 0.18
+    quick_pay_fraction: float = 0.30
+    pay_days_fast: float = 18.0
+    pay_days_slow: float = 55.0
+    default_prob_best: float = 0.01
+    default_prob_worst: float = 0.16
+    seed: int = 43
+
+
+@dataclass(frozen=True)
+class OutcomesConfig:
+    """Phase 4.1 outcome-world knobs (see ``ml/data/outcome_simulator.py``)."""
+    reservation_center_mult: float = 1.05
+    reservation_contention_drop: float = 0.15
+    reservation_noise: float = 0.06
+    win_logistic_scale_rpm: float = 0.06
+    bid_trial_rpm_multipliers: List[float] = field(
+        default_factory=lambda: [0.85, 0.95, 1.0, 1.05, 1.15, 1.25]
+    )
+    base_cover_halflife_hours: float = 18.0
+    contention_cover_factor: float = 4.0
+    cover_horizon_hours: float = 24.0
+    negotiated_premium: float = 1.0
+    late_pay_threshold_days: float = 45.0
+    seed: int = 44
+    snapshot_path: str = "data/winnability_snapshots.jsonl"
+    outcomes_path: str = "data/winnability_outcomes.jsonl"
+    trials_path: str = "data/winnability_trials.jsonl"
+
+
+@dataclass(frozen=True)
 class MLConfig:
     synthetic_data: SyntheticDataConfig
     labeling: LabelingConfig
     features: FeatureConfig
     training: TrainingConfig
     artifacts: ArtifactConfig
+    brokers: BrokersConfig = field(default_factory=BrokersConfig)
+    outcomes: OutcomesConfig = field(default_factory=OutcomesConfig)
 
 
 def _as_utc(value: Any) -> datetime:
@@ -112,10 +149,45 @@ def load_ml_config(path: str | Path = DEFAULT_CONFIG_PATH) -> MLConfig:
         model_path=str(ar["model_path"]),
         metadata_path=str(ar["metadata_path"]),
     )
+    bk = doc.get("brokers", {})
+    brokers = BrokersConfig(
+        pool_size=int(bk.get("pool_size", 40)),
+        bonded_fraction=float(bk.get("bonded_fraction", 0.45)),
+        unknown_credit_fraction=float(bk.get("unknown_credit_fraction", 0.18)),
+        quick_pay_fraction=float(bk.get("quick_pay_fraction", 0.30)),
+        pay_days_fast=float(bk.get("pay_days_fast", 18.0)),
+        pay_days_slow=float(bk.get("pay_days_slow", 55.0)),
+        default_prob_best=float(bk.get("default_prob_best", 0.01)),
+        default_prob_worst=float(bk.get("default_prob_worst", 0.16)),
+        seed=int(bk.get("seed", 43)),
+    )
+    oc = doc.get("outcomes", {})
+    outcomes = OutcomesConfig(
+        reservation_center_mult=float(oc.get("reservation_center_mult", 1.05)),
+        reservation_contention_drop=float(oc.get("reservation_contention_drop", 0.15)),
+        reservation_noise=float(oc.get("reservation_noise", 0.06)),
+        win_logistic_scale_rpm=float(oc.get("win_logistic_scale_rpm", 0.06)),
+        bid_trial_rpm_multipliers=[
+            float(m) for m in oc.get(
+                "bid_trial_rpm_multipliers", [0.85, 0.95, 1.0, 1.05, 1.15, 1.25]
+            )
+        ],
+        base_cover_halflife_hours=float(oc.get("base_cover_halflife_hours", 18.0)),
+        contention_cover_factor=float(oc.get("contention_cover_factor", 4.0)),
+        cover_horizon_hours=float(oc.get("cover_horizon_hours", 24.0)),
+        negotiated_premium=float(oc.get("negotiated_premium", 1.0)),
+        late_pay_threshold_days=float(oc.get("late_pay_threshold_days", 45.0)),
+        seed=int(oc.get("seed", 44)),
+        snapshot_path=str(oc.get("snapshot_path", "data/winnability_snapshots.jsonl")),
+        outcomes_path=str(oc.get("outcomes_path", "data/winnability_outcomes.jsonl")),
+        trials_path=str(oc.get("trials_path", "data/winnability_trials.jsonl")),
+    )
     return MLConfig(
         synthetic_data=synthetic,
         labeling=labeling,
         features=features,
         training=training,
         artifacts=artifacts,
+        brokers=brokers,
+        outcomes=outcomes,
     )

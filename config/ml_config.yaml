@@ -40,3 +40,36 @@ training:
 artifacts:
   model_path: "ml/artifacts/destination_desirability_model.joblib"
   metadata_path: "ml/artifacts/destination_model_metadata.json"
+
+# Phase 4.1 — Load Quality & Winnability Dataset.
+# The broker pool is a fixed synthetic "population" (like markets): observable
+# board columns are attached to each load; the latent quality knobs below are
+# ground truth the outcome simulator may use for labels but never leak to a record.
+brokers:
+  pool_size: 40
+  bonded_fraction: 0.45
+  unknown_credit_fraction: 0.18   # paywalled/blank credit -> explicit "unknown" bucket
+  quick_pay_fraction: 0.30
+  pay_days_fast: 18.0             # latent pay-days for the best brokers
+  pay_days_slow: 55.0            # latent pay-days for the worst brokers
+  default_prob_best: 0.01
+  default_prob_worst: 0.16
+  seed: 43
+
+# The synthetic outcome world: reservation/win, contention->coverage, negotiation,
+# payment realization. Drives the emitted labeled winnability dataset.
+outcomes:
+  reservation_center_mult: 1.05   # broker reserve sits just above market rate
+  reservation_contention_drop: 0.15
+  reservation_noise: 0.06
+  win_logistic_scale_rpm: 0.06    # softness of "ask <= reserve"; P(win) falls as ask rises
+  bid_trial_rpm_multipliers: [0.85, 0.95, 1.0, 1.05, 1.15, 1.25]
+  base_cover_halflife_hours: 18.0 # low-contention loads can linger past the horizon
+  contention_cover_factor: 4.0    # higher contention -> loads vanish faster
+  cover_horizon_hours: 24.0       # time-to-cover censoring cap
+  negotiated_premium: 1.0         # "call for rate" loads settle ~ broker reserve
+  late_pay_threshold_days: 45.0   # realized pay-days above this label as "late"
+  seed: 44
+  snapshot_path: "data/winnability_snapshots.jsonl"
+  outcomes_path: "data/winnability_outcomes.jsonl"
+  trials_path: "data/winnability_trials.jsonl"

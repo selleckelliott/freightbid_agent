@@ -13,7 +13,16 @@ equipment codes (``HS``/``F``/``FSD``/``FSDV``), load ``mode`` (TL/PTL/LTL),
 physical dimensions (``weight``/``length`` are filterable; ``width``/``height``
 are often blank, hence nullable), and a per-load competition signal
 (``load_views``: ``Be The First``/``Low``/``Med``/``High``). These mirror the
-columns a future API adapter will map onto.
+Phase 4.1 (load-quality / winnability dataset): each load also carries the
+**observable** broker columns a dispatcher sees on the board — ``broker_id``,
+``broker_name``, ``broker_credit_bucket`` (A/B/C/``unknown``),
+``broker_days_to_pay``, ``broker_bonded``, ``broker_quick_pay_available``,
+``broker_age_days`` — plus load-quality flags (``commodity``, ``tarp_required``,
+``appointment_required``). These are copied from the *observable* columns of a
+``BrokerProfile`` (``ml/brokers.py``); the broker's **latent** quality (true pay
+days, default probability, rate bias) never appears here — that is ground truth
+for the outcome simulator only. All fields default to ``None`` so pre-4.1 fixtures
+and JSONL remain valid.
 """
 from __future__ import annotations
 
@@ -64,6 +73,20 @@ class LoadSnapshotRecord:
     height: float | None = None  # ft (often blank on the board)
     mode: str = "TL"             # TL / PTL / LTL
     load_views: str = "low"      # competition bucket: be_the_first/low/med/high
+    # -- Phase 4.1 broker / load-quality fields (decision-time observable) ------
+    # Copied from the OBSERVABLE columns of a BrokerProfile (ml/brokers.py); the
+    # broker's latent quality (true pay days, default prob, rate bias) is NEVER
+    # placed here. Defaults are None/"" so pre-4.1 fixtures and JSONL stay valid.
+    broker_id: str | None = None
+    broker_name: str | None = None
+    broker_credit_bucket: str | None = None  # A / B / C / unknown (unknown = paywalled)
+    broker_days_to_pay: int | None = None    # None when credit is unknown
+    broker_bonded: bool | None = None
+    broker_quick_pay_available: bool | None = None
+    broker_age_days: int | None = None
+    commodity: str | None = None
+    tarp_required: bool | None = None
+    appointment_required: bool | None = None
 
     # -- decision-time accessors -------------------------------------------
     @property

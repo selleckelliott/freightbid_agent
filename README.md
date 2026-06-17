@@ -18,6 +18,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [Destination-aware (one-shot)](#phase-32--destination-aware-planner-closing-the-loop) | model in the planner | −12.9% deadhead at ~free profit |
 | [**Rolling replay (sequential)**](#phase-33--rolling-replanning-simulation-measuring-the-sequential-payoff) | multi-day MPC A/B | **+3.9% profit · −4.7% deadhead** (150 episodes) |
 | [**Stress test (robustness)**](#phase-34--sequential-policy-stress-testing-is-the-edge-robust) | 18 shifted markets | **0 regressions** · advantage HOLDS 7/18, neutral 11/18 |
+| [Winnability dataset (Phase 4.1)](#phase-41--load-quality--winnability-dataset) | seeded outcome simulator | labeled broker-quality + bid-win dataset · 6 processes · leakage-guarded |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -690,6 +691,62 @@ python -m benchmarks.run_stress_test --episodes 30 --out benchmarks/stress_test_
 python -m benchmarks.chart_stress_test
 ```
 
+## Phase 4.1 — Load Quality & Winnability Dataset
+
+Phases 3.1–3.4 learned one signal: *destination desirability* (will this load's
+drop-off strand me?). Phase 4 turns to the **other side of the load** — the broker
+and the bid: *will I get paid, and will my bid even win?* Before training that model
+(Phase 4.2), this phase defines the **synthetic outcome world** that produces those
+labels, and emits a seeded, reproducible **labeled dataset**.
+
+The broker pool (`ml/brokers.py`) mirrors `ml/markets.py`: each broker has **hidden
+latent** quality (`true_pay_days`, `true_default_prob`, `rate_bias`) paired with the
+**noisy, sometimes-missing observable** columns a dispatcher actually sees on the
+board (`credit_bucket` A/B/C/**unknown**, `days_to_pay`, `bonded`,
+`quick_pay_available`, broker age). A configurable slice of brokers is `unknown`
+(paywalled) — the **missingness is itself a signal**, never imputed.
+
+`ml/data/outcome_simulator.py` realizes six processes — each a hidden latent → a
+decision-time signal on the snapshot → an emitted label:
+
+| "Outcome world" goal | Hidden latent (ground truth) | Decision-time signal | Emitted label |
+| --- | --- | --- | --- |
+| brokers pay quickly | `true_pay_days`, quick-pay pref | `broker_days_to_pay`, `quick_pay_available` | `realized_pay_days` |
+| brokers are risky | `true_default_prob` | `broker_credit_bucket`, `bonded`, broker age | `payment_outcome` (paid/late/default) |
+| loads highly contested | `contention_intensity` | `load_views` (be-the-first…high) | (drives win + coverage) |
+| **which bid prices win** | `reservation_rpm` per load | *none* (you see only the ask) | `won` over a neutral bid grid |
+| loads disappear quickly | coverage hazard `λ(contention)` | `load_views`, load age, rpm | `time_to_cover_hours` (censored), `covered` |
+| no-rate loads need negotiation | broker target behind `total_rate=None` | `has_posted_rate=False`, `mode` | `negotiation_required`, `negotiated_rate` |
+
+A carrier's ask **wins when it is at or below** the broker's hidden reserve, softened
+by a logistic — so **win probability falls as the ask rises**. That is the
+economically correct direction and the one that gives the Phase 4.3 EV bid optimizer
+a real *more-margin-vs-lower-win-rate* tradeoff.
+
+**Leakage discipline** (the part reviewers check): the latents
+(`reservation_rpm`, `contention_intensity`, `true_pay_days`, `true_default_prob`,
+`rate_bias`) live **only** in `BrokerProfile`, the simulator, and the outcomes
+artifact. They are never an attribute of `LoadSnapshotRecord`, never a key in the
+snapshot JSONL, and never a feature — exactly like `ml/data/labeling.py`, labels may
+encode the latent world but decision-time code cannot. A dedicated leakage-guard test
+asserts this. Broker/quality randomness is also drawn from a **separate per-load
+stream**, so the Phase 3.1 destination dataset is byte-identical and the existing
+model is untouched.
+
+The build emits three gitignored, byte-reproducible JSONL artifacts under `data/`:
+extended **snapshots** (broker columns attached), **outcomes** (realized labels +
+hidden ground truth), and **bid trials** (`(bid_rpm, won)` rows ready for 4.2). Base
+rates (e.g. default frequency) are intentionally tuned for *learnable signal*, not
+calibrated to real-world magnitudes.
+
+```bash
+python -m ml.data.build_winnability_dataset            # full seeded build
+python -m ml.data.build_winnability_dataset --days 5   # quick smoke build
+```
+
+No model is trained here — that is Phase 4.2 (see the
+[roadmap](https://github.com/selleckelliott/freightbid_agent/issues)).
+
 ## Tests
 
 ```bash
@@ -739,8 +796,10 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   regressor learns a truncated target.
 
 **Next work**
-- **Phase 4 — broker / load quality & winnability.** Fold in the deferred
-  days-to-pay / credit / bond signals and a bid-acceptance model.
+- **Phase 4 — broker / load quality & winnability.** The
+  [winnability dataset](#phase-41--load-quality--winnability-dataset) (Phase 4.1) is
+  built; next is the calibrated bid-winnability model (4.2) and its integration into
+  the recommender (4.3).
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
