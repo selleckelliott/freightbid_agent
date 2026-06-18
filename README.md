@@ -20,6 +20,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Stress test (robustness)**](#phase-34--sequential-policy-stress-testing-is-the-edge-robust) | 18 shifted markets | **0 regressions** · advantage HOLDS 7/18, neutral 11/18 |
 | [Winnability dataset (Phase 4.1)](#phase-41--load-quality--winnability-dataset) | seeded outcome simulator | labeled broker-quality + bid-win dataset · 6 processes · leakage-guarded |
 | [**Bid-winnability model (Phase 4.2)**](#phase-42--calibrated-bid-winnability-model) | calibrated HGB classifier | **ROC AUC 0.928 · test ECE 0.010** · beats 3 baselines |
+| [**EV bid recommender (Phase 4.3)**](#phase-43--expected-value-bid-recommender) | calibrated P(win) × margin → bid ladder | **+32.8% realized profit vs best fixed** · only $39 EV-regret vs a clairvoyant oracle |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -811,6 +812,100 @@ The seeded model `.joblib` is gitignored (regenerable); the metrics
 metadata JSON and the reliability diagram are committed. Next, **Phase 4.3** turns
 this calibrated probability into an expected-value bid recommendation.
 
+## Phase 4.3 — Expected-Value Bid Recommender
+
+Phase 4.3 consumes the calibrated Phase 4.2 winnability model and turns it into a
+**human-reviewable bid ladder**. For any ask, the economics are simple:
+
+```
+profit_if_won = ask_amount − estimated_total_cost
+EV(ask)       = P(win | ask) × profit_if_won
+```
+
+A higher ask lifts `profit_if_won` but sinks `P(win)`, so **expected value peaks in
+the interior** — there is a best bid, and bidding past it *loses* money in
+expectation. Rather than emit one opaque number, the recommender returns a small
+**ladder** so a dispatcher sees the margin-vs-win-probability tradeoff and a written
+rationale:
+
+- **conservative** — highest-EV ask that still wins comfortably (`P(win) ≥ 0.70`).
+- **target** *(recommended)* — highest-EV ask within 5% of the max EV **and**
+  `P(win) ≥ 0.40`; a stable near-optimal bid rather than the knife-edge peak.
+- **max-EV** — the raw `argmax EV` ask.
+- **stretch** — the most aggressive ask still worth a shot (`P(win) ≥ 0.20`).
+
+A rung is gracefully omitted when nothing qualifies. The default is **target, not
+raw max-EV**: the EV curve is flat near its peak, so trading a sliver of expected
+value for a meaningfully higher win probability is the better real-world bid.
+
+**Example ladder** (held-out load `L-019241`, 599 loaded miles, market $2.15/mi,
+breakeven $1.39/mi):
+
+| Rung | Ask ($/mi) | Ask ($) | P(win) | Profit if won | Expected value |
+| --- | --- | --- | --- | --- | --- |
+| conservative | 1.83 | $1,094 | 0.87 | $262 | $229 |
+| **target ★ / max-EV** | **2.04** | **$1,223** | **0.64** | **$391** | **$252** |
+| stretch | 2.15 | $1,288 | 0.37 | $455 | $167 |
+
+Bidding the stretch ask wins $64 more *if* it lands, but its win probability is so
+much lower that its expected value ($167) sits below target's ($252). (Here target
+and max-EV coincide; they diverge when the EV-maximizing ask wins too rarely to clear
+target's stability floor.)
+
+**Swappable model behind a port — and a zero-regression fallback.** The model sits
+behind a `WinnabilityPort` (a `ModelWinnabilityAdapter` over the 4.2 artifact, plus a
+`NoopWinnabilityAdapter`), mirroring the repo's hexagonal idiom. When **no model is
+wired** the port returns `None` and the recommender degrades to today's
+cost-plus-margin target (`winnability_available=False`) — a regression test pins this
+equivalence, so adding the EV layer changes nothing until a model is present. The
+adapter builds features with the **exact** Phase 4.2 `BidQuery` + feature builder, so
+there is **no train/serve skew** by construction.
+
+**Candidates are anchored to the market and clamped to the trained support.** The 4.2
+model only ever saw asks in `[0.85, 1.25] × market_rate` (the trial grid), so the
+recommender generates candidates market-relative, keeps the posted rate and a
+breakeven-plus-margin anchor, and **flags any ask outside that envelope as
+extrapolated and excludes it from the ladder** — the EV curve is only trusted where
+the model is. Guardrails drop candidates below a minimum profit floor.
+
+**Does the EV ladder actually pick better bids?** An **oracle-grounded** offline
+benchmark scores 3,792 held-out loads. Each load carries a hidden `reservation_rpm`
+(the broker's minimum acceptable rate) from the Phase 4.1 outcome world; the pure
+simulator `win_prob(reserve, ask)` gives the *true* acceptance probability, so any ask
+scores an honest **oracle-weighted realized profit** `win_prob × profit_if_won` (valid
+even off the 6-point training grid). The oracle is **evaluation-only** — a unit test
+asserts `reservation_rpm` never reaches the recommender, model, or features.
+
+| Policy | Avg ask ($/mi) | P(win) model / oracle | Realized profit | EV-regret vs oracle ↓ |
+| --- | --- | --- | --- | --- |
+| Conservative fixed (market ×0.95) | 2.23 | 0.47 / 0.47 | $236 | $116 |
+| Posted-rate | 2.39 | 0.32 / 0.35 | $139 | $213 |
+| Stretch fixed (market ×1.10) | 2.58 | 0.11 / 0.05 | $38 | $315 |
+| **EV recommender (max-EV)** | 2.05 | 0.81 / 0.79 | $314 | $39 |
+| **EV recommender (target)** | 2.05 | 0.81 / 0.79 | **$314** | **$39** |
+
+The recommender realizes **$314/load vs $236 for the best fixed policy (+32.8%)**, and
+leaves only **$39 of EV-regret** against a clairvoyant oracle that averages $352 — i.e.
+it captures ~89% of the achievable expected value with no peek at the hidden reserve.
+Its **selected bids stay calibrated**: in the populated probability bands the model's
+predicted win rate tracks the oracle's (e.g. 0.75 vs 0.72, 0.85 vs 0.82, 0.94 vs 0.92),
+which is what makes the EV arithmetic trustworthy. Naive fixed policies fail in opposite
+ways — conservative leaves margin on the table, stretch overbids until win probability
+collapses.
+
+![EV bid recommender: realized profit and EV-regret by policy, selected-bid win probability vs oracle, and an example load's ask-vs-P(win)/EV curves with the ladder rungs marked](benchmarks/bid_recommender_comparison.png)
+
+```bash
+python -m benchmarks.run_bid_recommender_eval   # oracle-grounded eval -> summary JSON
+python -m benchmarks.chart_bid_recommender       # 4-panel comparison PNG
+```
+
+**Scope (deferred to 4.3b/4.4).** This phase ships the recommender engine, port +
+adapters, and the offline benchmark. **Surfacing** it through the API/CLI, wiring the
+adapter into the composition root, and folding EV into the live `BidRecommenderService`
+are intentionally deferred (tracked on the roadmap), as is any human-in-the-loop bid
+approval. No auto-bidding, no live Truckstop, no retraining.
+
 ## Tests
 
 ```bash
@@ -861,10 +956,12 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
 
 **Next work**
 - **Phase 4 — broker / load quality & winnability.** The
-  [winnability dataset](#phase-41--load-quality--winnability-dataset) (Phase 4.1) and
-  the [calibrated bid-winnability model](#phase-42--calibrated-bid-winnability-model)
-  (Phase 4.2) are built; next is integrating that probability into an expected-value
-  bid recommender (4.3).
+  [winnability dataset](#phase-41--load-quality--winnability-dataset) (4.1), the
+  [calibrated bid-winnability model](#phase-42--calibrated-bid-winnability-model)
+  (4.2), and the
+  [expected-value bid recommender](#phase-43--expected-value-bid-recommender) (4.3)
+  are built; next is **surfacing** the recommender through the API/CLI and the live
+  `BidRecommenderService` (4.3b), then a human-in-the-loop bid-approval workflow (4.4).
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
