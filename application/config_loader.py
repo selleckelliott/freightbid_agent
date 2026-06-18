@@ -74,6 +74,19 @@ class BidRecommenderConfig:
     metadata_path: str = "ml/artifacts/winnability_model_metadata.json"
 
 
+@dataclass(frozen=True)
+class BidApprovalConfig:
+    """Phase 4.4 human-in-the-loop bid-approval policy (config/bid_recommender.yaml).
+
+    ``draft_ttl_minutes`` is how long a draft lives before it lazily expires (enforced
+    from the injected clock on read/action — no scheduler). ``default_actor`` labels
+    audit events when an API caller supplies no ``actor_id``.
+    """
+
+    draft_ttl_minutes: float = 30.0
+    default_actor: str = "dispatcher"
+
+
 def _load_yaml(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
         return yaml.safe_load(fh) or {}
@@ -137,6 +150,18 @@ def load_bid_recommender_config(config_dir: str | Path) -> BidRecommenderConfig:
         enabled=bool(model.get("enabled", d.enabled)),
         model_path=str(model.get("artifact_path", d.model_path)),
         metadata_path=str(model.get("metadata_path", d.metadata_path)),
+    )
+
+
+def load_bid_approval_config(config_dir: str | Path) -> BidApprovalConfig:
+    """Load the Phase 4.4 bid-approval policy from the ``approval`` block of
+    ``bid_recommender.yaml``. Missing keys fall back to ``BidApprovalConfig`` defaults.
+    """
+    approval = _load_yaml(Path(config_dir) / "bid_recommender.yaml").get("approval") or {}
+    d = BidApprovalConfig()
+    return BidApprovalConfig(
+        draft_ttl_minutes=float(approval.get("draft_ttl_minutes", d.draft_ttl_minutes)),
+        default_actor=str(approval.get("default_actor", d.default_actor)),
     )
 
 

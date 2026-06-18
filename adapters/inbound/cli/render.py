@@ -109,3 +109,100 @@ def render_plan(console: Console, data: dict[str, Any]) -> None:
         f"deadhead={data['expected_deadhead_miles']:.0f}mi"
     )
     console.print(f"[dim]{data['rationale']}[/dim]")
+
+
+# -- Phase 4.4: human-in-the-loop bid approval workflow -----------------------
+
+BID_QUEUE_COLUMNS = ["Bid", "Status", "Load", "Truck", "Recommended", "Current", "Delta", "Expires"]
+BID_AUDIT_COLUMNS = ["When", "Action", "Actor", "Transition", "Amount", "Note"]
+
+
+def build_bid_queue_table(data: dict[str, Any]) -> Table:
+    """Build the reviewable bid-draft queue table from a `/bids` response dict."""
+    bids = data["bids"]
+    table = Table(title=f"Bid drafts ({len(bids)})")
+    for col in BID_QUEUE_COLUMNS:
+        table.add_column(col)
+    for b in bids:
+        table.add_row(
+            str(b["bid_id"]),
+            b["status"],
+            str(b["load_id"]),
+            str(b["truck_id"]),
+            f"${b['recommended_amount']:,.0f}",
+            f"${b['current_amount']:,.0f}",
+            f"${b['delta_from_recommended']:,.0f} ({b['delta_percent']:+.1f}%)",
+            b["expires_at"],
+        )
+    return table
+
+
+def render_bid_queue(console: Console, data: dict[str, Any]) -> None:
+    """Print the bid-draft queue table."""
+    console.print(build_bid_queue_table(data))
+
+
+def build_bid_audit_table(data: dict[str, Any]) -> Table:
+    """Build the audit-trail timeline table for a single bid draft."""
+    table = Table(title="Audit trail")
+    for col in BID_AUDIT_COLUMNS:
+        table.add_column(col)
+    for e in data["audit"]:
+        transition = f"{e['from_status'] or '-'} -> {e['to_status']}"
+        amount = f"${e['amount_after']:,.0f}" if e.get("amount_after") is not None else "-"
+        table.add_row(
+            e["at"],
+            e["action"],
+            e["actor_id"],
+            transition,
+            amount,
+            e.get("note") or "",
+        )
+    return table
+
+
+def render_bid_draft(console: Console, data: dict[str, Any]) -> None:
+    """Print a single bid draft: header, amounts/delta, EV snapshot, audit timeline.
+
+    A ``submitted_mock`` draft prints an explicit note that the submission is *simulated*
+    for workflow validation only — no real broker/Truckstop bid is ever placed.
+    """
+    console.print(
+        f"[bold]Bid #{data['bid_id']}[/bold] [{data['status']}] "
+        f"load={data['load_id']} truck={data['truck_id']}"
+    )
+    console.print(
+        f"Recommended ${data['recommended_amount']:,.0f} "
+        f"(${data['recommended_rate_per_mile']:.2f}/mi)  |  "
+        f"Current ${data['current_amount']:,.0f}  |  "
+        f"Delta ${data['delta_from_recommended']:,.0f} ({data['delta_percent']:+.1f}%)"
+    )
+    if data.get("edit_reason"):
+        console.print(f"[dim]Edit reason: {data['edit_reason']}[/dim]")
+    console.print(f"[dim]Expires {data['expires_at']}[/dim]")
+    console.print(f"[dim]{data['rationale']}[/dim]")
+    _render_bid_draft_ev(console, data)
+    if data.get("submission_ref"):
+        console.print(
+            f"[yellow]Submission (SIMULATED): {data['submission_ref']}[/yellow]"
+        )
+    if data["status"] == "submitted_mock":
+        console.print(
+            "[yellow]Note: 'submitted_mock' is a simulated submission for workflow "
+            "validation only — no real broker/Truckstop bid was placed.[/yellow]"
+        )
+    console.print(build_bid_audit_table(data))
+
+
+def _render_bid_draft_ev(console: Console, data: dict[str, Any]) -> None:
+    """Render the optional EV snapshot line for a draft (no-op when the model is off)."""
+    if not data.get("winnability_available"):
+        return
+    win = data.get("win_probability")
+    ev = data.get("expected_value")
+    win_str = f"{win:.0%}" if win is not None else "n/a"
+    ev_str = f"${ev:,.0f}" if ev is not None else "n/a"
+    label = data.get("ev_recommended_label", "ev")
+    ev_bid = data.get("ev_recommended_bid")
+    bid_str = f" pick {label} ${ev_bid:,.0f}" if ev_bid is not None else ""
+    console.print(f"[dim]EV: win {win_str}, EV {ev_str}{bid_str}[/dim]")

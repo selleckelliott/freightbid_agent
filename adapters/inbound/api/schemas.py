@@ -140,3 +140,63 @@ class BidRangeDTO(BaseModel):
 
 
 RankedLoad.model_rebuild()
+
+
+# -- Phase 4.4: human-in-the-loop bid approval workflow -----------------------
+
+
+class CreateBidDraftRequest(BaseModel):
+    truck: TruckStateDTO
+    load_id: int
+    actor_id: Optional[str] = None
+
+
+class EditBidRequest(BaseModel):
+    amount: float
+    reason: Optional[str] = None
+    actor_id: Optional[str] = None
+
+
+class BidActionRequest(BaseModel):
+    actor_id: Optional[str] = None
+    note: Optional[str] = None
+
+
+class BidAuditEventDTO(BaseModel):
+    at: datetime
+    action: str
+    actor_id: str
+    from_status: Optional[str] = None
+    to_status: str
+    note: Optional[str] = None
+    amount_before: Optional[float] = None
+    amount_after: Optional[float] = None
+
+
+class BidDraftDTO(BaseModel):
+    bid_id: int
+    load_id: int
+    truck_id: int
+    status: str
+    recommended_amount: float
+    recommended_rate_per_mile: float
+    current_amount: float
+    delta_from_recommended: float
+    delta_percent: float
+    rationale: str
+    created_at: datetime
+    expires_at: datetime
+    updated_at: datetime
+    edit_reason: Optional[str] = None
+    submission_ref: Optional[str] = None
+    # Recommendation snapshot (EV surfacing, 4.3b) — null when the model is off.
+    winnability_available: Optional[bool] = None
+    win_probability: Optional[float] = None
+    expected_value: Optional[float] = None
+    ev_recommended_label: Optional[str] = None
+    ev_recommended_bid: Optional[float] = None
+    audit: List[BidAuditEventDTO]
+
+
+class BidQueueResponse(BaseModel):
+    bids: List[BidDraftDTO]

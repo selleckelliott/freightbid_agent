@@ -1,11 +1,21 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 from adapters.inbound.api.container import build_container
-from adapters.inbound.api.mappers import bid_range_to_dto, load_from_dto, truck_from_dto
+from adapters.inbound.api.mappers import (
+    bid_draft_to_dto,
+    bid_range_to_dto,
+    load_from_dto,
+    truck_from_dto,
+)
 from adapters.inbound.api.schemas import (
+    BidActionRequest,
+    BidDraftDTO,
+    BidQueueResponse,
+    CreateBidDraftRequest,
+    EditBidRequest,
     IngestRequest,
     IngestResponse,
     PlanResponse,
@@ -14,6 +24,9 @@ from adapters.inbound.api.schemas import (
     RankResponse,
     RankedLoad,
 )
+from application.bid_approval_service import BidDraftNotFound, LoadNotFoundForBid
+from domain.enums.bid_approval_status import BidApprovalStatus
+from domain.models.bid_draft import InvalidBidTransition
 
 CONFIG_DIR = Path(os.environ.get("FREIGHTBID_CONFIG_DIR", Path(__file__).resolve().parents[3] / "config"))
 
@@ -108,6 +121,89 @@ def create_app(container=None) -> FastAPI:
             score=plan.score,
             rationale=plan.rationale,
         )
+
+    # -- Phase 4.4: human-in-the-loop bid approval workflow -------------------
+
+    @app.post("/bids", response_model=BidDraftDTO)
+    def create_bid_draft(req: CreateBidDraftRequest):
+        truck = truck_from_dto(req.truck)
+        try:
+            draft = container.bid_approval_service.create_draft(
+                truck, req.load_id, actor_id=req.actor_id
+            )
+        except LoadNotFoundForBid as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        return bid_draft_to_dto(draft)
+
+    @app.get("/bids", response_model=BidQueueResponse)
+    def list_bid_drafts(status: str | None = Query(default=None)):
+        status_filter = None
+        if status is not None:
+            try:
+                status_filter = BidApprovalStatus(status)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"unknown status '{status}'")
+        drafts = container.bid_approval_service.list_drafts(status_filter)
+        return BidQueueResponse(bids=[bid_draft_to_dto(d) for d in drafts])
+
+    @app.get("/bids/{bid_id}", response_model=BidDraftDTO)
+    def get_bid_draft(bid_id: int):
+        try:
+            draft = container.bid_approval_service.get_draft(bid_id)
+        except BidDraftNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        return bid_draft_to_dto(draft)
+
+    @app.patch("/bids/{bid_id}", response_model=BidDraftDTO)
+    def edit_bid_draft(bid_id: int, req: EditBidRequest):
+        try:
+            draft = container.bid_approval_service.edit_draft(
+                bid_id, req.amount, reason=req.reason, actor_id=req.actor_id
+            )
+        except BidDraftNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except InvalidBidTransition as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        return bid_draft_to_dto(draft)
+
+    @app.post("/bids/{bid_id}/approve", response_model=BidDraftDTO)
+    def approve_bid_draft(bid_id: int, req: BidActionRequest | None = None):
+        req = req or BidActionRequest()
+        try:
+            draft = container.bid_approval_service.approve_draft(
+                bid_id, actor_id=req.actor_id, note=req.note
+            )
+        except BidDraftNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except InvalidBidTransition as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        return bid_draft_to_dto(draft)
+
+    @app.post("/bids/{bid_id}/reject", response_model=BidDraftDTO)
+    def reject_bid_draft(bid_id: int, req: BidActionRequest | None = None):
+        req = req or BidActionRequest()
+        try:
+            draft = container.bid_approval_service.reject_draft(
+                bid_id, actor_id=req.actor_id, note=req.note
+            )
+        except BidDraftNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except InvalidBidTransition as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        return bid_draft_to_dto(draft)
+
+    @app.post("/bids/{bid_id}/submit-mock", response_model=BidDraftDTO)
+    def submit_mock_bid_draft(bid_id: int, req: BidActionRequest | None = None):
+        req = req or BidActionRequest()
+        try:
+            draft = container.bid_approval_service.submit_mock_draft(
+                bid_id, actor_id=req.actor_id, note=req.note
+            )
+        except BidDraftNotFound as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except InvalidBidTransition as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        return bid_draft_to_dto(draft)
 
     return app
 

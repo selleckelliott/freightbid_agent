@@ -4,14 +4,18 @@ from pathlib import Path
 
 from adapters.outbound.clock import SystemClock
 from adapters.outbound.distance.haversine import HaversineDistanceProvider
+from adapters.outbound.memory.bid_repository import InMemoryBidApprovalRepository
 from adapters.outbound.memory.load_repository import InMemoryLoadRepository
 from adapters.outbound.memory.truck_repository import InMemoryTruckRepository
 from adapters.outbound.tolls.flat_rate import FlatRateTollEstimator
 from adapters.outbound.winnability.model_adapter import ModelWinnabilityAdapter
+from application.bid_approval_service import BidApprovalService
 from application.bid_recommender import BidRecommenderService
 from application.config_loader import (
     AppConfig,
+    BidApprovalConfig,
     BidRecommenderConfig,
+    load_bid_approval_config,
     load_bid_recommender_config,
     load_config,
 )
@@ -22,6 +26,7 @@ from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
 from application.plan_builder import PlanBuilderService
 from application.recommend_loads import RecommendLoadsService
 from domain.scoring.heuristic_scoring import HeuristicScoringStrategy
+from ports.bid_repository import BidApprovalRepositoryPort
 from ports.clock import ClockPort
 from ports.load_repository import LoadRepositoryPort
 from ports.truck_repository import TruckRepositoryPort
@@ -70,6 +75,9 @@ class Container:
     ortools_profit_aware_planner: ORToolsProfitAwarePlanner
     bid_recommender: BidRecommenderService
     bid_recommender_config: BidRecommenderConfig
+    bid_repo: BidApprovalRepositoryPort
+    bid_approval_config: BidApprovalConfig
+    bid_approval_service: BidApprovalService
 
 
 def build_container(
@@ -119,6 +127,18 @@ def build_container(
         ev_recommender=ev_recommender,
     )
 
+    bid_repo = InMemoryBidApprovalRepository()
+    bid_approval_config = load_bid_approval_config(config_dir)
+    bid_approval_service = BidApprovalService(
+        bid_repo=bid_repo,
+        load_repo=load_repo,
+        truck_repo=truck_repo,
+        evaluator=evaluator,
+        bid_recommender=bid_recommender,
+        clock=clock,
+        config=bid_approval_config,
+    )
+
     return Container(
         config=config,
         load_repo=load_repo,
@@ -132,4 +152,7 @@ def build_container(
         ortools_profit_aware_planner=ortools_profit_aware_planner,
         bid_recommender=bid_recommender,
         bid_recommender_config=bid_recommender_config,
+        bid_repo=bid_repo,
+        bid_approval_config=bid_approval_config,
+        bid_approval_service=bid_approval_service,
     )
