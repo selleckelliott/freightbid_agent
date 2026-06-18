@@ -36,11 +36,44 @@ def build_rank_table(data: dict[str, Any]) -> Table:
 
 
 def render_rank(console: Console, data: dict[str, Any]) -> None:
-    """Print the ranked-loads table plus per-load rationale lines."""
+    """Print the ranked-loads table plus per-load rationale lines.
+
+    When a winnability model is wired (Phase 4.3b), each load also gets a dim EV line:
+    the recommended EV ask + ladder when available, or an explicit cost-plus-margin
+    fallback note when the model was unavailable. With no model wired the bid carries no
+    EV keys and these lines are skipped — output is identical to the pre-4.3 CLI.
+    """
     console.print(build_rank_table(data))
     for row in data["ranked"]:
         console.print(f"[dim]Load {row['load_id']}: {row['rationale']}[/dim]")
-        console.print(f"[dim]  Bid: {row['bid']['rationale']}[/dim]")
+        bid = row["bid"]
+        console.print(f"[dim]  Bid: {bid['rationale']}[/dim]")
+        _render_bid_ev(console, bid)
+
+
+def _render_bid_ev(console: Console, bid: dict[str, Any]) -> None:
+    """Render the optional EV pick + ladder lines for one bid (no-op when absent)."""
+    ev_bid = bid.get("ev_recommended_bid")
+    if ev_bid is not None:
+        label = bid.get("ev_recommended_label", "ev")
+        win = bid.get("win_probability_at_target")
+        ev = bid.get("expected_value_at_target")
+        win_str = f"{win:.0%}" if win is not None else "n/a"
+        ev_str = f"${ev:,.0f}" if ev is not None else "n/a"
+        console.print(
+            f"[dim]  EV pick: {label} ${ev_bid:,.0f} (win {win_str}, EV {ev_str})[/dim]"
+        )
+        ladder = bid.get("ladder")
+        if ladder:
+            rungs = "  ".join(
+                f"{r['label']} ${r['ask_amount']:,.0f}@{r['win_probability']:.0%}"
+                for r in ladder
+            )
+            console.print(f"[dim]  Ladder: {rungs}[/dim]")
+    elif bid.get("winnability_available") is False:
+        console.print(
+            "[dim]  EV: winnability model unavailable — cost-plus-margin bid[/dim]"
+        )
 
 
 def build_plan_table(data: dict[str, Any]) -> Table:

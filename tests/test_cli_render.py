@@ -82,6 +82,80 @@ def test_render_rank_emits_table_and_rationale():
     assert "Bid:" in text
 
 
+def test_render_rank_omits_ev_lines_when_absent():
+    """Bids with no EV keys (model off) render exactly as before — no EV/fallback lines."""
+    console = Console(record=True, width=200)
+    render_rank(console, RANK_DATA)
+    text = console.export_text()
+    assert "EV pick" not in text
+    assert "winnability model unavailable" not in text
+
+
+def test_render_rank_shows_ev_pick_and_ladder():
+    data = {
+        "truck_id": 1,
+        "ranked": [
+            {
+                "load_id": 7,
+                "score": 1.0,
+                "expected_profit": 200.0,
+                "rate_per_mile": 2.0,
+                "deadhead_miles": 0.0,
+                "pickup_eta": "2026-05-27T18:00:00Z",
+                "rationale": "score=1.0",
+                "bid": {
+                    "target_bid": 600.0,
+                    "rationale": "cost+margin",
+                    "winnability_available": True,
+                    "win_probability_at_target": 0.67,
+                    "expected_value_at_target": 110.0,
+                    "ev_recommended_label": "target",
+                    "ev_recommended_bid": 547.0,
+                    "ladder": [
+                        {"label": "conservative", "ask_amount": 490.0, "win_probability": 0.95},
+                        {"label": "target", "ask_amount": 547.0, "win_probability": 0.67},
+                    ],
+                },
+            }
+        ],
+    }
+    console = Console(record=True, width=200)
+    render_rank(console, data)
+    text = console.export_text()
+    assert "EV pick: target $547 (win 67%, EV $110)" in text
+    assert "Ladder:" in text
+    assert "conservative $490@95%" in text
+
+
+def test_render_rank_shows_fallback_note_when_unavailable():
+    data = {
+        "truck_id": 1,
+        "ranked": [
+            {
+                "load_id": 8,
+                "score": 1.0,
+                "expected_profit": 200.0,
+                "rate_per_mile": 2.0,
+                "deadhead_miles": 0.0,
+                "pickup_eta": "2026-05-27T18:00:00Z",
+                "rationale": "score=1.0",
+                "bid": {
+                    "target_bid": 600.0,
+                    "rationale": "cost+margin",
+                    "winnability_available": False,
+                    "ev_recommended_bid": None,
+                    "ladder": None,
+                },
+            }
+        ],
+    }
+    console = Console(record=True, width=200)
+    render_rank(console, data)
+    text = console.export_text()
+    assert "winnability model unavailable" in text
+    assert "EV pick" not in text
+
+
 def test_render_plan_emits_totals():
     console = Console(record=True, width=200)
     render_plan(console, PLAN_DATA)

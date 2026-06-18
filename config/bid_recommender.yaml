@@ -48,5 +48,11 @@ fallback:
   target_margin: 0.20
 
 model:
+  # Feature flag (Phase 4.3b). When false the live BidRecommenderService runs the
+  # existing cost-plus-margin path and never loads the model — behavior is identical
+  # to pre-4.3. When true AND the artifact below exists, /rank + the CLI additionally
+  # surface the EV ladder (win probability + expected value) alongside the unchanged
+  # margin bid. Enabled-but-missing-artifact degrades gracefully to the margin path.
+  enabled: false
   artifact_path: "ml/artifacts/winnability_model.joblib"
   metadata_path: "ml/artifacts/winnability_model_metadata.json"

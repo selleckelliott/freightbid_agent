@@ -900,11 +900,40 @@ python -m benchmarks.run_bid_recommender_eval   # oracle-grounded eval -> summar
 python -m benchmarks.chart_bid_recommender       # 4-panel comparison PNG
 ```
 
-**Scope (deferred to 4.3b/4.4).** This phase ships the recommender engine, port +
-adapters, and the offline benchmark. **Surfacing** it through the API/CLI, wiring the
-adapter into the composition root, and folding EV into the live `BidRecommenderService`
-are intentionally deferred (tracked on the roadmap), as is any human-in-the-loop bid
-approval. No auto-bidding, no live Truckstop, no retraining.
+**Scope (4.3 engine; 4.4 deferred).** Phase 4.3 shipped the recommender engine, port +
+adapters, and the offline benchmark. **Phase 4.3b** (below) surfaces it through the live
+API/CLI behind a feature flag. Human-in-the-loop bid approval remains deferred to 4.4. No
+auto-bidding, no live Truckstop, no retraining.
+
+### Phase 4.3b — surfacing the recommender (live API/CLI)
+
+Phase 4.3b threads the EV recommender through the live `/rank` + CLI seam **additively**
+and **behind a feature flag (default off)** — so the committed demo and every existing
+client are byte-for-byte unchanged out of the box:
+
+- **Additive only.** When enabled, the EV ladder + `P(win)`/EV are surfaced as new
+  *optional* fields next to the cost-plus-margin bid; the headline `min`/`target`/`max`
+  bid is computed exactly as before and **never moves**. Reviewers see the naive margin
+  baseline and the EV-optimal ladder side by side.
+- **Enable it** by pointing the config at the gitignored 4.2 artifact and flipping the
+  flag:
+
+  ```yaml
+  # config/bid_recommender.yaml
+  model:
+    enabled: true                      # default: false
+    artifact_path: ml/artifacts/winnability_model.joblib
+  ```
+
+- **Graceful no-op fallback.** Flag on but artifact missing ⇒ the app logs a warning,
+  serves the margin bid, and reports `winnability_available=false` (the CLI prints an
+  explicit *"winnability model unavailable — cost-plus-margin bid"* note). No NaN ever
+  reaches the JSON wire.
+- **Live-vs-benchmark coarseness (documented limit).** The live `Load` carries no broker
+  board or competition columns, so those `BidQuery` features fall back to
+  `unknown`/`NaN` (the HGB model handles them natively). Live EV is therefore coarser
+  than the full-snapshot offline benchmark; plumbing broker/competition through the live
+  board is future work.
 
 ## Tests
 
@@ -960,8 +989,8 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   [calibrated bid-winnability model](#phase-42--calibrated-bid-winnability-model)
   (4.2), and the
   [expected-value bid recommender](#phase-43--expected-value-bid-recommender) (4.3)
-  are built; next is **surfacing** the recommender through the API/CLI and the live
-  `BidRecommenderService` (4.3b), then a human-in-the-loop bid-approval workflow (4.4).
+  are built, and the recommender is now **surfaced** through the live API/CLI behind a
+  feature flag (4.3b); next is a human-in-the-loop bid-approval workflow (4.4).
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

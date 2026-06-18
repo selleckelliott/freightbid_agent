@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -6,8 +7,15 @@ from adapters.outbound.distance.haversine import HaversineDistanceProvider
 from adapters.outbound.memory.load_repository import InMemoryLoadRepository
 from adapters.outbound.memory.truck_repository import InMemoryTruckRepository
 from adapters.outbound.tolls.flat_rate import FlatRateTollEstimator
+from adapters.outbound.winnability.model_adapter import ModelWinnabilityAdapter
 from application.bid_recommender import BidRecommenderService
-from application.config_loader import AppConfig, load_config
+from application.config_loader import (
+    AppConfig,
+    BidRecommenderConfig,
+    load_bid_recommender_config,
+    load_config,
+)
+from application.ev_bid_recommender import EVBidRecommender
 from application.evaluate_loads import EvaluateLoadsService
 from application.ortools_distance_planner import ORToolsDistancePlanner
 from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
@@ -18,7 +26,34 @@ from ports.clock import ClockPort
 from ports.load_repository import LoadRepositoryPort
 from ports.truck_repository import TruckRepositoryPort
 
-DEFAULT_CONFIG_DIR = Path(__file__).resolve().parents[3] / "config"
+logger = logging.getLogger(__name__)
+
+ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CONFIG_DIR = ROOT / "config"
+
+
+def _build_ev_recommender(bid_cfg: BidRecommenderConfig) -> EVBidRecommender | None:
+    """Wire the EV recommender only when the flag is on AND the artifact exists.
+
+    Returns ``None`` (so ``BidRecommenderService`` keeps its cost-plus-margin behavior)
+    when winnability is disabled, or enabled but the gitignored 4.2 artifact is absent —
+    the latter logged as a warning rather than raised, so the app always boots.
+    """
+    if not bid_cfg.enabled:
+        return None
+    artifact = Path(bid_cfg.model_path)
+    if not artifact.is_absolute():
+        artifact = ROOT / artifact
+    if not artifact.exists():
+        logger.warning(
+            "winnability model enabled but artifact %s not found; "
+            "serving cost-plus-margin bids",
+            artifact,
+        )
+        return None
+    adapter = ModelWinnabilityAdapter.from_artifact(artifact)
+    logger.info("winnability model loaded from %s; EV surfacing enabled", artifact)
+    return EVBidRecommender(adapter, bid_cfg)
 
 
 @dataclass
@@ -34,6 +69,7 @@ class Container:
     ortools_distance_planner: ORToolsDistancePlanner
     ortools_profit_aware_planner: ORToolsProfitAwarePlanner
     bid_recommender: BidRecommenderService
+    bid_recommender_config: BidRecommenderConfig
 
 
 def build_container(
@@ -75,8 +111,12 @@ def build_container(
         average_speed_mph=config.average_speed_mph,
         load_unload_hours=config.planning_constraints.average_load_unload_hours,
     )
+    bid_recommender_config = load_bid_recommender_config(config_dir)
+    ev_recommender = _build_ev_recommender(bid_recommender_config)
     bid_recommender = BidRecommenderService(
-        config.bid_policy, config.bidding_constraints
+        config.bid_policy,
+        config.bidding_constraints,
+        ev_recommender=ev_recommender,
     )
 
     return Container(
@@ -91,4 +131,5 @@ def build_container(
         ortools_distance_planner=ortools_distance_planner,
         ortools_profit_aware_planner=ortools_profit_aware_planner,
         bid_recommender=bid_recommender,
+        bid_recommender_config=bid_recommender_config,
     )
