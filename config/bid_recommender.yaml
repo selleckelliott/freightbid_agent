@@ -56,3 +56,12 @@ model:
   enabled: false
   artifact_path: "ml/artifacts/winnability_model.joblib"
   metadata_path: "ml/artifacts/winnability_model_metadata.json"
+
+approval:
+  # Phase 4.4 — human-in-the-loop bid approval workflow.
+  # A bid draft lives for this many minutes before it lazily expires (enforced from the
+  # injected clock whenever a draft is read or acted on — there is no background worker).
+  draft_ttl_minutes: 30
+  # Audit events are stamped with the API caller's actor_id; this labels events when the
+  # caller supplies none. System-driven expiry always uses actor_id "system".
+  default_actor: "dispatcher"

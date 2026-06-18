@@ -6,7 +6,12 @@ import httpx
 import typer
 from rich.console import Console
 
-from adapters.inbound.cli.render import render_plan, render_rank
+from adapters.inbound.cli.render import (
+    render_bid_draft,
+    render_bid_queue,
+    render_plan,
+    render_rank,
+)
 
 app = typer.Typer(help="FreightBid Dispatch Brain CLI")
 console = Console()
@@ -74,6 +79,116 @@ def plan(truck_file: Path, api: str = typer.Option(DEFAULT_API, "--api")):
         data = r.json()
 
     render_plan(console, data)
+
+
+# -- Phase 4.4: human-in-the-loop bid approval workflow -----------------------
+
+bids_app = typer.Typer(help="Human-in-the-loop bid approval workflow.")
+app.add_typer(bids_app, name="bids")
+
+
+def _check(r: httpx.Response) -> dict:
+    """Return the JSON body, or print the API error detail and exit non-zero."""
+    if r.is_error:
+        try:
+            detail = r.json().get("detail", r.text)
+        except Exception:
+            detail = r.text
+        console.print(f"[red]Error {r.status_code}: {detail}[/red]")
+        raise typer.Exit(code=1)
+    return r.json()
+
+
+@bids_app.command("create")
+def bids_create(
+    truck_file: Path,
+    load_id: int,
+    actor: str = typer.Option(None, "--actor"),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Draft a bid for a (truck, load): re-runs the recommender and stores the draft."""
+    truck = json.loads(truck_file.read_text(encoding="utf-8"))
+    body = {"truck": truck, "load_id": load_id, "actor_id": actor}
+    with _client(api) as c:
+        data = _check(c.post("/bids", json=body))
+    render_bid_draft(console, data)
+
+
+@bids_app.command("list")
+def bids_list(
+    status: str = typer.Option(None, "--status"),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """List bid drafts, optionally filtered by status."""
+    params = {"status": status} if status else None
+    with _client(api) as c:
+        data = _check(c.get("/bids", params=params))
+    render_bid_queue(console, data)
+
+
+@bids_app.command("show")
+def bids_show(bid_id: int, api: str = typer.Option(DEFAULT_API, "--api")):
+    """Show a single bid draft with its full audit trail."""
+    with _client(api) as c:
+        data = _check(c.get(f"/bids/{bid_id}"))
+    render_bid_draft(console, data)
+
+
+@bids_app.command("edit")
+def bids_edit(
+    bid_id: int,
+    amount: float,
+    reason: str = typer.Option(None, "--reason"),
+    actor: str = typer.Option(None, "--actor"),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Adjust a draft's bid amount (records the recommended-vs-adjusted delta)."""
+    body = {"amount": amount, "reason": reason, "actor_id": actor}
+    with _client(api) as c:
+        data = _check(c.patch(f"/bids/{bid_id}", json=body))
+    render_bid_draft(console, data)
+
+
+@bids_app.command("approve")
+def bids_approve(
+    bid_id: int,
+    note: str = typer.Option(None, "--note"),
+    actor: str = typer.Option(None, "--actor"),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Approve a drafted/edited bid."""
+    body = {"actor_id": actor, "note": note}
+    with _client(api) as c:
+        data = _check(c.post(f"/bids/{bid_id}/approve", json=body))
+    render_bid_draft(console, data)
+
+
+@bids_app.command("reject")
+def bids_reject(
+    bid_id: int,
+    note: str = typer.Option(None, "--note"),
+    actor: str = typer.Option(None, "--actor"),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Reject a bid draft (terminal)."""
+    body = {"actor_id": actor, "note": note}
+    with _client(api) as c:
+        data = _check(c.post(f"/bids/{bid_id}/reject", json=body))
+    render_bid_draft(console, data)
+
+
+@bids_app.command("submit-mock")
+def bids_submit_mock(
+    bid_id: int,
+    note: str = typer.Option(None, "--note"),
+    actor: str = typer.Option(None, "--actor"),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Simulate submitting an approved bid (workflow validation only — no real bidding)."""
+    body = {"actor_id": actor, "note": note}
+    with _client(api) as c:
+        data = _check(c.post(f"/bids/{bid_id}/submit-mock", json=body))
+    render_bid_draft(console, data)
 
 
 if __name__ == "__main__":

@@ -935,6 +935,84 @@ client are byte-for-byte unchanged out of the box:
   than the full-snapshot offline benchmark; plumbing broker/competition through the live
   board is future work.
 
+## Phase 4.4 — Human-in-the-Loop Bid Approval Workflow
+
+Phases 4.3/4.3b *recommend* a bid. Phase 4.4 puts a **human in the loop** before anything
+is "submitted": a recommended bid becomes a reviewable **draft** that a dispatcher drives
+through an explicit, audited lifecycle. The state machine, guards, and audit trail live in
+the **domain** (pure, clock-injected); a thin service + API + CLI expose it. Deliberately
+**narrow** — no auto-bidding, no live Truckstop, no negotiation agent.
+
+```
+ create   ┌─────────┐   edit    ┌─────────┐
+ ────────▶│ drafted │──────────▶│ edited  │◀──── edit (re-edit) ────┐
+          └─────────┘           └─────────┘                         │
+             │   │                  │   │                           │
+         approve │ reject       approve │ reject                    │
+             ▼   ▼                  ▼   ▼                           │
+          ┌──────────┐          ┌──────────┐                        │
+          │ approved │──────────│ rejected │ (terminal)             │
+          └──────────┘  edit ──▶ (back to `edited`: editing an      │
+             │   │                approved bid invalidates approval)┘
+    submit-mock │ reject
+             ▼   ▼
+    ┌────────────────┐
+    │ submitted_mock │ (terminal, SIMULATED)
+    └────────────────┘
+
+ expire: any non-terminal (drafted/edited/approved) ──▶ expired (terminal),
+         enforced lazily from the injected clock (no scheduler).
+```
+
+- **Domain state machine.** `BidDraft` owns `approve / reject / edit / submit_mock /
+  expire`; every illegal transition (or any action on a terminal draft) raises
+  `InvalidBidTransition` → HTTP **409**. Rules are unit-tested in isolation.
+- **Full audit trail.** Each transition appends an immutable `BidAuditEvent`
+  (`at, action, actor_id, from→to, amount_before/after, note`). There's no auth in this
+  project, so every action takes an optional **`actor_id`** (default from config; system
+  expiry uses `actor_id="system"`).
+- **Recommended-vs-adjusted delta.** `recommended_amount` is immutable; an edit moves
+  `current_amount` and the draft re-derives `delta_from_recommended` + `delta_percent` and
+  stores the `edit_reason` — the preference-learning signal is captured (not yet learned).
+- **Lazy, clock-injected expiry.** TTL is config-driven (`approval.draft_ttl_minutes`); the
+  service refreshes expiry from the `ClockPort` on every read/action — no background worker.
+- **`submitted_mock` is SIMULATED.** It stamps a `MOCK-…` reference for workflow validation
+  only — it is **never** a real broker/Truckstop submission. The CLI says so explicitly.
+- **Stored in-memory** for the process lifetime (a `BidApprovalRepositoryPort` mirrors the
+  load/truck repo idiom); a durable Postgres adapter is deferred.
+
+**API** (`POST /bids` re-runs the recommender for an explicit truck+load — `/rank` is
+untouched):
+
+```
+POST  /bids                 {truck, load_id, actor_id?}   → draft (status=drafted)
+GET   /bids?status=         filter the review queue
+GET   /bids/{id}            single draft + audit trail
+PATCH /bids/{id}            {amount, reason, actor_id?}    → edited (+ delta)
+POST  /bids/{id}/approve    {actor_id?, note?}
+POST  /bids/{id}/reject     {actor_id?, note?}
+POST  /bids/{id}/submit-mock {actor_id?, note?}            → submitted_mock (SIMULATED)
+```
+
+**CLI** (`bids` sub-group):
+
+```bash
+freightbid bids create truck.json 42 --actor dispatcher
+freightbid bids list --status drafted
+freightbid bids edit 1 1875 --reason "hot lane" --actor dispatcher
+freightbid bids approve 1 --actor ops-lead
+freightbid bids submit-mock 1            # simulated only — prints an explicit note
+freightbid bids show 1                   # full draft + audit timeline
+```
+
+**Autonomy framing.** 4.4 is the *human-approval* rung of the autonomy ladder
+(recommend → **approve** → mock-submit); auto-submission and a negotiation agent are
+explicitly later rungs.
+
+**Out of scope (deferred):** automatic / live broker submission, negotiation & multi-agent
+autonomy, a guardrail auto-flag-for-review hook (the draft already snapshots the EV fields
+so it's a clean add), `WON`/`LOST` real outcomes, and Postgres persistence.
+
 ## Tests
 
 ```bash
@@ -989,8 +1067,10 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   [calibrated bid-winnability model](#phase-42--calibrated-bid-winnability-model)
   (4.2), and the
   [expected-value bid recommender](#phase-43--expected-value-bid-recommender) (4.3)
-  are built, and the recommender is now **surfaced** through the live API/CLI behind a
-  feature flag (4.3b); next is a human-in-the-loop bid-approval workflow (4.4).
+  are built, the recommender is **surfaced** through the live API/CLI behind a feature
+  flag (4.3b), and a [human-in-the-loop bid-approval workflow](#phase-44--human-in-the-loop-bid-approval-workflow)
+  (4.4) now gates every bid through an audited approve/edit/reject lifecycle; next are
+  broker-quality stress tests (4.5).
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

@@ -1,10 +1,18 @@
 from dataclasses import asdict
 
 from application.bid_recommender import BidRange
+from domain.models.bid_draft import BidDraft
 from domain.models.load import Load
 from domain.models.truck_state import TruckState
 
-from .schemas import BidLadderRungDTO, BidRangeDTO, LoadDTO, TruckStateDTO
+from .schemas import (
+    BidAuditEventDTO,
+    BidDraftDTO,
+    BidLadderRungDTO,
+    BidRangeDTO,
+    LoadDTO,
+    TruckStateDTO,
+)
 
 
 def load_from_dto(dto: LoadDTO) -> Load:
@@ -46,4 +54,43 @@ def bid_range_to_dto(bid: BidRange) -> BidRangeDTO:
         ev_recommended_bid=bid.ev_recommended_bid,
         ev_recommended_rate_per_mile=bid.ev_recommended_rate_per_mile,
         ladder=ladder,
+    )
+
+
+def bid_draft_to_dto(draft: BidDraft) -> BidDraftDTO:
+    """Map a ``BidDraft`` aggregate (status, deltas, snapshot, audit trail) to its DTO."""
+    return BidDraftDTO(
+        bid_id=draft.bid_id,
+        load_id=draft.load_id,
+        truck_id=draft.truck_id,
+        status=draft.status.value,
+        recommended_amount=draft.recommended_amount,
+        recommended_rate_per_mile=draft.recommended_rate_per_mile,
+        current_amount=draft.current_amount,
+        delta_from_recommended=draft.delta_from_recommended,
+        delta_percent=draft.delta_percent,
+        rationale=draft.rationale,
+        created_at=draft.created_at,
+        expires_at=draft.expires_at,
+        updated_at=draft.updated_at,
+        edit_reason=draft.edit_reason,
+        submission_ref=draft.submission_ref,
+        winnability_available=draft.winnability_available,
+        win_probability=draft.win_probability,
+        expected_value=draft.expected_value,
+        ev_recommended_label=draft.ev_recommended_label,
+        ev_recommended_bid=draft.ev_recommended_bid,
+        audit=[
+            BidAuditEventDTO(
+                at=event.at,
+                action=event.action,
+                actor_id=event.actor_id,
+                from_status=event.from_status.value if event.from_status else None,
+                to_status=event.to_status.value,
+                note=event.note,
+                amount_before=event.amount_before,
+                amount_after=event.amount_after,
+            )
+            for event in draft.audit
+        ],
     )
