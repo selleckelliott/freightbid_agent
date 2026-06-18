@@ -108,6 +108,18 @@ class PlanResponse(BaseModel):
     rationale: str
 
 
+class BidLadderRungDTO(BaseModel):
+    label: str
+    ask_amount: float
+    ask_rpm: float
+    estimated_cost: float
+    profit_if_won: float
+    win_probability: float
+    expected_value: float
+    extrapolated: bool
+    rationale: str
+
+
 class BidRangeDTO(BaseModel):
     load_id: int
     min_bid: float
@@ -117,6 +129,14 @@ class BidRangeDTO(BaseModel):
     expected_profit_at_target: float
     rate_per_mile_at_target: float
     rationale: str
+    # -- Phase 4.3b: optional EV surfacing (null unless the model is wired) --------
+    winnability_available: Optional[bool] = None
+    win_probability_at_target: Optional[float] = None
+    expected_value_at_target: Optional[float] = None
+    ev_recommended_label: Optional[str] = None
+    ev_recommended_bid: Optional[float] = None
+    ev_recommended_rate_per_mile: Optional[float] = None
+    ladder: Optional[List[BidLadderRungDTO]] = None
 
 
 RankedLoad.model_rebuild()

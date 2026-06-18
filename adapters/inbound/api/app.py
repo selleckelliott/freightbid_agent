@@ -4,9 +4,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 
 from adapters.inbound.api.container import build_container
-from adapters.inbound.api.mappers import load_from_dto, truck_from_dto
+from adapters.inbound.api.mappers import bid_range_to_dto, load_from_dto, truck_from_dto
 from adapters.inbound.api.schemas import (
-    BidRangeDTO,
     IngestRequest,
     IngestResponse,
     PlanResponse,
@@ -58,7 +57,9 @@ def create_app(container=None) -> FastAPI:
 
         items = []
         for evaluation, score in ranked:
-            bid = container.bid_recommender.recommend(evaluation)
+            bid = container.bid_recommender.recommend(
+                evaluation, decided_at=truck.available_at
+            )
             items.append(
                 RankedLoad(
                     load_id=score.load_id,
@@ -71,7 +72,7 @@ def create_app(container=None) -> FastAPI:
                     pickup_eta=evaluation.pickup_eta,
                     delivery_eta=evaluation.delivery_eta,
                     rationale=score.rationale or "",
-                    bid=BidRangeDTO(**bid.__dict__),
+                    bid=bid_range_to_dto(bid),
                 )
             )
         return RankResponse(truck_id=truck.truck_id, ranked=items)

@@ -69,6 +69,7 @@ class BidRecommenderConfig:
     # -- no-model fallback -------------------------------------------------
     fallback_target_margin: float = 0.20
     # -- model artifact ----------------------------------------------------
+    enabled: bool = False
     model_path: str = "ml/artifacts/winnability_model.joblib"
     metadata_path: str = "ml/artifacts/winnability_model_metadata.json"
 
@@ -133,6 +134,7 @@ def load_bid_recommender_config(config_dir: str | Path) -> BidRecommenderConfig:
         fallback_target_margin=float(
             doc.get("fallback", {}).get("target_margin", d.fallback_target_margin)
         ),
+        enabled=bool(model.get("enabled", d.enabled)),
         model_path=str(model.get("artifact_path", d.model_path)),
         metadata_path=str(model.get("metadata_path", d.metadata_path)),
     )
