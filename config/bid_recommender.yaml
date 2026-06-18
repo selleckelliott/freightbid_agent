@@ -1,0 +1,52 @@
+# Phase 4.3 — Expected-Value bid recommender.
+#
+# Converts the calibrated Phase 4.2 winnability model P(win | load, broker, market, ask)
+# into a human-reviewable bid ladder. All knobs are decision-time / business policy;
+# none of them touch the model's training.
+
+candidate_generation:
+  # Candidate asks are generated relative to the load's MARKET rate — the same anchor
+  # the 4.2 model was trained against (its trial grid was market_rate x these
+  # multipliers). Keeping the grid market-relative keeps every candidate inside the
+  # model's trained support so the EV curve is interpolated, not extrapolated.
+  anchor_multipliers: [0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15, 1.20, 1.25]
+
+  # Per-loaded-mile cost proxy: the synthetic board loads carry no planner-derived
+  # cost (no truck position / deadhead / tolls), so profit_if_won uses
+  # estimated_cost = cost_per_loaded_mile x loaded_miles. Default is derived from
+  # config/cost_model.yaml at 50 mph: fuel 0.55 + maint 0.18 + driver 28/50 (0.56)
+  # + time-opportunity 5/50 (0.10) ~= 1.39 $/loaded-mi (deadhead/tolls excluded).
+  # The live recommend() path still accepts a real LoadEvaluation.total_cost.
+  cost_per_loaded_mile: 1.39
+
+  # Guardrails — never recommend an absurd bid.
+  min_profit_dollars: 75.0        # drop candidates whose profit_if_won is below this
+  min_margin_rpm: 0.20            # ask must clear breakeven_rpm by at least this much
+  max_anchor_multiplier: 1.30     # cap asks at anchor x this (anti-overbid)
+  max_candidate_count: 16         # de-duplicated grid is capped at this many asks
+
+  # rpm clamps, harmonized with domain BiddingConstraints (config/constraints.yaml).
+  min_rate_per_mile: 1.00
+  max_rate_per_mile: 6.00
+
+  # Trained-support envelope: the 4.2 trial grid spanned market_rate x [0.85, 1.25],
+  # so ask_to_market_ratio outside this band is an extrapolation. Such candidates are
+  # flagged extrapolated=True and excluded from ladder selection.
+  trained_ask_ratio_min: 0.85
+  trained_ask_ratio_max: 1.25
+
+ladder:
+  conservative_min_win_prob: 0.70  # conservative rung: highest-EV ask with P(win) >= this
+  target_min_win_prob: 0.40        # target rung floor on win probability
+  target_ev_tolerance: 0.95        # target must capture >= this fraction of max EV
+  stretch_min_win_prob: 0.20       # stretch rung: highest ask with P(win) >= this
+
+fallback:
+  # When no winnability model is wired (no-op adapter), the recommender degrades to a
+  # cost-plus-margin target: ask = estimated_cost x (1 + target_margin). Mirrors the
+  # existing BidPolicy.target_margin so "no model" reproduces today's behavior.
+  target_margin: 0.20
+
+model:
+  artifact_path: "ml/artifacts/winnability_model.joblib"
+  metadata_path: "ml/artifacts/winnability_model_metadata.json"

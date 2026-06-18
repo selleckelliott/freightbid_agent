@@ -113,6 +113,36 @@ class BidQuery:
     def load_age_hours(self) -> float:
         return (self.snapshot_time - self.posted_at).total_seconds() / 3600.0
 
+    @classmethod
+    def from_snapshot(cls, record: "_SnapshotLike") -> "BidQuery":
+        """Build a serving query from a decision-time snapshot record.
+
+        Copies only the **observable** columns the feature builder reads — the same
+        ones a live Truckstop adapter would expose — so Phase 4.3 scores held-out
+        snapshots through the exact training-time feature path (no skew, no leakage).
+        """
+        return cls(
+            snapshot_time=record.snapshot_time,
+            origin_lat=record.origin_lat,
+            origin_lon=record.origin_lon,
+            equipment_type=record.equipment_type,
+            loaded_miles=record.loaded_miles,
+            posted_at=record.posted_at,
+            mode=getattr(record, "mode", "TL"),
+            weight=getattr(record, "weight", 0.0),
+            length=getattr(record, "length", 0.0),
+            load_views=getattr(record, "load_views", "low"),
+            total_rate=record.total_rate,
+            commodity=getattr(record, "commodity", None),
+            tarp_required=getattr(record, "tarp_required", None),
+            appointment_required=getattr(record, "appointment_required", None),
+            broker_credit_bucket=getattr(record, "broker_credit_bucket", None),
+            broker_days_to_pay=getattr(record, "broker_days_to_pay", None),
+            broker_bonded=getattr(record, "broker_bonded", None),
+            broker_quick_pay_available=getattr(record, "broker_quick_pay_available", None),
+            broker_age_days=getattr(record, "broker_age_days", None),
+        )
+
 
 def build_winnability_features(load: _SnapshotLike, bid_rpm: float) -> Dict[str, Any]:
     """Build the feature dict for one ``(load, ask)`` pair.

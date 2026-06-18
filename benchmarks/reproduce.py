@@ -54,6 +54,9 @@ HEADLINE_ROWS = [
     ("Destination-aware (one-shot)", "model-in-planner", "-12.9% deadhead at ~free profit"),
     ("Rolling replay (sequential)", "multi-day MPC A/B", "+3.9% profit / -4.7% deadhead (150 eps)"),
     ("Stress test (robustness)", "18 shifted markets", "0 regressions; HOLDS 7/18, neutral 11/18"),
+    ("Winnability dataset (4.1)", "seeded outcome simulator", "6 leakage-guarded outcome processes"),
+    ("Bid-winnability model (4.2)", "calibrated HGB classifier", "ROC AUC 0.928 / test ECE 0.010"),
+    ("EV bid recommender (4.3)", "P(win) x margin -> bid ladder", "+32.8% profit vs best fixed / $39 EV-regret"),
 ]
 
 
@@ -199,6 +202,8 @@ def _full() -> None:
     _run(_module("benchmarks.chart_rolling_replay"))
     _run(_module("benchmarks.run_stress_test", "--episodes", str(FULL_STRESS_EPISODES)))
     _run(_module("benchmarks.chart_stress_test"))
+    _run(_module("benchmarks.run_bid_recommender_eval"))
+    _run(_module("benchmarks.chart_bid_recommender"))
     _print_headline_table()
     print(f"\nFull reproduce complete in {(time.perf_counter() - t0) / 60:.1f} min. "
           "Committed canonical artifacts regenerated.")
