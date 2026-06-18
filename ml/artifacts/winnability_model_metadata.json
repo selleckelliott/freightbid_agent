@@ -1,0 +1,190 @@
+{
+  "model_name": "HistGradientBoostingWinnability",
+  "target": "won_bid",
+  "trained_at": "2026-06-18T18:34:17.061343+00:00",
+  "rows": {
+    "train": 82038,
+    "validation": 11286,
+    "test": 22752
+  },
+  "base_win_rate": {
+    "train": 0.2883907457519686,
+    "validation": 0.3032961190855928,
+    "test": 0.2918864275668073
+  },
+  "served_model": "uncalibrated",
+  "calibration_method": null,
+  "calibration_decision": {
+    "threshold": 0.03,
+    "validation_ece_uncalibrated": 0.015304029809863168,
+    "calibrated": false,
+    "note": "validation ECE within threshold; calibration unnecessary"
+  },
+  "metrics_test": {
+    "global_win_rate": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.2918864275668073,
+      "brier": 0.20670096076044484,
+      "log_loss": 0.6038618303893238,
+      "ece": 0.0034956818148386692,
+      "n": 22752,
+      "positive_rate": 0.2918864275668073
+    },
+    "ask_ratio": {
+      "roc_auc": 0.6733359175485916,
+      "pr_auc": 0.42720780270318925,
+      "brier": 0.18879609665591254,
+      "log_loss": 0.561417883402838,
+      "ece": 0.008834715697405078,
+      "n": 22752,
+      "positive_rate": 0.2918864275668073
+    },
+    "broker_market": {
+      "roc_auc": 0.7064765482044734,
+      "pr_auc": 0.4910327162934909,
+      "brier": 0.18334267323286557,
+      "log_loss": 0.5478138821704793,
+      "ece": 0.008583990148501022,
+      "n": 22752,
+      "positive_rate": 0.2918864275668073
+    },
+    "gbm_uncalibrated": {
+      "roc_auc": 0.9281124359072294,
+      "pr_auc": 0.8427609044416128,
+      "brier": 0.0976774561226895,
+      "log_loss": 0.30661347305154196,
+      "ece": 0.010184594018754593,
+      "n": 22752,
+      "positive_rate": 0.2918864275668073
+    },
+    "gbm_served": {
+      "roc_auc": 0.9281124359072294,
+      "pr_auc": 0.8427609044416128,
+      "brier": 0.0976774561226895,
+      "log_loss": 0.30661347305154196,
+      "ece": 0.010184594018754593,
+      "n": 22752,
+      "positive_rate": 0.2918864275668073
+    }
+  },
+  "reliability_table_test": [
+    {
+      "bin_lower": 0.0,
+      "bin_upper": 0.1,
+      "count": 11011,
+      "mean_predicted": 0.01641748772129112,
+      "observed_rate": 0.02206884025065843
+    },
+    {
+      "bin_lower": 0.1,
+      "bin_upper": 0.2,
+      "count": 2017,
+      "mean_predicted": 0.14480180860627578,
+      "observed_rate": 0.16559246405552802
+    },
+    {
+      "bin_lower": 0.2,
+      "bin_upper": 0.30000000000000004,
+      "count": 1369,
+      "mean_predicted": 0.24831748389678604,
+      "observed_rate": 0.2534696859021183
+    },
+    {
+      "bin_lower": 0.30000000000000004,
+      "bin_upper": 0.4,
+      "count": 1047,
+      "mean_predicted": 0.3483892818284546,
+      "observed_rate": 0.36867239732569246
+    },
+    {
+      "bin_lower": 0.4,
+      "bin_upper": 0.5,
+      "count": 977,
+      "mean_predicted": 0.4504460764423514,
+      "observed_rate": 0.45138178096212894
+    },
+    {
+      "bin_lower": 0.5,
+      "bin_upper": 0.6000000000000001,
+      "count": 1078,
+      "mean_predicted": 0.549835017998316,
+      "observed_rate": 0.5454545454545454
+    },
+    {
+      "bin_lower": 0.6000000000000001,
+      "bin_upper": 0.7000000000000001,
+      "count": 1022,
+      "mean_predicted": 0.6513836278650843,
+      "observed_rate": 0.6477495107632094
+    },
+    {
+      "bin_lower": 0.7000000000000001,
+      "bin_upper": 0.8,
+      "count": 1002,
+      "mean_predicted": 0.7497019803890567,
+      "observed_rate": 0.716566866267465
+    },
+    {
+      "bin_lower": 0.8,
+      "bin_upper": 0.9,
+      "count": 1024,
+      "mean_predicted": 0.8527866561684838,
+      "observed_rate": 0.82421875
+    },
+    {
+      "bin_lower": 0.9,
+      "bin_upper": 1.0,
+      "count": 2205,
+      "mean_predicted": 0.954858494893109,
+      "observed_rate": 0.9424036281179138
+    }
+  ],
+  "config": {
+    "train_fraction": 0.7,
+    "validation_fraction": 0.1,
+    "ece_calibration_threshold": 0.03,
+    "n_reliability_bins": 10,
+    "ask_ratio_bin_edges": [
+      0.0,
+      0.9,
+      0.975,
+      1.025,
+      1.1,
+      1.2,
+      100.0
+    ],
+    "min_bucket_count": 25,
+    "random_seed": 42
+  },
+  "features": [
+    "bid_rpm",
+    "market_rate",
+    "ask_to_market_ratio",
+    "ask_to_posted_ratio",
+    "has_posted_rate",
+    "loaded_miles",
+    "weight",
+    "length",
+    "equipment_type",
+    "mode",
+    "commodity",
+    "tarp_required",
+    "appointment_required",
+    "broker_credit_bucket",
+    "broker_days_to_pay",
+    "broker_bonded",
+    "broker_quick_pay_available",
+    "broker_age_days",
+    "origin_zone",
+    "origin_outbound_density",
+    "decision_hour",
+    "decision_dow",
+    "is_weekend",
+    "sin_hour",
+    "cos_hour",
+    "sin_dow",
+    "cos_dow",
+    "load_views",
+    "load_age_hours"
+  ]
+}

@@ -19,6 +19,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Rolling replay (sequential)**](#phase-33--rolling-replanning-simulation-measuring-the-sequential-payoff) | multi-day MPC A/B | **+3.9% profit · −4.7% deadhead** (150 episodes) |
 | [**Stress test (robustness)**](#phase-34--sequential-policy-stress-testing-is-the-edge-robust) | 18 shifted markets | **0 regressions** · advantage HOLDS 7/18, neutral 11/18 |
 | [Winnability dataset (Phase 4.1)](#phase-41--load-quality--winnability-dataset) | seeded outcome simulator | labeled broker-quality + bid-win dataset · 6 processes · leakage-guarded |
+| [**Bid-winnability model (Phase 4.2)**](#phase-42--calibrated-bid-winnability-model) | calibrated HGB classifier | **ROC AUC 0.928 · test ECE 0.010** · beats 3 baselines |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -747,6 +748,69 @@ python -m ml.data.build_winnability_dataset --days 5   # quick smoke build
 No model is trained here — that is Phase 4.2 (see the
 [roadmap](https://github.com/selleckelliott/freightbid_agent/issues)).
 
+## Phase 4.2 — Calibrated Bid-Winnability Model
+
+Phase 4.2 trains a calibrated bid-winnability model estimating
+**P(win | load, broker, market, ask)** on the Phase 4.1 dataset. Because the
+downstream bid optimizer (Phase 4.3) multiplies this probability by margin to pick a
+bid, **probability quality matters more than ranking** — a predicted 70% must win
+about 70% of the time. So the evaluation leads with **calibration** metrics (Brier
+score, log loss, Expected Calibration Error, reliability curve) alongside the usual
+ROC/PR AUC. Scope is deliberately narrow: this phase stops at a loadable,
+calibrated `predict_proba` artifact plus its evaluation — **no bid recommendation or
+EV optimization** (that is 4.3).
+
+**Three-way grouped time split (test touched once).** Trials are split by
+`snapshot_time` into contiguous **train 70% / validation 10% / test 20%** slices.
+All six ask-level trials of a load share one snapshot time, so a load's trials never
+straddle a boundary (asserted by a test) — no same-load leakage. The validation
+slice exists for one reason: to make the calibration decision on held-out data.
+*Calibration is selected using the validation split only; the test split is held out
+for final reporting.*
+
+**Features are decision-time observables only** (29 of them): the ask
+(`bid_rpm`, `ask_to_market_ratio`, `ask_to_posted_ratio` — `NaN` + a
+`has_posted_rate` flag when the load posts no rate), load attributes, the **noisy
+broker board columns** (credit bucket incl. `unknown`, days-to-pay, bonded,
+quick-pay, age), market/time encodings, competition (`load_views`) and load age. The
+hidden latents (`reservation_rpm`, `contention_intensity`, `true_*`, `rate_bias`)
+never enter — a leakage-guard test asserts no latent name reaches the feature matrix,
+and `broker_id` is excluded so the model cannot memorize latent quality by identity.
+
+**Three baselines, then the model** — each beaten on every probability metric on the
+untouched test set:
+
+| Model | ROC AUC | PR AUC | Brier ↓ | Log loss ↓ | ECE ↓ |
+| --- | --- | --- | --- | --- | --- |
+| Global win rate | 0.500 | 0.292 | 0.2067 | 0.6039 | 0.0035 |
+| Ask-vs-rate heuristic | 0.673 | 0.427 | 0.1888 | 0.5614 | 0.0088 |
+| Broker × market × ask bin | 0.706 | 0.491 | 0.1833 | 0.5478 | 0.0086 |
+| **HistGradientBoosting** | **0.928** | **0.843** | **0.0977** | **0.3066** | **0.0102** |
+
+(`HistGradientBoostingClassifier`, native categoricals + NaN handling, early
+stopping; fit on the train slice only. Base win rate ≈ 0.29 across all three slices.)
+
+**The calibration decision — and the honest outcome.** The rule: if **validation**
+ECE ≤ 0.03, serve the uncalibrated model; otherwise fit isotonic *and* sigmoid
+calibrators on the validation slice and serve whichever has the lower validation ECE.
+Here the gradient-boosted model — trained on log loss — came out **already
+well-calibrated** (validation ECE **0.015**), so the rule correctly **declines to
+calibrate** and serves the raw model. Confirmed once on the held-out test set: ECE
+**0.010**, reliability bins hugging the diagonal across the full [0, 1] range. The
+calibration machinery (a version-robust `calibrate_prefit` helper using
+`FrozenEstimator` on scikit-learn ≥ 1.6) is built and tested; reporting "calibration
+was unnecessary" is the disciplined result, not a missing step.
+
+![Bid-winnability reliability diagram: predicted vs observed win rate across ten probability bins, hugging the diagonal](ml/artifacts/winnability_reliability.png)
+
+```bash
+python -m ml.training.train_winnability_model   # seeded; writes model + metadata + reliability PNG
+```
+
+The seeded model `.joblib` is gitignored (regenerable); the metrics
+metadata JSON and the reliability diagram are committed. Next, **Phase 4.3** turns
+this calibrated probability into an expected-value bid recommendation.
+
 ## Tests
 
 ```bash
@@ -797,9 +861,10 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
 
 **Next work**
 - **Phase 4 — broker / load quality & winnability.** The
-  [winnability dataset](#phase-41--load-quality--winnability-dataset) (Phase 4.1) is
-  built; next is the calibrated bid-winnability model (4.2) and its integration into
-  the recommender (4.3).
+  [winnability dataset](#phase-41--load-quality--winnability-dataset) (Phase 4.1) and
+  the [calibrated bid-winnability model](#phase-42--calibrated-bid-winnability-model)
+  (Phase 4.2) are built; next is integrating that probability into an expected-value
+  bid recommender (4.3).
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

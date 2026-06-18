@@ -73,3 +73,19 @@ outcomes:
   snapshot_path: "data/winnability_snapshots.jsonl"
   outcomes_path: "data/winnability_outcomes.jsonl"
   trials_path: "data/winnability_trials.jsonl"
+
+# Phase 4.2 — Calibrated bid-winnability model.
+# Trains P(win | load, broker, market, ask) on the Phase 4.1 dataset. Calibration
+# is decided on a held-out VALIDATION slice only; the test slice is scored once.
+winnability:
+  train_fraction: 0.70           # first 70% of snapshots -> train
+  validation_fraction: 0.10      # next 10% -> calibration decision (test = last 20%)
+  random_seed: 42
+  ece_calibration_threshold: 0.03  # calibrate only if validation ECE exceeds this
+  n_reliability_bins: 10         # equal-width probability bins for ECE / reliability
+  # Ask-ratio heuristic-baseline bins; the six trial multipliers land one-per-bin.
+  ask_ratio_bin_edges: [0.0, 0.90, 0.975, 1.025, 1.10, 1.20, 100.0]
+  min_bucket_count: 25           # min rows for a grouped-baseline bucket to be trusted
+  model_path: "ml/artifacts/winnability_model.joblib"
+  metadata_path: "ml/artifacts/winnability_model_metadata.json"
+  reliability_chart_path: "ml/artifacts/winnability_reliability.png"

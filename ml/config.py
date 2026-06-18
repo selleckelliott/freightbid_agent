@@ -89,6 +89,33 @@ class OutcomesConfig:
 
 
 @dataclass(frozen=True)
+class WinnabilityConfig:
+    """Phase 4.2 bid-winnability model knobs (see ``ml/training``).
+
+    Split is a **three-way grouped time split** on ``snapshot_time``: the first
+    ``train_fraction`` of snapshots train the model, the next
+    ``validation_fraction`` drive the *calibration decision* (whether + how to
+    calibrate), and the remaining tail is the held-out test set scored once. Because
+    all of a load's bid trials share one ``snapshot_time`` they never straddle a
+    boundary, so a load's trials stay wholly inside one slice.
+    """
+    train_fraction: float = 0.70
+    validation_fraction: float = 0.10  # test = 1 - train - validation (0.20)
+    random_seed: int = 42
+    ece_calibration_threshold: float = 0.03  # calibrate only if validation ECE exceeds this
+    n_reliability_bins: int = 10
+    # Bin edges for the ask-ratio heuristic baseline; the six trial multipliers
+    # (0.85/0.95/1.0/1.05/1.15/1.25) each fall in their own bin.
+    ask_ratio_bin_edges: List[float] = field(
+        default_factory=lambda: [0.0, 0.90, 0.975, 1.025, 1.10, 1.20, 100.0]
+    )
+    min_bucket_count: int = 25  # min rows for a grouped-baseline bucket to be trusted
+    model_path: str = "ml/artifacts/winnability_model.joblib"
+    metadata_path: str = "ml/artifacts/winnability_model_metadata.json"
+    reliability_chart_path: str = "ml/artifacts/winnability_reliability.png"
+
+
+@dataclass(frozen=True)
 class MLConfig:
     synthetic_data: SyntheticDataConfig
     labeling: LabelingConfig
@@ -97,6 +124,7 @@ class MLConfig:
     artifacts: ArtifactConfig
     brokers: BrokersConfig = field(default_factory=BrokersConfig)
     outcomes: OutcomesConfig = field(default_factory=OutcomesConfig)
+    winnability: WinnabilityConfig = field(default_factory=WinnabilityConfig)
 
 
 def _as_utc(value: Any) -> datetime:
@@ -182,6 +210,27 @@ def load_ml_config(path: str | Path = DEFAULT_CONFIG_PATH) -> MLConfig:
         outcomes_path=str(oc.get("outcomes_path", "data/winnability_outcomes.jsonl")),
         trials_path=str(oc.get("trials_path", "data/winnability_trials.jsonl")),
     )
+    wn = doc.get("winnability", {})
+    winnability = WinnabilityConfig(
+        train_fraction=float(wn.get("train_fraction", 0.70)),
+        validation_fraction=float(wn.get("validation_fraction", 0.10)),
+        random_seed=int(wn.get("random_seed", 42)),
+        ece_calibration_threshold=float(wn.get("ece_calibration_threshold", 0.03)),
+        n_reliability_bins=int(wn.get("n_reliability_bins", 10)),
+        ask_ratio_bin_edges=[
+            float(e) for e in wn.get(
+                "ask_ratio_bin_edges", [0.0, 0.90, 0.975, 1.025, 1.10, 1.20, 100.0]
+            )
+        ],
+        min_bucket_count=int(wn.get("min_bucket_count", 25)),
+        model_path=str(wn.get("model_path", "ml/artifacts/winnability_model.joblib")),
+        metadata_path=str(
+            wn.get("metadata_path", "ml/artifacts/winnability_model_metadata.json")
+        ),
+        reliability_chart_path=str(
+            wn.get("reliability_chart_path", "ml/artifacts/winnability_reliability.png")
+        ),
+    )
     return MLConfig(
         synthetic_data=synthetic,
         labeling=labeling,
@@ -190,4 +239,5 @@ def load_ml_config(path: str | Path = DEFAULT_CONFIG_PATH) -> MLConfig:
         artifacts=artifacts,
         brokers=brokers,
         outcomes=outcomes,
+        winnability=winnability,
     )
