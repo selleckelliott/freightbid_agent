@@ -21,6 +21,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [Winnability dataset (Phase 4.1)](#phase-41--load-quality--winnability-dataset) | seeded outcome simulator | labeled broker-quality + bid-win dataset · 6 processes · leakage-guarded |
 | [**Bid-winnability model (Phase 4.2)**](#phase-42--calibrated-bid-winnability-model) | calibrated HGB classifier | **ROC AUC 0.928 · test ECE 0.010** · beats 3 baselines |
 | [**EV bid recommender (Phase 4.3)**](#phase-43--expected-value-bid-recommender) | calibrated P(win) × margin → bid ladder | **+32.8% realized profit vs best fixed** · only $39 EV-regret vs a clairvoyant oracle |
+| [**Broker-quality stress (Phase 4.5)**](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market) | 10 broker-quality shifts · model frozen on baseline | **EV beats best fixed 10/10** · uplift grows to +160% as markets harden · payment risk shown **orthogonal** to bid profit |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1013,6 +1014,78 @@ explicitly later rungs.
 autonomy, a guardrail auto-flag-for-review hook (the draft already snapshots the EV fields
 so it's a clean add), `WON`/`LOST` real outcomes, and Postgres persistence.
 
+## Phase 4.5 — Broker-Quality Stress Testing (does the bid edge survive a worse market?)
+
+Phase 3.4 proved the *destination-aware dispatch* advantage holds across shifted markets.
+Phase 4.5 asks the analogous question for the **bid layer**: when the broker market degrades
+— slower pay, more unknown credit, riskier brokers, more no-rate loads, more contention, loads
+disappearing faster — does the [EV bid recommender](#phase-43--expected-value-bid-recommender)
+**still beat fixed-bid policies**, and does the
+[calibrated winnability model](#phase-42--calibrated-bid-winnability-model) **stay trustworthy**?
+
+The method mirrors 3.4 exactly: the calibrated model is **trained once on the baseline world**,
+then **held fixed** while it is evaluated on each of 10 broker-quality-shifted worlds defined in
+`config/broker_quality_stress.yaml` — distribution shift *at inference*, never retraining (also
+forced by reality: the model artifact is gitignored, so the harness always trains in-process in
+seconds). Every world reuses the baseline seeds (**Common Random Numbers**), so a condition's
+only difference is the one knob it perturbs. Each world is scored with the same oracle-grounded
+EV-vs-fixed evaluation as 4.3 — realized profit `= P(win | reserve, ask) × (ask − cost)`.
+
+**Two honest lenses.** A single headline would hide the most important finding, so every world
+is reported two ways:
+
+- **EV lens (the headline):** the EV `target` policy's oracle-realized profit vs the *best*
+  fixed policy — tagged **HOLDS** (≥ +1%), **NEUTRAL**, or **REGRESSION** (≤ −1%).
+- **Calibration lens (model trust):** how far the baseline-trained model's predicted P(win)
+  drifts from the world's *true* P(win) on the bids it actually selects, relative to baseline.
+
+| World (shift) | lens | EV target | best fixed | EV uplift | calibration drift |
+| --- | --- | ---: | ---: | ---: | ---: |
+| baseline | reference | $307 | $248 | **+24.1%** | 0.000 |
+| no_rate_heavy (3× call-for-rate) | EV | $308 | $247 | +24.9% | +0.005 |
+| sharp_win_curve (steeper accept/reject) | EV | $316 | $251 | +25.9% | −0.029 |
+| high_contention (reserve ↓ on hot loads) | EV | $92 | $44 | **+108.8%** | +0.532 |
+| tight_brokers (stingier reserve) | EV | $108 | $43 | **+152.0%** | +0.496 |
+| slow_pay | calibration | $308 | $248 | +24.5% | +0.002 |
+| unknown_credit | calibration | $309 | $248 | +24.8% | +0.010 |
+| risky_brokers | calibration | $306 | $248 | +23.7% | +0.003 |
+| disappearing_loads | calibration | $307 | $248 | +24.1% | 0.000 |
+| degraded_corner (all hostile at once) | both | $137 | $52 | **+161.9%** | +0.446 |
+
+**EV beats best fixed in 10/10 worlds — and the edge is *largest* exactly where the market is
+hardest.** When brokers turn stingy or loads get contested (`high_contention`, `tight_brokers`,
+`degraded_corner`), everyone's absolute profit collapses, but the fixed policies bid blindly into
+a lower reserve and mostly *lose*, while the EV recommender bids **down** to stay in the win
+region — so its *relative* advantage explodes to +100–160%.
+
+**But the same shifts that help EV-vs-fixed also wreck model calibration.** Those high-uplift
+worlds carry a calibration drift up to **+0.53**: the baseline-trained model turns badly
+*over-optimistic* (predicting ~0.55–0.59 P(win) where the true rate is far lower) because the
+hidden reserve moved out from under it. The EV policy still wins *relatively*, but it is steering
+on a miscalibrated map — a concrete argument for **periodic recalibration / online updating** of
+the winnability model under reserve or win-curve shift.
+
+**Payment quality is orthogonal to realized bid profit — by construction, and the sweep proves
+it.** Realized profit is `P(win) × (ask − cost)`; it has no payment term, and the oracle reserve
+is payment-independent. So slower pay, unknown credit, riskier brokers, and disappearing loads
+move *neither* lens meaningfully (uplift stays ~+24%, drift ≈ 0). That is the honest boundary of
+today's recommender: it would happily hand a high-EV bid to a broker that **won't pay**. Folding
+expected payment into the objective — **risk-adjusted EV** — is the clear next step this phase
+motivates, not a flaw it hides.
+
+```bash
+python -m benchmarks.run_broker_quality_stress --days 21 --max-loads 500
+python -m benchmarks.chart_broker_quality_stress
+# quick smoke (≈6 days, 2 worlds): python -m benchmarks.run_broker_quality_stress --fast
+```
+
+![Broker-quality stress test: per-world EV uplift over the best fixed policy (EV beats fixed in all ten shifted broker markets, widening as win-economics degrade) alongside calibration drift of the frozen baseline-trained model (concentrated on the reserve/win-curve worlds, near-zero on payment-quality worlds)](benchmarks/broker_quality_stress_comparison.png)
+
+**Out of scope (deliberately narrow):** no new model and no retraining per world (training once
+on baseline *is* the design), no live Truckstop, no auto-bidding, no negotiation agent, no new
+approval-workflow states, no Postgres, and no risk-adjusted-EV *implementation* yet — only named
+as the motivated next step. Approval-delta / simulated-human-edit sensitivity is deferred.
+
 ## Tests
 
 ```bash
@@ -1048,6 +1121,12 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
 - **Honest caveats build credibility.** Documenting the weak in-loop correlation,
   the censored labels, and the single-truck bound makes the result more
   believable, not less.
+- **Relative robustness ≠ calibration.** Stress-testing the bid layer across 10
+  broker-quality shifts (Phase 4.5), the EV recommender beat fixed bidding in **all
+  10** — by the widest margin (up to +160%) exactly where the market hardened — yet
+  the *same* shifts left the frozen win-model badly over-optimistic (calibration drift
+  up to +0.53). Winning the comparison and trusting the probabilities are two
+  separate claims, and a stress test has to score both.
 
 ## Limitations & next work
 **Limitations**
@@ -1060,6 +1139,11 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   realized onward-deadhead inside the loop; the gain is aggregate, not per-decision.
 - **Censored labels.** Onward-deadhead is capped (300 mi) and ~8% censored, so the
   regressor learns a truncated target.
+- **Payment risk is orthogonal to bid EV (today).** Realized bid profit is
+  `P(win) × (ask − cost)` with no payment term, so the Phase 4.5 sweep confirms slower
+  pay / unknown credit / risky brokers move *neither* the EV verdict nor calibration —
+  the recommender would happily bid into a broker that won't pay. **Risk-adjusted EV**
+  (folding expected payment into the objective) is the fix.
 
 **Next work**
 - **Phase 4 — broker / load quality & winnability.** The
@@ -1069,8 +1153,12 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   [expected-value bid recommender](#phase-43--expected-value-bid-recommender) (4.3)
   are built, the recommender is **surfaced** through the live API/CLI behind a feature
   flag (4.3b), and a [human-in-the-loop bid-approval workflow](#phase-44--human-in-the-loop-bid-approval-workflow)
-  (4.4) now gates every bid through an audited approve/edit/reject lifecycle; next are
-  broker-quality stress tests (4.5).
+  (4.4) gates every bid through an audited approve/edit/reject lifecycle, and
+  [broker-quality stress tests](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market)
+  (4.5) show the EV edge **HOLDS across all 10 shifted broker markets**. The open
+  thread from 4.5 is **risk-adjusted EV** — folding expected payment into the bid
+  objective so the recommender stops treating a slow / defaulting broker like a
+  reliable one — plus periodic recalibration of the frozen win-model under market shift.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

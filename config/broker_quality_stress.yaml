@@ -1,0 +1,129 @@
+# Phase 4.5 — Broker-quality stress-test conditions.
+#
+# Drives benchmarks/run_broker_quality_stress.py. Each entry is one *condition*: a
+# perturbation of the Phase 4.1 outcome world (broker pool / outcome economics /
+# board) that the Phase 4.3 EV-vs-fixed bid evaluation is replayed under. The
+# baseline world parameters themselves live in config/ml_config.yaml (single
+# source of truth); a condition only lists the section + keys it overrides.
+# Unlisted fields fall back to that baseline, so the `baseline` condition below
+# reproduces the shipped Phase 4.3 ordering (reconciliation guard in tests).
+#
+# IMPORTANT — the model is trained ONCE on the baseline world and then held fixed;
+# every condition is **distribution shift at inference**, not retraining. The same
+# seeds are reused across conditions (Common Random Numbers), so a condition's only
+# difference from the baseline is the perturbed knob.
+#
+# Two reporting lenses (see README Phase 4.5):
+#   * EV lens         — does the EV recommender still beat the best fixed policy on
+#                       oracle-realized profit? Moved by knobs that change the hidden
+#                       reservation_rpm or the win curve:
+#                         synthetic_data.unposted_rate_fraction
+#                         outcomes.reservation_contention_drop
+#                         outcomes.reservation_center_mult
+#                         outcomes.win_logistic_scale_rpm
+#   * Calibration lens — does the baseline-trained model's predicted P(win) still
+#                       match the world's true P(win)? Moved by broker payment /
+#                       coverage knobs, which shift the *features/labels* the model
+#                       sees but are **orthogonal to realized bid profit**
+#                       (realized = P(win) x (ask - cost); payment has no term):
+#                         brokers.* (pay_days, unknown_credit, default_prob, ...)
+#                         outcomes.late_pay_threshold_days
+#                         outcomes.base_cover_halflife_hours / contention_cover_factor
+#
+# Recognised sections: synthetic_data, brokers, outcomes. Within each, only real
+# dataclass fields (ml.config) are accepted; an unknown key raises (typo guard).
+
+conditions:
+  - name: baseline
+    rationale: >-
+      Canonical Phase 4.1/4.3 world (unposted 0.15, brokers default, reserve
+      center 1.05, win-scale 0.06). The model is trained here; this condition
+      reconciles with the shipped Phase 4.3 EV-vs-fixed ordering.
+
+  # --- Payment-quality shifts (primarily the CALIBRATION lens) --------------
+  - name: slow_pay
+    rationale: >-
+      Brokers pay far slower (fast 18->30, slow 55->80 days) and the "late" bar
+      tightens (45->35). Payment timing is orthogonal to realized bid profit, so
+      this mainly stresses model calibration via shifted broker pay features.
+    brokers:
+      pay_days_fast: 30.0
+      pay_days_slow: 80.0
+    outcomes:
+      late_pay_threshold_days: 35.0
+
+  - name: unknown_credit
+    rationale: >-
+      Far more brokers post with paywalled/blank credit (unknown 0.18->0.45).
+      The "unknown" credit bucket the model leans on becomes dominant — a pure
+      covariate-shift stress on calibration, not on EV.
+    brokers:
+      unknown_credit_fraction: 0.45
+
+  - name: risky_brokers
+    rationale: >-
+      A nastier pool: worst-broker default risk doubles (0.16->0.32), bonded
+      share falls (0.45->0.22) and quick-pay thins (0.30->0.12). Shifts the
+      credit/risk features the model scores; realized bid profit is unaffected.
+    brokers:
+      default_prob_worst: 0.32
+      bonded_fraction: 0.22
+      quick_pay_fraction: 0.12
+
+  - name: disappearing_loads
+    rationale: >-
+      Loads cover much faster (half-life 18->8h) and contention accelerates
+      coverage harder (factor 4->7). Moves coverage/censoring labels — a
+      calibration stress; the EV oracle (profit-if-won) is coverage-agnostic.
+    outcomes:
+      base_cover_halflife_hours: 8.0
+      contention_cover_factor: 7.0
+
+  # --- Win-economics shifts (primarily the EV lens) ------------------------
+  - name: no_rate_heavy
+    rationale: >-
+      Triple the "call for rate" share (unposted 0.15->0.45). Shrinks the priced
+      board and forces the recommender to lean on market-rate anchoring far more
+      often — a direct EV stress on the bid-laddering itself.
+    synthetic_data:
+      unposted_rate_fraction: 0.45
+
+  - name: high_contention
+    rationale: >-
+      Contested loads push the broker reserve down much harder
+      (reservation_contention_drop 0.15->0.35): the same ask wins less often on
+      hot loads. Moves the hidden reserve -> a genuine EV-lens stress.
+    outcomes:
+      reservation_contention_drop: 0.35
+
+  - name: sharp_win_curve
+    rationale: >-
+      The accept/reject threshold around the reserve sharpens
+      (win_logistic_scale_rpm 0.06->0.025): mispricing is punished harder, so bid
+      precision matters more. Stresses whether the EV ladder still lands well.
+    outcomes:
+      win_logistic_scale_rpm: 0.025
+
+  - name: tight_brokers
+    rationale: >-
+      Brokers are stingier across the board (reservation_center_mult 1.05->0.92):
+      reserves sit below market, squeezing the profitable win region. The
+      hardest single EV-lens test of margin discipline.
+    outcomes:
+      reservation_center_mult: 0.92
+
+  # --- Worst-case corner (BOTH lenses at once) -----------------------------
+  - name: degraded_corner
+    rationale: >-
+      Everything hostile at once: a no-rate, hotly-contested board served by
+      slow-paying, risky, low-bonded brokers. The decisive test — if the EV
+      policy stays positive here it is not a one-world artifact.
+    synthetic_data:
+      unposted_rate_fraction: 0.40
+    brokers:
+      pay_days_slow: 78.0
+      default_prob_worst: 0.30
+      bonded_fraction: 0.25
+    outcomes:
+      reservation_contention_drop: 0.32
+      late_pay_threshold_days: 35.0

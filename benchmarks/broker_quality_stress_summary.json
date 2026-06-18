@@ -1,0 +1,235 @@
+{
+  "config": {
+    "fast": false,
+    "days": 21,
+    "max_loads": 500,
+    "condition_count": 10,
+    "trained_on": "baseline",
+    "uplift_band_pct": 1.0,
+    "winnability_seed": 42,
+    "win_logistic_scale_rpm_baseline": 0.06,
+    "cost_per_loaded_mile": 1.39
+  },
+  "generated_at_utc": "2026-06-18T22:23:29.747295+00:00",
+  "runtime_seconds": 272.4,
+  "tally": {
+    "HOLDS": 10,
+    "NEUTRAL": 0,
+    "REGRESSION": 0
+  },
+  "headline": "EV beats best fixed in 10/10 broker-quality worlds (neutral 0, regression 0).",
+  "conditions": [
+    {
+      "name": "baseline",
+      "lens": "reference",
+      "verdict": "HOLDS",
+      "rationale": "Canonical Phase 4.1/4.3 world (unposted 0.15, brokers default, reserve center 1.05, win-scale 0.06). The model is trained here; this condition reconciles with the shipped Phase 4.3 EV-vs-fixed ordering.",
+      "overrides": {},
+      "n_loads": 500,
+      "target_realized_profit": 307.09,
+      "best_fixed_realized_profit": 247.5,
+      "uplift_pct": 24.1,
+      "target_ev_regret_vs_oracle": 45.83,
+      "model_win_prob": 0.8377,
+      "oracle_win_prob": 0.783,
+      "calibration_gap": 0.0547,
+      "calibration_drift_vs_baseline": 0.0
+    },
+    {
+      "name": "degraded_corner",
+      "lens": "both",
+      "verdict": "HOLDS",
+      "rationale": "Everything hostile at once: a no-rate, hotly-contested board served by slow-paying, risky, low-bonded brokers. The decisive test \u2014 if the EV policy stays positive here it is not a one-world artifact.",
+      "overrides": {
+        "synthetic_data": {
+          "unposted_rate_fraction": 0.4
+        },
+        "brokers": {
+          "pay_days_slow": 78.0,
+          "default_prob_worst": 0.3,
+          "bonded_fraction": 0.25
+        },
+        "outcomes": {
+          "reservation_contention_drop": 0.32,
+          "late_pay_threshold_days": 35.0
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 137.13,
+      "best_fixed_realized_profit": 52.36,
+      "uplift_pct": 161.9,
+      "target_ev_regret_vs_oracle": 24.68,
+      "model_win_prob": 0.8726,
+      "oracle_win_prob": 0.3719,
+      "calibration_gap": 0.5007,
+      "calibration_drift_vs_baseline": 0.446
+    },
+    {
+      "name": "disappearing_loads",
+      "lens": "calibration",
+      "verdict": "HOLDS",
+      "rationale": "Loads cover much faster (half-life 18->8h) and contention accelerates coverage harder (factor 4->7). Moves coverage/censoring labels \u2014 a calibration stress; the EV oracle (profit-if-won) is coverage-agnostic.",
+      "overrides": {
+        "outcomes": {
+          "base_cover_halflife_hours": 8.0,
+          "contention_cover_factor": 7.0
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 307.09,
+      "best_fixed_realized_profit": 247.5,
+      "uplift_pct": 24.1,
+      "target_ev_regret_vs_oracle": 45.83,
+      "model_win_prob": 0.8377,
+      "oracle_win_prob": 0.783,
+      "calibration_gap": 0.0547,
+      "calibration_drift_vs_baseline": 0.0
+    },
+    {
+      "name": "high_contention",
+      "lens": "ev",
+      "verdict": "HOLDS",
+      "rationale": "Contested loads push the broker reserve down much harder (reservation_contention_drop 0.15->0.35): the same ask wins less often on hot loads. Moves the hidden reserve -> a genuine EV-lens stress.",
+      "overrides": {
+        "outcomes": {
+          "reservation_contention_drop": 0.35
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 91.82,
+      "best_fixed_realized_profit": 43.97,
+      "uplift_pct": 108.8,
+      "target_ev_regret_vs_oracle": 38.05,
+      "model_win_prob": 0.8377,
+      "oracle_win_prob": 0.2513,
+      "calibration_gap": 0.5864,
+      "calibration_drift_vs_baseline": 0.5317
+    },
+    {
+      "name": "no_rate_heavy",
+      "lens": "ev",
+      "verdict": "HOLDS",
+      "rationale": "Triple the \"call for rate\" share (unposted 0.15->0.45). Shrinks the priced board and forces the recommender to lean on market-rate anchoring far more often \u2014 a direct EV stress on the bid-laddering itself.",
+      "overrides": {
+        "synthetic_data": {
+          "unposted_rate_fraction": 0.45
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 308.32,
+      "best_fixed_realized_profit": 246.87,
+      "uplift_pct": 24.9,
+      "target_ev_regret_vs_oracle": 44.88,
+      "model_win_prob": 0.8426,
+      "oracle_win_prob": 0.7826,
+      "calibration_gap": 0.06,
+      "calibration_drift_vs_baseline": 0.0053
+    },
+    {
+      "name": "risky_brokers",
+      "lens": "calibration",
+      "verdict": "HOLDS",
+      "rationale": "A nastier pool: worst-broker default risk doubles (0.16->0.32), bonded share falls (0.45->0.22) and quick-pay thins (0.30->0.12). Shifts the credit/risk features the model scores; realized bid profit is unaffected.",
+      "overrides": {
+        "brokers": {
+          "default_prob_worst": 0.32,
+          "bonded_fraction": 0.22,
+          "quick_pay_fraction": 0.12
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 306.15,
+      "best_fixed_realized_profit": 247.5,
+      "uplift_pct": 23.7,
+      "target_ev_regret_vs_oracle": 46.78,
+      "model_win_prob": 0.8402,
+      "oracle_win_prob": 0.7822,
+      "calibration_gap": 0.058,
+      "calibration_drift_vs_baseline": 0.0033
+    },
+    {
+      "name": "sharp_win_curve",
+      "lens": "ev",
+      "verdict": "HOLDS",
+      "rationale": "The accept/reject threshold around the reserve sharpens (win_logistic_scale_rpm 0.06->0.025): mispricing is punished harder, so bid precision matters more. Stresses whether the EV ladder still lands well.",
+      "overrides": {
+        "outcomes": {
+          "win_logistic_scale_rpm": 0.025
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 315.82,
+      "best_fixed_realized_profit": 250.92,
+      "uplift_pct": 25.9,
+      "target_ev_regret_vs_oracle": 74.26,
+      "model_win_prob": 0.8377,
+      "oracle_win_prob": 0.8115,
+      "calibration_gap": 0.0262,
+      "calibration_drift_vs_baseline": -0.0285
+    },
+    {
+      "name": "slow_pay",
+      "lens": "calibration",
+      "verdict": "HOLDS",
+      "rationale": "Brokers pay far slower (fast 18->30, slow 55->80 days) and the \"late\" bar tightens (45->35). Payment timing is orthogonal to realized bid profit, so this mainly stresses model calibration via shifted broker pay features.",
+      "overrides": {
+        "brokers": {
+          "pay_days_fast": 30.0,
+          "pay_days_slow": 80.0
+        },
+        "outcomes": {
+          "late_pay_threshold_days": 35.0
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 308.2,
+      "best_fixed_realized_profit": 247.5,
+      "uplift_pct": 24.5,
+      "target_ev_regret_vs_oracle": 44.72,
+      "model_win_prob": 0.8742,
+      "oracle_win_prob": 0.8176,
+      "calibration_gap": 0.0566,
+      "calibration_drift_vs_baseline": 0.0019
+    },
+    {
+      "name": "tight_brokers",
+      "lens": "ev",
+      "verdict": "HOLDS",
+      "rationale": "Brokers are stingier across the board (reservation_center_mult 1.05->0.92): reserves sit below market, squeezing the profitable win region. The hardest single EV-lens test of margin discipline.",
+      "overrides": {
+        "outcomes": {
+          "reservation_center_mult": 0.92
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 108.42,
+      "best_fixed_realized_profit": 43.03,
+      "uplift_pct": 152.0,
+      "target_ev_regret_vs_oracle": 42.11,
+      "model_win_prob": 0.8377,
+      "oracle_win_prob": 0.2871,
+      "calibration_gap": 0.5506,
+      "calibration_drift_vs_baseline": 0.4959
+    },
+    {
+      "name": "unknown_credit",
+      "lens": "calibration",
+      "verdict": "HOLDS",
+      "rationale": "Far more brokers post with paywalled/blank credit (unknown 0.18->0.45). The \"unknown\" credit bucket the model leans on becomes dominant \u2014 a pure covariate-shift stress on calibration, not on EV.",
+      "overrides": {
+        "brokers": {
+          "unknown_credit_fraction": 0.45
+        }
+      },
+      "n_loads": 500,
+      "target_realized_profit": 308.89,
+      "best_fixed_realized_profit": 247.5,
+      "uplift_pct": 24.8,
+      "target_ev_regret_vs_oracle": 44.03,
+      "model_win_prob": 0.8455,
+      "oracle_win_prob": 0.7804,
+      "calibration_gap": 0.0651,
+      "calibration_drift_vs_baseline": 0.0104
+    }
+  ]
+}

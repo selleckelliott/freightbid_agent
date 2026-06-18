@@ -111,11 +111,34 @@ def _eval_ask(adapter, query: BidQuery, ask_rpm: float, cost: float, miles: floa
 
 def evaluate(cfg, bid_cfg, frame, snapshots, outcomes_path: Path, *,
              max_loads: Optional[int] = None) -> Dict:
-    scale = cfg.outcomes.win_logistic_scale_rpm
+    """Phase 4.3 entrypoint: train on ``frame`` then score policies on ``snapshots``.
+
+    Unchanged behaviour — fits a fresh model on the frame's train split, wraps it in
+    the EV recommender, and delegates to :func:`evaluate_policies`. Kept as a thin
+    wrapper so Phase 4.5 can train **once** on a baseline world and reuse the same
+    adapter across many shifted worlds.
+    """
     seed = cfg.winnability.random_seed
     model = _train_model(frame, seed)
     adapter = ModelWinnabilityAdapter(model)
     recommender = EVBidRecommender(adapter, bid_cfg)
+    return evaluate_policies(
+        adapter, recommender, cfg, bid_cfg, snapshots, outcomes_path,
+        max_loads=max_loads,
+    )
+
+
+def evaluate_policies(adapter, recommender, cfg, bid_cfg, snapshots,
+                      outcomes_path: Path, *, max_loads: Optional[int] = None) -> Dict:
+    """Score the fixed + recommender policies with a **pre-trained** adapter.
+
+    Split out from :func:`evaluate` so a model trained on one world (the baseline)
+    can be evaluated on another (a broker-quality-shifted world, Phase 4.5). The
+    oracle uses ``cfg.outcomes.win_logistic_scale_rpm`` and the split fractions from
+    ``cfg.winnability`` — i.e. the *world being scored* — while ``adapter`` /
+    ``recommender`` carry whatever model they were trained with.
+    """
+    scale = cfg.outcomes.win_logistic_scale_rpm
 
     reserve_by_key = {
         (o.load_id, o.snapshot_time): o.reservation_rpm for o in read_outcomes(outcomes_path)
