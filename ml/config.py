@@ -116,6 +116,28 @@ class WinnabilityConfig:
 
 
 @dataclass(frozen=True)
+class PaymentRiskConfig:
+    """Phase 5.2 calibrated payment-risk model knobs (see ``ml/training``).
+
+    Predicts ``P(default)`` (the broker never pays) plus a secondary ``E[pay_days]``
+    estimate from **observable** board columns only — no ask. Like the Phase 4.2
+    winnability model, the split is a three-way grouped time split on ``snapshot_time``:
+    the first ``train_fraction`` trains every model, the next ``validation_fraction``
+    drives the *calibration decision*, and the remaining tail is scored once. One load
+    has a single outcome, so a load never straddles a split boundary.
+    """
+    train_fraction: float = 0.70
+    validation_fraction: float = 0.10  # test = 1 - train - validation (0.20)
+    random_seed: int = 45
+    ece_calibration_threshold: float = 0.03  # calibrate only if validation ECE exceeds this
+    n_reliability_bins: int = 10
+    min_bucket_count: int = 25  # min rows for a grouped-baseline bucket to be trusted
+    model_path: str = "ml/artifacts/payment_risk_model.joblib"
+    metadata_path: str = "ml/artifacts/payment_risk_model_metadata.json"
+    reliability_chart_path: str = "ml/artifacts/payment_risk_reliability.png"
+
+
+@dataclass(frozen=True)
 class MLConfig:
     synthetic_data: SyntheticDataConfig
     labeling: LabelingConfig
@@ -125,6 +147,7 @@ class MLConfig:
     brokers: BrokersConfig = field(default_factory=BrokersConfig)
     outcomes: OutcomesConfig = field(default_factory=OutcomesConfig)
     winnability: WinnabilityConfig = field(default_factory=WinnabilityConfig)
+    payment_risk: PaymentRiskConfig = field(default_factory=PaymentRiskConfig)
 
 
 def _as_utc(value: Any) -> datetime:
@@ -231,6 +254,22 @@ def load_ml_config(path: str | Path = DEFAULT_CONFIG_PATH) -> MLConfig:
             wn.get("reliability_chart_path", "ml/artifacts/winnability_reliability.png")
         ),
     )
+    pr = doc.get("payment_risk", {})
+    payment_risk = PaymentRiskConfig(
+        train_fraction=float(pr.get("train_fraction", 0.70)),
+        validation_fraction=float(pr.get("validation_fraction", 0.10)),
+        random_seed=int(pr.get("random_seed", 45)),
+        ece_calibration_threshold=float(pr.get("ece_calibration_threshold", 0.03)),
+        n_reliability_bins=int(pr.get("n_reliability_bins", 10)),
+        min_bucket_count=int(pr.get("min_bucket_count", 25)),
+        model_path=str(pr.get("model_path", "ml/artifacts/payment_risk_model.joblib")),
+        metadata_path=str(
+            pr.get("metadata_path", "ml/artifacts/payment_risk_model_metadata.json")
+        ),
+        reliability_chart_path=str(
+            pr.get("reliability_chart_path", "ml/artifacts/payment_risk_reliability.png")
+        ),
+    )
     return MLConfig(
         synthetic_data=synthetic,
         labeling=labeling,
@@ -240,4 +279,5 @@ def load_ml_config(path: str | Path = DEFAULT_CONFIG_PATH) -> MLConfig:
         brokers=brokers,
         outcomes=outcomes,
         winnability=winnability,
+        payment_risk=payment_risk,
     )

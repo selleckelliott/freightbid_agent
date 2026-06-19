@@ -22,6 +22,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Bid-winnability model (Phase 4.2)**](#phase-42--calibrated-bid-winnability-model) | calibrated HGB classifier | **ROC AUC 0.928 · test ECE 0.010** · beats 3 baselines |
 | [**EV bid recommender (Phase 4.3)**](#phase-43--expected-value-bid-recommender) | calibrated P(win) × margin → bid ladder | **+32.8% realized profit vs best fixed** · only $39 EV-regret vs a clairvoyant oracle |
 | [**Broker-quality stress (Phase 4.5)**](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market) | 10 broker-quality shifts · model frozen on baseline | **EV beats best fixed 10/10** · uplift grows to +160% as markets harden · payment risk shown **orthogonal** to bid profit |
+| [**Payment-risk model (Phase 5.2)**](#phase-52--calibrated-payment-risk-model) | calibrated HGB `P(default)` + `E[pay_days]` head | **test ECE 0.003** · PR-AUC 0.140 > baselines · pay-days MAE 4.0d · the risk signal 5.1 folds into EV |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1105,6 +1106,81 @@ config directory with `FREIGHTBID_CONFIG_DIR`.
 
 See `notebooks/experiments.ipynb` for ablation scaffolding.
 
+## Phase 5.2 — Calibrated Payment-Risk Model
+
+Phase 5.2 is the first brick of **Phase 5 — Risk-Aware Bidding & Recalibration**. It
+trains a calibrated **payment-risk** model estimating **P(default | load, broker,
+market)** — the chance a broker never pays — plus a secondary **E[pay_days]** head for
+how slowly the good payers pay. Phase 4.5 proved payment risk is *orthogonal* to bid
+profit today: the recommender would bid into a defaulting broker because realized EV
+carries no payment term. This phase builds the missing signal; **folding it into the
+objective is Phase 5.1** (risk-adjusted EV). Scope stops at a loadable, calibrated
+`predict_proba` artifact and its evaluation — no change to the EV recommender yet.
+
+Default is the **catastrophic, total-loss** outcome and the **minority class** (≈11% of
+loads), so — exactly as in [Phase 4.2](#phase-42--calibrated-bid-winnability-model) —
+**probability quality matters more than ranking**: 5.1 multiplies margin by
+`p_collect = 1 − P(default)`, so a predicted 5% has to mean a ~5% loss rate. Evaluation
+leads with **calibration** (Brier, log loss, ECE, reliability curve) over AUC.
+
+**Payment is broker-driven, so the features are ask-free.** Whether a check clears has
+nothing to do with the rate a carrier offers, so the feature builder is the Phase 4.2
+observable set with **every ask column amputated** (no `bid_rpm`, no ask ratios) — the
+broker board columns (credit bucket incl. `unknown`, days-to-pay, bonded, quick-pay,
+age), load attributes, market/time encodings, and competition. The hidden latents
+(`true_default_prob`, `true_pay_days`, `rate_bias`, …) never enter, and `broker_id` is
+excluded so the model can't memorize a broker's latent quality by identity — a
+leakage-guard test asserts both. Same three-way **train 70% / validation 10% / test
+20%** time split on `snapshot_time`; one load = one outcome, so nothing straddles a
+boundary; the test slice is scored once.
+
+**Three baselines, then the model** (untouched test set, base default rate ≈ 0.106):
+
+| Model | ROC AUC | PR AUC ↑ | Brier ↓ | Log loss ↓ | ECE ↓ |
+| --- | --- | --- | --- | --- | --- |
+| Global default rate | 0.500 | 0.106 | 0.0948 | 0.3381 | 0.0017 |
+| Bonded × quick-pay | 0.513 | 0.109 | 0.0948 | 0.3383 | 0.0052 |
+| Broker credit bucket | 0.599 | 0.132 | 0.0936 | 0.3313 | 0.0045 |
+| **HistGradientBoosting** | 0.594 | **0.140** | **0.0938** | 0.3323 | **0.0034** |
+
+**The honest finding: payment default is mostly *one column*.** The broker **credit
+bucket** alone carries almost all of the rankable signal — its baseline (ROC 0.599)
+**ties the gradient booster on ranking** (0.594, within noise). The booster earns its
+place on the axes that matter here, not ROC: a better **PR-AUC** on the rare positive
+(0.140 vs 0.132), the best **log loss / Brier**, and the best **calibration** — and it
+folds in days-to-pay, bonded/quick-pay and load context the single-column baseline
+can't. For a probability that gets *multiplied into an objective*, "slightly sharper
+ranking" is worth less than "trustworthy magnitude," and that is what it buys.
+
+**The calibration decision — and the honest outcome.** Same rule as 4.2: if
+**validation** ECE ≤ 0.03 serve the raw model, else fit isotonic *and* sigmoid on the
+validation slice and serve the lower-ECE one. Trained on log loss, the booster came out
+**already well-calibrated** (validation ECE **0.005**), so the rule correctly **declines
+to calibrate**; confirmed once on test — ECE **0.003**, reliability bins on the diagonal
+wherever the data is dense (the top probability bins hold only a handful of loads and so
+wobble — an honest small-sample artifact, not miscalibration). The version-robust
+`calibrate_prefit` machinery is built and tested; "calibration was unnecessary" is the
+disciplined result, not a missing step.
+
+A second **E[pay_days]** head (a `HistGradientBoostingRegressor` on non-default rows)
+predicts realized days-to-pay at **MAE 4.0 / RMSE 5.1 days** — a lightweight slow-pay
+discount input for 5.1, carried as an optional field on the same artifact.
+
+![Payment-risk reliability diagram: predicted vs observed default rate across probability bins, on the diagonal where the data is dense](ml/artifacts/payment_risk_reliability.png)
+
+The model is served behind a `PaymentRiskPort` with **model** and **no-op** adapters: no
+artifact ⇒ `estimate()` returns `None` ⇒ callers keep their risk-blind behavior, so
+nothing changes until 5.1 opts in (the same "model is optional" contract as 4.3b).
+
+```bash
+python -m ml.training.train_payment_risk_model   # seeded; writes model + metadata + reliability PNG
+```
+
+The seeded `.joblib` is gitignored (regenerable); the metrics metadata JSON and the
+reliability diagram are committed. Next, **Phase 5.1** folds `p_collect` and
+`E[pay_days]` into a **risk-adjusted EV** objective so the recommender stops treating a
+slow / defaulting broker like a reliable one.
+
 ## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
   destination model's per-decision predicted-vs-realized onward-deadhead
@@ -1127,6 +1203,11 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   the *same* shifts left the frozen win-model badly over-optimistic (calibration drift
   up to +0.53). Winning the comparison and trusting the probabilities are two
   separate claims, and a stress test has to score both.
+- **The signal can live in one column — and calibration still matters.** Payment
+  default turned out to be mostly the broker credit bucket: a one-column baseline ties
+  the gradient booster on *ranking* (Phase 5.2). The model still earns its keep because
+  the probability gets *multiplied into* the bid objective, where a trustworthy 5% beats
+  a slightly sharper ordering — calibration (test ECE 0.003), not AUC, is the deliverable.
 
 ## Limitations & next work
 **Limitations**
@@ -1139,11 +1220,13 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   realized onward-deadhead inside the loop; the gain is aggregate, not per-decision.
 - **Censored labels.** Onward-deadhead is capped (300 mi) and ~8% censored, so the
   regressor learns a truncated target.
-- **Payment risk is orthogonal to bid EV (today).** Realized bid profit is
-  `P(win) × (ask − cost)` with no payment term, so the Phase 4.5 sweep confirms slower
-  pay / unknown credit / risky brokers move *neither* the EV verdict nor calibration —
-  the recommender would happily bid into a broker that won't pay. **Risk-adjusted EV**
-  (folding expected payment into the objective) is the fix.
+- **Payment risk is not yet in the bid objective.** Realized bid profit is
+  `P(win) × (ask − cost)` with no payment term, so the Phase 4.5 sweep confirmed slower
+  pay / unknown credit / risky brokers moved *neither* the EV verdict nor calibration —
+  the recommender would happily bid into a broker that won't pay. Phase 5.2 now supplies
+  the missing signal — a [calibrated `P(default)` + `E[pay_days]` model](#phase-52--calibrated-payment-risk-model)
+  — but **folding it into a risk-adjusted EV objective is Phase 5.1**, so today's
+  recommender is still payment-blind.
 
 **Next work**
 - **Phase 4 — broker / load quality & winnability.** The
@@ -1159,6 +1242,12 @@ See `notebooks/experiments.ipynb` for ablation scaffolding.
   thread from 4.5 is **risk-adjusted EV** — folding expected payment into the bid
   objective so the recommender stops treating a slow / defaulting broker like a
   reliable one — plus periodic recalibration of the frozen win-model under market shift.
+- **Phase 5 — risk-aware bidding & recalibration (in progress).** The
+  [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is
+  built — `P(default)` + `E[pay_days]` from observable broker columns, served behind a
+  no-op-safe port; **risk-adjusted EV** (5.1) folds it into the objective, and a
+  calibration-drift monitor plus recalibration workflow (5.3–5.4) repair the frozen
+  win-model under the market shift Phase 4.5 exposed.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
