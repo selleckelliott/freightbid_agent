@@ -1,0 +1,158 @@
+{
+  "model_name": "HistGradientBoostingPaymentRisk",
+  "target": "broker_default",
+  "trained_at": "2026-06-19T16:45:24.603359+00:00",
+  "rows": {
+    "train": 13673,
+    "validation": 1881,
+    "test": 3792
+  },
+  "base_default_rate": {
+    "train": 0.10773056388502888,
+    "validation": 0.10154173312068049,
+    "test": 0.1060126582278481
+  },
+  "served_model": "uncalibrated",
+  "calibration_method": null,
+  "calibration_decision": {
+    "threshold": 0.03,
+    "validation_ece_uncalibrated": 0.005469279263879042,
+    "calibrated": false,
+    "note": "validation ECE within threshold; calibration unnecessary"
+  },
+  "metrics_test": {
+    "global_default_rate": {
+      "roc_auc": 0.5,
+      "pr_auc": 0.1060126582278481,
+      "brier": 0.09477692572316056,
+      "log_loss": 0.33811218509933827,
+      "ece": 0.0017179056571808016,
+      "n": 3792,
+      "positive_rate": 0.1060126582278481
+    },
+    "credit_bucket": {
+      "roc_auc": 0.5991014690559004,
+      "pr_auc": 0.13173499613994294,
+      "brier": 0.09359759944530109,
+      "log_loss": 0.33129091479728984,
+      "ece": 0.004472457937040504,
+      "n": 3792,
+      "positive_rate": 0.1060126582278481
+    },
+    "bonded_quick_pay": {
+      "roc_auc": 0.5128050749203833,
+      "pr_auc": 0.10914025029040189,
+      "brier": 0.0948041537122724,
+      "log_loss": 0.33826705285157416,
+      "ece": 0.005248403785336713,
+      "n": 3792,
+      "positive_rate": 0.1060126582278481
+    },
+    "gbm_uncalibrated": {
+      "roc_auc": 0.5936717591981098,
+      "pr_auc": 0.14045837914404402,
+      "brier": 0.0938482256855691,
+      "log_loss": 0.3323237192128878,
+      "ece": 0.003376982334211938,
+      "n": 3792,
+      "positive_rate": 0.1060126582278481
+    },
+    "gbm_served": {
+      "roc_auc": 0.5936717591981098,
+      "pr_auc": 0.14045837914404402,
+      "brier": 0.0938482256855691,
+      "log_loss": 0.3323237192128878,
+      "ece": 0.003376982334211938,
+      "n": 3792,
+      "positive_rate": 0.1060126582278481
+    }
+  },
+  "pay_days_test": {
+    "n": 3390,
+    "mae": 4.048391216631936,
+    "rmse": 5.077200131133722
+  },
+  "reliability_table_test": [
+    {
+      "bin_lower": 0.0,
+      "bin_upper": 0.1,
+      "count": 1707,
+      "mean_predicted": 0.0754466802519598,
+      "observed_rate": 0.07791446983011131
+    },
+    {
+      "bin_lower": 0.1,
+      "bin_upper": 0.2,
+      "count": 1994,
+      "mean_predicted": 0.12790856136035167,
+      "observed_rate": 0.12637913741223672
+    },
+    {
+      "bin_lower": 0.2,
+      "bin_upper": 0.30000000000000004,
+      "count": 87,
+      "mean_predicted": 0.22807385366092658,
+      "observed_rate": 0.1724137931034483
+    },
+    {
+      "bin_lower": 0.30000000000000004,
+      "bin_upper": 0.4,
+      "count": 4,
+      "mean_predicted": 0.32477410490369574,
+      "observed_rate": 0.5
+    }
+  ],
+  "config": {
+    "train_fraction": 0.7,
+    "validation_fraction": 0.1,
+    "ece_calibration_threshold": 0.03,
+    "n_reliability_bins": 10,
+    "min_bucket_count": 25,
+    "random_seed": 45
+  },
+  "hyperparameters": {
+    "learning_rate": 0.08,
+    "max_iter": 400,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 40,
+    "l2_regularization": 0.1,
+    "early_stopping": true,
+    "validation_fraction": 0.15
+  },
+  "features": [
+    "market_rate",
+    "has_posted_rate",
+    "loaded_miles",
+    "weight",
+    "length",
+    "equipment_type",
+    "mode",
+    "commodity",
+    "tarp_required",
+    "appointment_required",
+    "broker_credit_bucket",
+    "broker_days_to_pay",
+    "broker_bonded",
+    "broker_quick_pay_available",
+    "broker_age_days",
+    "origin_zone",
+    "origin_outbound_density",
+    "decision_hour",
+    "decision_dow",
+    "is_weekend",
+    "sin_hour",
+    "cos_hour",
+    "sin_dow",
+    "cos_dow",
+    "load_views",
+    "load_age_hours"
+  ],
+  "categorical_columns": [
+    "equipment_type",
+    "mode",
+    "commodity",
+    "broker_credit_bucket",
+    "origin_zone",
+    "load_views"
+  ]
+}

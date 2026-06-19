@@ -89,3 +89,18 @@ winnability:
   model_path: "ml/artifacts/winnability_model.joblib"
   metadata_path: "ml/artifacts/winnability_model_metadata.json"
   reliability_chart_path: "ml/artifacts/winnability_reliability.png"
+
+# Phase 5.2 — Calibrated payment-risk model.
+# Predicts P(default) (broker never pays) + E[pay_days] from OBSERVABLE board
+# columns only. Calibration is decided on a held-out VALIDATION slice; the test
+# slice is scored once. Payment is broker-driven and orthogonal to the ask.
+payment_risk:
+  train_fraction: 0.70
+  validation_fraction: 0.10
+  random_seed: 45
+  ece_calibration_threshold: 0.03
+  n_reliability_bins: 10
+  min_bucket_count: 25
+  model_path: "ml/artifacts/payment_risk_model.joblib"
+  metadata_path: "ml/artifacts/payment_risk_model_metadata.json"
+  reliability_chart_path: "ml/artifacts/payment_risk_reliability.png"
