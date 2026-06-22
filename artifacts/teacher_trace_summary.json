@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.0.0",
+  "workflow_graph_version": "1.0.0",
+  "source_policy_version": "phase-5.5-full-risk-aware",
+  "generated": {
+    "n_traces": 560,
+    "n_worlds": 7,
+    "days": 14,
+    "max_loads_per_world": 80,
+    "random_seed": 1042
+  },
+  "determinism_hash": "3d0ac63355006185a34be4eceb8964a4d5be24d52e73e6f31dabf6ec4e501c6b",
+  "decision_histogram": {
+    "bid": 448,
+    "approval_required": 92,
+    "no_bid": 20
+  },
+  "hub_branch_histogram": {
+    "clean_bid": 448,
+    "escalated": 92,
+    "infeasible": 20
+  },
+  "terminal_histogram": {
+    "terminal_bid": 448,
+    "terminal_approval_required": 92,
+    "terminal_no_bid": 20
+  },
+  "warning_histogram": {
+    "payment_risk": 92,
+    "no_feasible_bid": 20
+  },
+  "per_world": [
+    {
+      "world": "baseline",
+      "n": 80,
+      "decisions": {
+        "bid": 66,
+        "approval_required": 11,
+        "no_bid": 3
+      },
+      "branches": {
+        "clean_bid": 66,
+        "escalated": 11,
+        "infeasible": 3
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "a9ec75d0aae64a2b"
+    },
+    {
+      "world": "degraded_corner",
+      "n": 80,
+      "decisions": {
+        "bid": 63,
+        "approval_required": 15,
+        "no_bid": 2
+      },
+      "branches": {
+        "clean_bid": 63,
+        "escalated": 15,
+        "infeasible": 2
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "ALERT",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "1410689603e33b52"
+    },
+    {
+      "world": "high_contention",
+      "n": 80,
+      "decisions": {
+        "bid": 66,
+        "approval_required": 11,
+        "no_bid": 3
+      },
+      "branches": {
+        "clean_bid": 66,
+        "escalated": 11,
+        "infeasible": 3
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "ALERT",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "31f6416ebcfba3a2"
+    },
+    {
+      "world": "risky_brokers",
+      "n": 80,
+      "decisions": {
+        "bid": 65,
+        "approval_required": 12,
+        "no_bid": 3
+      },
+      "branches": {
+        "clean_bid": 65,
+        "escalated": 12,
+        "infeasible": 3
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "8fb326e1bd303861"
+    },
+    {
+      "world": "slow_pay",
+      "n": 80,
+      "decisions": {
+        "bid": 52,
+        "approval_required": 25,
+        "no_bid": 3
+      },
+      "branches": {
+        "clean_bid": 52,
+        "escalated": 25,
+        "infeasible": 3
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "WATCH",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "df94f7d14521d0f4"
+    },
+    {
+      "world": "tight_brokers",
+      "n": 80,
+      "decisions": {
+        "bid": 66,
+        "approval_required": 11,
+        "no_bid": 3
+      },
+      "branches": {
+        "clean_bid": 66,
+        "escalated": 11,
+        "infeasible": 3
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "ALERT",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "56f3fd605c88fe84"
+    },
+    {
+      "world": "unknown_credit",
+      "n": 80,
+      "decisions": {
+        "bid": 70,
+        "no_bid": 3,
+        "approval_required": 7
+      },
+      "branches": {
+        "clean_bid": 70,
+        "infeasible": 3,
+        "escalated": 7
+      },
+      "recalibrator_promoted": true,
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "calibration_severity_operational": "OK",
+      "config_hash": "a4ad4a1628c830ba"
+    }
+  ],
+  "provenance": {
+    "git_commit": "f88296d0f14af71f86c1b42c0846ec7bc5c48027",
+    "model_artifact_ids": {
+      "winnability": "winnability:isotonic:seed=42:days=14",
+      "payment": "payment:gbm:seed=45",
+      "recalibrator": "recalibrator:sigmoid"
+    },
+    "random_seed": 1042
+  },
+  "train_eligibility": {
+    "trainable_sections": [
+      "inference_context"
+    ],
+    "non_trainable_sections": [
+      "node_outputs",
+      "eval_labels"
+    ],
+    "feature_eligible_fields": [
+      "appointment_required",
+      "broker_age_days",
+      "broker_bonded",
+      "broker_credit_bucket",
+      "broker_days_to_pay",
+      "broker_id",
+      "broker_quick_pay_available",
+      "commodity",
+      "cost_per_loaded_mile",
+      "equipment_type",
+      "has_posted_rate",
+      "length",
+      "load_age_hours",
+      "load_id",
+      "load_views",
+      "loaded_miles",
+      "market_rate",
+      "mode",
+      "origin_lat",
+      "origin_lon",
+      "posted_rate_per_mile",
+      "snapshot_time",
+      "tarp_required",
+      "truck_equipment_type",
+      "weight"
+    ]
+  }
+}

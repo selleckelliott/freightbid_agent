@@ -27,6 +27,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Calibration drift monitor (Phase 5.3)**](#phase-53--calibration-drift-monitor) | label-based `P(win)`-vs-outcome monitor over 10 frozen-model worlds | **3 ALERT / 7 OK** · reserve/win-curve worlds flagged (ECE ≈ 0.20, over-optimistic), payment shifts stay calibrated · severity OK/WATCH/ALERT |
 | [**Recalibration workflow (Phase 5.4)**](#phase-54--recalibration-workflow) | post-hoc Platt map fit on a recent window, judged on a later holdout · base model frozen | **3/3 ALERT worlds repaired** (ECE ≈ 0.20 → ≈ 0.03, WATCH/OK) · promote-only-if-safer guardrail leaves the 7 calibrated worlds alone |
 | [**Risk-aware stress test (Phase 5.5)**](#phase-55--risk-aware-stress-test-the-capstone) | full stack re-scored on **realized collectible profit** across the 10 worlds · models frozen | **Full risk-aware beats raw EV 4/10** (5 neutral, 1 honest regression) · recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts `risky_brokers` **+5.7%** · baseline left flat |
+| [**Workflow graph + teacher traces (Phase 6.1)**](#phase-61--workflow-graph--teacher-trace-generator) | compile the orchestrated engine into an explicit graph + deterministic teacher traces | **16-node graph · 19 edges** · 560 provenance-stamped traces · hard train/eval separation (**25** feature-eligible fields) · determinism-pinned |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1464,6 +1465,102 @@ both `false`), so the headline numbers describe what the system *can* do once th
 flipped, not a silent change to the out-of-the-box behavior. Risk-adjusted EV finally makes
 payment-quality worlds visible, and recalibration repairs the win-probability drift that 4.5 first
 exposed — measured the way it would actually be used, on realized collectible profit.
+
+## Phase 6.1 — Workflow Graph + Teacher Trace Generator
+
+> Phase 6 opens a new arc inspired by Dennis et al., *"Compiling Agentic Workflows into LLM
+> Weights."* Orchestration frameworks sit an **external controller above** the model and re-inject
+> the whole procedure every turn — which burns context, needs a frontier model on *every* call, and
+> re-exposes the proprietary procedure to a third party each time. **Compiling** the procedure into a
+> smaller model's weights — a *subterranean agent* — is meant to **reduce** (not remove) those
+> context, cost and exposure risks. FreightBid already has the orchestrated engine; Phase 6 turns it
+> into a training-time **workflow graph** and, later, compiles it into a small self-contained
+> dispatcher. **6.1 builds the foundation only — the graph and a deterministic teacher; no model is
+> trained yet.**
+
+**The procedure, made explicit.** `ml/workflows/freightbid_workflow_graph.py` declares the FreightBid
+bid decision as a validated graph — **16 nodes, 19 edges, one START, one hub, three terminals**:
+
+```
+start → intake goal → read truck → inspect board → filter infeasible → estimate haul cost →
+score market context → estimate win prob → estimate payment risk → compute risk-adjusted EV →
+check calibration → ❲choose action❳ → explain → ❲ bid · no-bid · approval-required ❳
+```
+
+Each step node is bound to a **real source-of-truth capability** (`EVBidRecommender.score`,
+`WinnabilityPort`, `PaymentRiskPort`, the 5.4 recalibrator, the calibration monitor). The
+`choose_action` **hub is procedural control flow, not a second engine**: it branches on a strict
+subset of the engine's *recorded outputs* and **never recomputes a formula**, so the route is
+reproducible purely from the trace (a test re-derives every recommendation from `node_outputs`
+alone). Four branches:
+
+| Branch | Fires when | Terminal | Approval |
+| --- | --- | --- | --- |
+| `infeasible` | no in-support, guardrail-clearing ask | no-bid | n/a |
+| `negative_risk_adjusted_ev` | payment risk on **and** best ask is collectible-EV-negative | no-bid | n/a |
+| `escalated` | feasible + EV-positive **but** `p_default ≥ 0.15` or calibration **ALERT** | approval-required | human |
+| `clean_bid` | feasible, EV-positive, no escalating warning (a `WATCH` still surfaces) | bid | auto-eligible |
+
+Two paper nodes are honestly **adapted to the bid engine's data path** (the bid snapshot carries an
+origin market + load + broker + ask, but no destination coordinate): *"plan route"* becomes
+`estimate_haul_cost` (the recommender's real `cost_per_loaded_mile × miles` basis) and *"score
+destination risk"* becomes `score_market_context` (market-rate-vs-breakeven desirability, recorded as
+informational — **never** a hub predicate).
+
+**A teacher that wraps the engine, never reimplements it.** `ml/workflows/teacher_trace_generator.py`
+walks the graph through the **actual Phase 5.5 risk-aware stack**, reusing the exact in-memory
+assembly proven in `run_risk_aware_stress`: the calibrated winnability model and the 5.2 payment
+model are trained **once on baseline and frozen**; each world is drawn at a later operational seed;
+the 5.4 recalibrator is fit + promoted per world; and the full risk-adjusted-EV recommender produces
+the recommendation. Every node records its real input/output; the result is one `AgentTrace` per
+board load.
+
+**The keystone — a hard train/eval separation baked into the schema** (`ml/data/compiled_agent_trace_schema.py`).
+Each trace splits cleanly so the later compiled model can only ever learn from what a live caller
+would actually have:
+
+| Section | Contents | Compiled-model use |
+| --- | --- | --- |
+| `inference_context` | decision-time observable facts (load + broker board columns, truck cost basis, market anchor) | **the only train-eligible inputs — 25 fields** |
+| `node_outputs` | the teacher's own model/tool outputs (P(win), payment risk, risk-adj EV, calibration severity) | **teacher-only** — audit / explain / label-gen; never an input |
+| `recommendation` | chosen load, bid, decision, warnings, approval, explanation, terminal | the **labels** |
+| `eval_labels` | realized win / default / pay-days + latent ground truth | **evaluation only** — never an input |
+| `metadata` | 8 provenance fields (source policy, git commit, config hash, model-artifact ids, seed, world, graph + schema versions) | stamped on **every** trace |
+
+`assert_no_leakage()` runs at import and is pinned by tests: `inference_context` is disjoint from both
+`node_outputs` and `eval_labels`, and `feature_eligible_fields()` is the exact 25-field contract
+6.3's feature matrix will enforce. If a future field lands in the wrong section, the suite fails loudly.
+
+**Canonical run — 560 traces over 7 worlds, deterministic.** The committed
+`artifacts/teacher_trace_summary.json` (full traces stream to the gitignored
+`data/teacher_traces.jsonl`) records coverage, provenance and a determinism hash
+(`3d0ac633…`, re-running the same seed reproduces it byte-for-byte):
+
+| Decision | n | Notes |
+| --- | --- | --- |
+| `bid` (clean) | 448 | auto-eligible |
+| `approval_required` (escalated) | 92 | payment-risk flag; **`slow_pay` leads (25)**, `unknown_credit` fewest (7) — escalation tracks observable broker quality |
+| `no_bid` (infeasible) | 20 | no guardrail-clearing ask |
+
+Recalibration repairs every flagged world to operational **OK** (the 3 win-curve worlds enter at
+**ALERT**), so calibration no longer escalates and payment risk becomes the live escalation signal —
+exactly the Phase 5 stack behaving as designed. The rare `negative_risk_adjusted_ev` branch (the
+engine seldom recommends into a guaranteed loss) is pinned by the hub unit tests rather than
+manufactured in a world.
+
+```bash
+python -m ml.workflows.teacher_trace_generator --fast                 # 2-world smoke (~15s)
+python -m ml.workflows.teacher_trace_generator --days 14 \            # canonical 7-world generation
+    --out artifacts/teacher_trace_summary.json \
+    --traces-out data/teacher_traces.jsonl
+```
+
+**Next in Phase 6.** 6.2 reshapes these traces into a training dataset (structured rows for the
+committed sklearn path + optional NL transcripts), 6.3 distills the multi-head compiled dispatcher
+that emits the JSON recommendation **from `inference_context` alone**, 6.4 runs it in **shadow mode**
+beside the source engine (default off · no-op without artifact · cannot submit · cannot bypass
+approval), and 6.5 benchmarks compiled-vs-orchestrated on decision quality **and** context/cost. The
+compiled model never has to *beat* the engine — it has to prove the tradeoff.
 
 ## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
