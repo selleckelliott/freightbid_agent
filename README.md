@@ -24,6 +24,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Broker-quality stress (Phase 4.5)**](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market) | 10 broker-quality shifts · model frozen on baseline | **EV beats best fixed 10/10** · uplift grows to +160% as markets harden · payment risk shown **orthogonal** to bid profit |
 | [**Payment-risk model (Phase 5.2)**](#phase-52--calibrated-payment-risk-model) | calibrated HGB `P(default)` + `E[pay_days]` head | **test ECE 0.003** · PR-AUC 0.140 > baselines · pay-days MAE 4.0d · the risk signal 5.1 folds into EV |
 | [**Risk-adjusted EV (Phase 5.1)**](#phase-51--risk-adjusted-ev-objective) | fold 5.2 `p_collect` + `E[pay_days]` into the bid objective | objective → **expected collectible profit** · discounts revenue, keeps full cost · safer-broker preference · flag-gated, **byte-identical when off** |
+| [**Calibration drift monitor (Phase 5.3)**](#phase-53--calibration-drift-monitor) | label-based `P(win)`-vs-outcome monitor over 10 frozen-model worlds | **3 ALERT / 7 OK** · reserve/win-curve worlds flagged (ECE ≈ 0.20, over-optimistic), payment shifts stay calibrated · severity OK/WATCH/ALERT |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1240,6 +1241,67 @@ Every input is exposed for inspectability — `raw_ev`, `risk_adjusted_ev`, `p_d
 `risk_adjusted_profit_if_won` — on each ladder rung and through the live API/CLI. The
 objective change is deliberately *not* re-benchmarked here; stress-testing the
 risk-adjusted recommender across broker-quality shifts is the **Phase 5.5** capstone.
+
+## Phase 5.3 — Calibration Drift Monitor
+
+Phase 5.3 promotes calibration drift from an **offline observation** — the
+[Phase 4.5 stress test](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market)
+*noticed* the frozen win-model turning over-optimistic under reserve / win-curve shift — into
+a **standing monitor**. The system now reports, per market, when predicted win probabilities
+no longer match observed win rates. It answers one question — *are the probabilities still
+trustworthy?* — and creates the trigger for **Phase 5.4** recalibration (which answers *what
+do we do when they are not?*).
+
+The monitor is deliberately **label-based**: it compares predicted probability against the
+realized binary outcome, never a feature distribution. (Feature drift is a different, weaker
+signal; calibration drift requires *outcomes*.) The core is **generic** over any
+`(probability, outcome)` pair — wired first on winnability (`P(win)` vs `bid_won`) because 4.5
+already proved drift there, and reusable as-is for payment default (`p_default` vs
+`payment_defaulted`).
+
+Per market it reports **ECE**, signed **bias** (`mean predicted − observed win rate`; `+` is
+over-optimistic), **Brier**, **log loss**, and a **reliability table**, then a config-driven
+severity:
+
+```
+ALERT if ece ≥ 0.07 or |bias| ≥ 0.10
+WATCH if ece ≥ 0.03 or |bias| ≥ 0.05
+OK    otherwise
+```
+
+Below `min_samples` (default 500) a market is flagged `insufficient_data` and gated to `OK` —
+a small, noisy slice must not cry wolf. Thresholds live in `config/calibration_monitor.yaml`.
+
+**Wired over the Phase 4.5 worlds.** The winnability model is trained **once on baseline** and
+calibrated on that world's validation slice (mirroring the served 4.2 artifact), then held
+fixed; each of the 10 broker-quality worlds scores the *same* model on its held-out test
+split. The result is a clean, honest separation:
+
+| Shift class | Worlds | Verdict |
+| --- | --- | --- |
+| baseline (training world) | `baseline` | **OK** — ECE 0.009, the in-distribution reference |
+| reserve / win-curve | `tight_brokers`, `high_contention`, `degraded_corner` | **ALERT** — ECE ≈ 0.20, ~0.20 over-optimistic |
+| payment / coverage | `slow_pay`, `unknown_credit`, `risky_brokers`, `disappearing_loads`, … | **OK** — ECE ≤ 0.02 |
+
+**3 ALERT, 0 WATCH, 7 OK across 10 worlds** — and exactly the worlds that move the *true win
+curve* trip the monitor, while broker payment/coverage shifts leave `P(win)` calibration
+intact. That sharpens the 4.5 finding: payment quality is orthogonal not just to realized bid
+profit but to win-probability calibration; it is the **reservation / win-economics** shift
+that breaks the model's probabilities.
+
+![Calibration drift monitor: reliability diagram where OK worlds hug the diagonal and ALERT worlds bow below it, plus ECE-by-world bars crossing the ALERT threshold](benchmarks/calibration_monitor_comparison.png)
+
+```bash
+python -m benchmarks.run_calibration_monitor --fast     # 2-world smoke (~1 min)
+python -m benchmarks.run_calibration_monitor --days 21   # canonical 10-world sweep
+python -m benchmarks.chart_calibration_monitor           # render the panel above
+```
+
+This phase **detects only** — it changes no recommender behavior (it reads predictions and
+outcomes, nothing else) and does not retrain or repair. Closing the loop — repairing the
+flagged drift *without* retraining the base model — is **Phase 5.4**.
+
+## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
   destination model's per-decision predicted-vs-realized onward-deadhead
   correlation is weak (~0.02), yet steering the *distribution* of accepted loads
@@ -1272,6 +1334,13 @@ risk-adjusted recommender across broker-quality shifts is the **Phase 5.5** caps
   check clears. The seductive `P(win) × profit × p_collect` would quietly refund the cost
   on default; getting the accounting right is exactly what lets risk-adjusted EV go
   honestly *negative* on a likely defaulter instead of just shrinking toward zero.
+- **A monitor turns a footnote into a trigger.** Phase 4.5 *noticed* the frozen win-model
+  drifting; [Phase 5.3](#phase-53--calibration-drift-monitor) makes it a standing,
+  label-based check with OK/WATCH/ALERT severity. The payoff was diagnostic precision:
+  scoring calibration on the full test split (not just selected bids) cleanly separates the
+  worlds that break `P(win)` — the ones that move the reservation / win curve (ECE ≈ 0.20,
+  badly over-optimistic) — from broker payment/coverage shifts, which leave calibration
+  intact. Trust has to be measured where the labels are.
 
 ## Limitations & next work
 **Limitations**
@@ -1310,13 +1379,14 @@ risk-adjusted recommender across broker-quality shifts is the **Phase 5.5** caps
   objective so the recommender stops treating a slow / defaulting broker like a
   reliable one — plus periodic recalibration of the frozen win-model under market shift.
 - **Phase 5 — risk-aware bidding & recalibration (in progress).** The
-  [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is
-  built — `P(default)` + `E[pay_days]` from observable broker columns, served behind a
-  no-op-safe port — and [risk-adjusted EV](#phase-51--risk-adjusted-ev-objective) (5.1)
-  now folds it into the objective behind a default-off flag; a calibration-drift monitor
-  plus recalibration workflow (5.3–5.4) repair the frozen win-model under the market
-  shift Phase 4.5 exposed, and a risk-aware stress test (5.5) re-scores the EV edge once
-  payment risk is priced in.
+  [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is built,
+  [risk-adjusted EV](#phase-51--risk-adjusted-ev-objective) (5.1) folds it into the objective
+  behind a default-off flag, and a
+  [calibration-drift monitor](#phase-53--calibration-drift-monitor) (5.3) now stands watch
+  over the frozen win-model — flagging the reserve / win-curve worlds Phase 4.5 exposed as
+  **ALERT** (ECE ≈ 0.20) while payment shifts stay calibrated. Next, a recalibration workflow
+  (5.4) repairs the flagged drift *without* retraining the base model, and a risk-aware stress
+  test (5.5) re-scores the EV edge once payment risk is priced in.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

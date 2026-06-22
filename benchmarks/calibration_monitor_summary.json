@@ -1,0 +1,1063 @@
+{
+  "config": {
+    "fast": false,
+    "days": 21,
+    "max_rows": null,
+    "target": "winnability",
+    "condition_count": 10,
+    "trained_on": "baseline",
+    "calibration": "isotonic(validation)",
+    "thresholds": {
+      "ece_watch": 0.03,
+      "ece_alert": 0.07,
+      "bias_watch": 0.05,
+      "bias_alert": 0.1,
+      "min_samples": 500,
+      "n_bins": 10
+    },
+    "winnability_seed": 42
+  },
+  "generated_at_utc": "2026-06-22T17:19:13.868526+00:00",
+  "runtime_seconds": 35.7,
+  "tally": {
+    "OK": 7,
+    "WATCH": 0,
+    "ALERT": 3
+  },
+  "worst_severity": "ALERT",
+  "headline": "Calibration monitor: 3 ALERT, 0 WATCH, 7 OK across 10 worlds.",
+  "conditions": [
+    {
+      "label": "baseline",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.287458,
+      "observed_rate": 0.2865,
+      "bias": 0.000957,
+      "ece": 0.008696,
+      "brier": 0.100088,
+      "log_loss": 0.337004,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3319,
+          "mean_predicted": 0.008951948927196182,
+          "observed_rate": 0.009641458270563423
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1333,
+          "mean_predicted": 0.12767232930611574,
+          "observed_rate": 0.12528132033008252
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 607,
+          "mean_predicted": 0.27846184205105695,
+          "observed_rate": 0.2981878088962109
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 40,
+          "mean_predicted": 0.3181152040426326,
+          "observed_rate": 0.35
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 813,
+          "mean_predicted": 0.4447142959324098,
+          "observed_rate": 0.41205412054120544
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 240,
+          "mean_predicted": 0.5200769539421887,
+          "observed_rate": 0.5333333333333333
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 427,
+          "mean_predicted": 0.6244777283746958,
+          "observed_rate": 0.6346604215456675
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 352,
+          "mean_predicted": 0.7539212385386275,
+          "observed_rate": 0.7727272727272727
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 278,
+          "mean_predicted": 0.8335741230153563,
+          "observed_rate": 0.7985611510791367
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 769,
+          "mean_predicted": 0.9350361637939374,
+          "observed_rate": 0.9375812743823146
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "baseline",
+      "lens": "reference",
+      "rationale": "Canonical Phase 4.1/4.3 world (unposted 0.15, brokers default, reserve center 1.05, win-scale 0.06). The model is trained here; this condition reconciles with the shipped Phase 4.3 EV-vs-fixed ordering.",
+      "overrides": {},
+      "bias_drift": 0.0,
+      "ece_drift": 0.0
+    },
+    {
+      "label": "degraded_corner",
+      "n": 8178,
+      "severity": "ALERT",
+      "insufficient_data": false,
+      "mean_predicted": 0.278187,
+      "observed_rate": 0.102837,
+      "bias": 0.17535,
+      "ece": 0.17535,
+      "brier": 0.122732,
+      "log_loss": 0.429912,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3410,
+          "mean_predicted": 0.009260362306697198,
+          "observed_rate": 0.0005865102639296188
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1308,
+          "mean_predicted": 0.12762257008563524,
+          "observed_rate": 0.016819571865443424
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 721,
+          "mean_predicted": 0.2793742252143443,
+          "observed_rate": 0.04299583911234397
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 35,
+          "mean_predicted": 0.3197030951372004,
+          "observed_rate": 0.0
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 797,
+          "mean_predicted": 0.44423030733680147,
+          "observed_rate": 0.08782936010037641
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 200,
+          "mean_predicted": 0.520467639579556,
+          "observed_rate": 0.125
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 315,
+          "mean_predicted": 0.6245088339648316,
+          "observed_rate": 0.19047619047619047
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 326,
+          "mean_predicted": 0.7547069295619392,
+          "observed_rate": 0.26380368098159507
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 302,
+          "mean_predicted": 0.8334317328510792,
+          "observed_rate": 0.37748344370860926
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 764,
+          "mean_predicted": 0.9310101511955909,
+          "observed_rate": 0.5641361256544503
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "degraded_corner",
+      "lens": "both",
+      "rationale": "Everything hostile at once: a no-rate, hotly-contested board served by slow-paying, risky, low-bonded brokers. The decisive test \u2014 if the EV policy stays positive here it is not a one-world artifact.",
+      "overrides": {
+        "synthetic_data": {
+          "unposted_rate_fraction": 0.4
+        },
+        "brokers": {
+          "pay_days_slow": 78.0,
+          "default_prob_worst": 0.3,
+          "bonded_fraction": 0.25
+        },
+        "outcomes": {
+          "reservation_contention_drop": 0.32,
+          "late_pay_threshold_days": 35.0
+        }
+      },
+      "bias_drift": 0.174393,
+      "ece_drift": 0.166654
+    },
+    {
+      "label": "disappearing_loads",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.287458,
+      "observed_rate": 0.2865,
+      "bias": 0.000957,
+      "ece": 0.008696,
+      "brier": 0.100088,
+      "log_loss": 0.337004,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3319,
+          "mean_predicted": 0.008951948927196182,
+          "observed_rate": 0.009641458270563423
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1333,
+          "mean_predicted": 0.12767232930611574,
+          "observed_rate": 0.12528132033008252
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 607,
+          "mean_predicted": 0.27846184205105695,
+          "observed_rate": 0.2981878088962109
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 40,
+          "mean_predicted": 0.3181152040426326,
+          "observed_rate": 0.35
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 813,
+          "mean_predicted": 0.4447142959324098,
+          "observed_rate": 0.41205412054120544
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 240,
+          "mean_predicted": 0.5200769539421887,
+          "observed_rate": 0.5333333333333333
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 427,
+          "mean_predicted": 0.6244777283746958,
+          "observed_rate": 0.6346604215456675
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 352,
+          "mean_predicted": 0.7539212385386275,
+          "observed_rate": 0.7727272727272727
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 278,
+          "mean_predicted": 0.8335741230153563,
+          "observed_rate": 0.7985611510791367
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 769,
+          "mean_predicted": 0.9350361637939374,
+          "observed_rate": 0.9375812743823146
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "disappearing_loads",
+      "lens": "calibration",
+      "rationale": "Loads cover much faster (half-life 18->8h) and contention accelerates coverage harder (factor 4->7). Moves coverage/censoring labels \u2014 a calibration stress; the EV oracle (profit-if-won) is coverage-agnostic.",
+      "overrides": {
+        "outcomes": {
+          "base_cover_halflife_hours": 8.0,
+          "contention_cover_factor": 7.0
+        }
+      },
+      "bias_drift": 0.0,
+      "ece_drift": 0.0
+    },
+    {
+      "label": "high_contention",
+      "n": 8178,
+      "severity": "ALERT",
+      "insufficient_data": false,
+      "mean_predicted": 0.287458,
+      "observed_rate": 0.083639,
+      "bias": 0.203819,
+      "ece": 0.203819,
+      "brier": 0.134588,
+      "log_loss": 0.503092,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3319,
+          "mean_predicted": 0.008951948927196182,
+          "observed_rate": 0.00030129557095510696
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1333,
+          "mean_predicted": 0.12767232930611574,
+          "observed_rate": 0.00900225056264066
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 607,
+          "mean_predicted": 0.27846184205105695,
+          "observed_rate": 0.0214168039538715
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 40,
+          "mean_predicted": 0.3181152040426326,
+          "observed_rate": 0.025
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 813,
+          "mean_predicted": 0.4447142959324098,
+          "observed_rate": 0.04059040590405904
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 240,
+          "mean_predicted": 0.5200769539421887,
+          "observed_rate": 0.07916666666666666
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 427,
+          "mean_predicted": 0.6244777283746958,
+          "observed_rate": 0.13817330210772832
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 352,
+          "mean_predicted": 0.7539212385386275,
+          "observed_rate": 0.21022727272727273
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 278,
+          "mean_predicted": 0.8335741230153563,
+          "observed_rate": 0.28776978417266186
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 769,
+          "mean_predicted": 0.9350361637939374,
+          "observed_rate": 0.5097529258777633
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "high_contention",
+      "lens": "ev",
+      "rationale": "Contested loads push the broker reserve down much harder (reservation_contention_drop 0.15->0.35): the same ask wins less often on hot loads. Moves the hidden reserve -> a genuine EV-lens stress.",
+      "overrides": {
+        "outcomes": {
+          "reservation_contention_drop": 0.35
+        }
+      },
+      "bias_drift": 0.202862,
+      "ece_drift": 0.195123
+    },
+    {
+      "label": "no_rate_heavy",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.288722,
+      "observed_rate": 0.288579,
+      "bias": 0.000143,
+      "ece": 0.00865,
+      "brier": 0.099667,
+      "log_loss": 0.335766,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3316,
+          "mean_predicted": 0.008962290198036222,
+          "observed_rate": 0.009650180940892641
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1333,
+          "mean_predicted": 0.1277789975262393,
+          "observed_rate": 0.12153038259564891
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 601,
+          "mean_predicted": 0.27845979556942546,
+          "observed_rate": 0.2978369384359401
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 39,
+          "mean_predicted": 0.3178069678517396,
+          "observed_rate": 0.358974358974359
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 802,
+          "mean_predicted": 0.4449352036736099,
+          "observed_rate": 0.42019950124688277
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 251,
+          "mean_predicted": 0.5223207703744409,
+          "observed_rate": 0.5577689243027888
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 428,
+          "mean_predicted": 0.624524643720849,
+          "observed_rate": 0.633177570093458
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 348,
+          "mean_predicted": 0.7538677921612986,
+          "observed_rate": 0.7729885057471264
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 272,
+          "mean_predicted": 0.8338817030062815,
+          "observed_rate": 0.8125
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 788,
+          "mean_predicted": 0.93524525394144,
+          "observed_rate": 0.932741116751269
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "no_rate_heavy",
+      "lens": "ev",
+      "rationale": "Triple the \"call for rate\" share (unposted 0.15->0.45). Shrinks the priced board and forces the recommender to lean on market-rate anchoring far more often \u2014 a direct EV stress on the bid-laddering itself.",
+      "overrides": {
+        "synthetic_data": {
+          "unposted_rate_fraction": 0.45
+        }
+      },
+      "bias_drift": -0.000814,
+      "ece_drift": -4.6e-05
+    },
+    {
+      "label": "risky_brokers",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.288499,
+      "observed_rate": 0.2865,
+      "bias": 0.001999,
+      "ece": 0.009738,
+      "brier": 0.10022,
+      "log_loss": 0.337272,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3308,
+          "mean_predicted": 0.008922224039496789,
+          "observed_rate": 0.009673518742442563
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1326,
+          "mean_predicted": 0.12840284782851477,
+          "observed_rate": 0.1244343891402715
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 618,
+          "mean_predicted": 0.27852804220801275,
+          "observed_rate": 0.29449838187702265
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 33,
+          "mean_predicted": 0.31765328990599645,
+          "observed_rate": 0.3333333333333333
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 824,
+          "mean_predicted": 0.44477829463851853,
+          "observed_rate": 0.4077669902912621
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 238,
+          "mean_predicted": 0.5205955047867714,
+          "observed_rate": 0.542016806722689
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 434,
+          "mean_predicted": 0.6244763173348208,
+          "observed_rate": 0.6359447004608295
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 345,
+          "mean_predicted": 0.7536779177515619,
+          "observed_rate": 0.7710144927536232
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 275,
+          "mean_predicted": 0.8335718709697993,
+          "observed_rate": 0.7890909090909091
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 777,
+          "mean_predicted": 0.9347312736596017,
+          "observed_rate": 0.9382239382239382
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "risky_brokers",
+      "lens": "calibration",
+      "rationale": "A nastier pool: worst-broker default risk doubles (0.16->0.32), bonded share falls (0.45->0.22) and quick-pay thins (0.30->0.12). Shifts the credit/risk features the model scores; realized bid profit is unaffected.",
+      "overrides": {
+        "brokers": {
+          "default_prob_worst": 0.32,
+          "bonded_fraction": 0.22,
+          "quick_pay_fraction": 0.12
+        }
+      },
+      "bias_drift": 0.001042,
+      "ece_drift": 0.001042
+    },
+    {
+      "label": "sharp_win_curve",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.287458,
+      "observed_rate": 0.283199,
+      "bias": 0.004259,
+      "ece": 0.02098,
+      "brier": 0.087658,
+      "log_loss": 0.287603,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3319,
+          "mean_predicted": 0.008951948927196182,
+          "observed_rate": 0.004519433564326604
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1333,
+          "mean_predicted": 0.12767232930611574,
+          "observed_rate": 0.08552138034508627
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 607,
+          "mean_predicted": 0.27846184205105695,
+          "observed_rate": 0.2685337726523888
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 40,
+          "mean_predicted": 0.3181152040426326,
+          "observed_rate": 0.3
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 813,
+          "mean_predicted": 0.4447142959324098,
+          "observed_rate": 0.4132841328413284
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 240,
+          "mean_predicted": 0.5200769539421887,
+          "observed_rate": 0.55
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 427,
+          "mean_predicted": 0.6244777283746958,
+          "observed_rate": 0.6533957845433255
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 352,
+          "mean_predicted": 0.7539212385386275,
+          "observed_rate": 0.8039772727272727
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 278,
+          "mean_predicted": 0.8335741230153563,
+          "observed_rate": 0.8705035971223022
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 769,
+          "mean_predicted": 0.9350361637939374,
+          "observed_rate": 0.9622886866059818
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "sharp_win_curve",
+      "lens": "ev",
+      "rationale": "The accept/reject threshold around the reserve sharpens (win_logistic_scale_rpm 0.06->0.025): mispricing is punished harder, so bid precision matters more. Stresses whether the EV ladder still lands well.",
+      "overrides": {
+        "outcomes": {
+          "win_logistic_scale_rpm": 0.025
+        }
+      },
+      "bias_drift": 0.003302,
+      "ece_drift": 0.012284
+    },
+    {
+      "label": "slow_pay",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.273129,
+      "observed_rate": 0.2865,
+      "bias": -0.013371,
+      "ece": 0.01609,
+      "brier": 0.105413,
+      "log_loss": 0.351682,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3450,
+          "mean_predicted": 0.009234685375772274,
+          "observed_rate": 0.013043478260869565
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1329,
+          "mean_predicted": 0.12789118738801628,
+          "observed_rate": 0.16403310759969902
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 679,
+          "mean_predicted": 0.2792262872542919,
+          "observed_rate": 0.33726067746686306
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 51,
+          "mean_predicted": 0.31924800569698963,
+          "observed_rate": 0.3137254901960784
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 832,
+          "mean_predicted": 0.44410291823910286,
+          "observed_rate": 0.4483173076923077
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 192,
+          "mean_predicted": 0.5187598975424913,
+          "observed_rate": 0.5520833333333334
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 306,
+          "mean_predicted": 0.6244695485224532,
+          "observed_rate": 0.6535947712418301
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 296,
+          "mean_predicted": 0.7547208330809951,
+          "observed_rate": 0.7297297297297297
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 277,
+          "mean_predicted": 0.8336840089840591,
+          "observed_rate": 0.8375451263537906
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 766,
+          "mean_predicted": 0.9287688022878678,
+          "observed_rate": 0.9242819843342036
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "slow_pay",
+      "lens": "calibration",
+      "rationale": "Brokers pay far slower (fast 18->30, slow 55->80 days) and the \"late\" bar tightens (45->35). Payment timing is orthogonal to realized bid profit, so this mainly stresses model calibration via shifted broker pay features.",
+      "overrides": {
+        "brokers": {
+          "pay_days_fast": 30.0,
+          "pay_days_slow": 80.0
+        },
+        "outcomes": {
+          "late_pay_threshold_days": 35.0
+        }
+      },
+      "bias_drift": -0.014328,
+      "ece_drift": 0.007394
+    },
+    {
+      "label": "tight_brokers",
+      "n": 8178,
+      "severity": "ALERT",
+      "insufficient_data": false,
+      "mean_predicted": 0.287458,
+      "observed_rate": 0.082539,
+      "bias": 0.204919,
+      "ece": 0.204919,
+      "brier": 0.132334,
+      "log_loss": 0.506237,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3319,
+          "mean_predicted": 0.008951948927196182,
+          "observed_rate": 0.00030129557095510696
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1333,
+          "mean_predicted": 0.12767232930611574,
+          "observed_rate": 0.0037509377344336083
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 607,
+          "mean_predicted": 0.27846184205105695,
+          "observed_rate": 0.014827018121911038
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 40,
+          "mean_predicted": 0.3181152040426326,
+          "observed_rate": 0.025
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 813,
+          "mean_predicted": 0.4447142959324098,
+          "observed_rate": 0.02706027060270603
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 240,
+          "mean_predicted": 0.5200769539421887,
+          "observed_rate": 0.07916666666666666
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 427,
+          "mean_predicted": 0.6244777283746958,
+          "observed_rate": 0.1288056206088993
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 352,
+          "mean_predicted": 0.7539212385386275,
+          "observed_rate": 0.22443181818181818
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 278,
+          "mean_predicted": 0.8335741230153563,
+          "observed_rate": 0.32014388489208634
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 769,
+          "mean_predicted": 0.9350361637939374,
+          "observed_rate": 0.5136540962288687
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "tight_brokers",
+      "lens": "ev",
+      "rationale": "Brokers are stingier across the board (reservation_center_mult 1.05->0.92): reserves sit below market, squeezing the profitable win region. The hardest single EV-lens test of margin discipline.",
+      "overrides": {
+        "outcomes": {
+          "reservation_center_mult": 0.92
+        }
+      },
+      "bias_drift": 0.203962,
+      "ece_drift": 0.196223
+    },
+    {
+      "label": "unknown_credit",
+      "n": 8178,
+      "severity": "OK",
+      "insufficient_data": false,
+      "mean_predicted": 0.293116,
+      "observed_rate": 0.2865,
+      "bias": 0.006615,
+      "ece": 0.008414,
+      "brier": 0.101412,
+      "log_loss": 0.349461,
+      "reliability_table": [
+        {
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 3259,
+          "mean_predicted": 0.009095638242396864,
+          "observed_rate": 0.009205277692543725
+        },
+        {
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1289,
+          "mean_predicted": 0.12813414790338354,
+          "observed_rate": 0.11792086889061287
+        },
+        {
+          "bin_lower": 0.2,
+          "bin_upper": 0.30000000000000004,
+          "count": 636,
+          "mean_predicted": 0.27944507273924934,
+          "observed_rate": 0.2830188679245283
+        },
+        {
+          "bin_lower": 0.30000000000000004,
+          "bin_upper": 0.4,
+          "count": 44,
+          "mean_predicted": 0.3184809268318318,
+          "observed_rate": 0.3181818181818182
+        },
+        {
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 833,
+          "mean_predicted": 0.4445116483426695,
+          "observed_rate": 0.40456182472989194
+        },
+        {
+          "bin_lower": 0.5,
+          "bin_upper": 0.6000000000000001,
+          "count": 252,
+          "mean_predicted": 0.5195149284947657,
+          "observed_rate": 0.5158730158730159
+        },
+        {
+          "bin_lower": 0.6000000000000001,
+          "bin_upper": 0.7000000000000001,
+          "count": 440,
+          "mean_predicted": 0.6243902439024389,
+          "observed_rate": 0.6204545454545455
+        },
+        {
+          "bin_lower": 0.7000000000000001,
+          "bin_upper": 0.8,
+          "count": 381,
+          "mean_predicted": 0.7537805169965824,
+          "observed_rate": 0.7637795275590551
+        },
+        {
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 286,
+          "mean_predicted": 0.833389529760583,
+          "observed_rate": 0.7902097902097902
+        },
+        {
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 758,
+          "mean_predicted": 0.9354681283110836,
+          "observed_rate": 0.9366754617414248
+        }
+      ],
+      "thresholds": {
+        "ece_watch": 0.03,
+        "ece_alert": 0.07,
+        "bias_watch": 0.05,
+        "bias_alert": 0.1,
+        "min_samples": 500,
+        "n_bins": 10
+      },
+      "name": "unknown_credit",
+      "lens": "calibration",
+      "rationale": "Far more brokers post with paywalled/blank credit (unknown 0.18->0.45). The \"unknown\" credit bucket the model leans on becomes dominant \u2014 a pure covariate-shift stress on calibration, not on EV.",
+      "overrides": {
+        "brokers": {
+          "unknown_credit_fraction": 0.45
+        }
+      },
+      "bias_drift": 0.005658,
+      "ece_drift": -0.000282
+    }
+  ]
+}
