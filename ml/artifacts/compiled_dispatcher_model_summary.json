@@ -1,0 +1,243 @@
+{
+  "model_name": "CompiledDispatcherMultiHead",
+  "model_version": "1.0.0",
+  "rows": {
+    "train": 392,
+    "validation": 84,
+    "test": 84
+  },
+  "comparison": {
+    "model_action_macro_f1": 0.9389140271493212,
+    "baseline_action_macro_f1": 0.2958057395143488,
+    "uplift": 0.6431082876349723,
+    "model_beats_baseline": true
+  },
+  "validation_metrics": {
+    "action": {
+      "n": 84,
+      "accuracy": 0.9880952380952381,
+      "balanced_accuracy": 0.9950248756218905,
+      "macro_f1": 0.9859994814622763,
+      "per_class": {
+        "approval_required": {
+          "precision": 0.9333333333333333,
+          "recall": 1.0,
+          "f1": 0.9655172413793104,
+          "support": 14
+        },
+        "bid": {
+          "precision": 1.0,
+          "recall": 0.9850746268656716,
+          "f1": 0.9924812030075187,
+          "support": 67
+        },
+        "no_bid": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 3
+        }
+      }
+    },
+    "bid_ratio": {
+      "n": 81,
+      "mae": 0.028778037069421194,
+      "rmse": 0.050956256598936586,
+      "r2": -0.2833069309250116,
+      "bid_dollar_mae": 47.00387238899521
+    },
+    "risk_adjusted_ev": {
+      "n": 81,
+      "mae": 71.4698582444913,
+      "rmse": 91.762458417268,
+      "r2": 0.5118932540328942
+    },
+    "warnings": {
+      "payment_risk": {
+        "n": 84,
+        "positives": 14,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "balanced_accuracy": 1.0
+      },
+      "calibration_alert": {
+        "n": 84,
+        "positives": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "balanced_accuracy": null
+      },
+      "no_feasible_bid": {
+        "n": 84,
+        "positives": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "balanced_accuracy": 1.0
+      }
+    },
+    "warning_macro_f1": 0.6666666666666666,
+    "approval_required": {
+      "n": 84,
+      "positives": 14,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "balanced_accuracy": 1.0
+    }
+  },
+  "test_metrics": {
+    "action": {
+      "n": 84,
+      "accuracy": 0.9523809523809523,
+      "balanced_accuracy": 0.9235963041933192,
+      "macro_f1": 0.9389140271493212,
+      "per_class": {
+        "approval_required": {
+          "precision": 0.9166666666666666,
+          "recall": 0.7857142857142857,
+          "f1": 0.8461538461538461,
+          "support": 14
+        },
+        "bid": {
+          "precision": 0.9565217391304348,
+          "recall": 0.9850746268656716,
+          "f1": 0.9705882352941176,
+          "support": 67
+        },
+        "no_bid": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 3
+        }
+      }
+    },
+    "bid_ratio": {
+      "n": 81,
+      "mae": 0.0195888686127466,
+      "rmse": 0.035337999808830775,
+      "r2": 0.34058690332089847,
+      "bid_dollar_mae": 35.48751617906108
+    },
+    "risk_adjusted_ev": {
+      "n": 81,
+      "mae": 58.87275724940211,
+      "rmse": 78.37924347305591,
+      "r2": 0.6444106760277333
+    },
+    "warnings": {
+      "payment_risk": {
+        "n": 84,
+        "positives": 14,
+        "precision": 0.8461538461538461,
+        "recall": 0.7857142857142857,
+        "f1": 0.8148148148148148,
+        "balanced_accuracy": 0.8785714285714286
+      },
+      "calibration_alert": {
+        "n": 84,
+        "positives": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "balanced_accuracy": null
+      },
+      "no_feasible_bid": {
+        "n": 84,
+        "positives": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "balanced_accuracy": 1.0
+      }
+    },
+    "warning_macro_f1": 0.6049382716049383,
+    "approval_required": {
+      "n": 84,
+      "positives": 14,
+      "precision": 0.8461538461538461,
+      "recall": 0.7857142857142857,
+      "f1": 0.8148148148148148,
+      "balanced_accuracy": 0.8785714285714286
+    }
+  },
+  "baseline_test_metrics": {
+    "action": {
+      "n": 84,
+      "accuracy": 0.7976190476190477,
+      "balanced_accuracy": 0.3333333333333333,
+      "macro_f1": 0.2958057395143488,
+      "per_class": {
+        "approval_required": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 14
+        },
+        "bid": {
+          "precision": 0.7976190476190477,
+          "recall": 1.0,
+          "f1": 0.8874172185430463,
+          "support": 67
+        },
+        "no_bid": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 3
+        }
+      }
+    },
+    "bid_ratio": {
+      "n": 81,
+      "mae": 0.029689968467746203,
+      "rmse": 0.04369822506075409,
+      "r2": -0.00832662412661156,
+      "bid_dollar_mae": 53.2578976229669
+    },
+    "risk_adjusted_ev": {
+      "n": 81,
+      "mae": 105.19956136912926,
+      "rmse": 131.65341218022402,
+      "r2": -0.003253810810747604
+    },
+    "warnings": {
+      "payment_risk": {
+        "n": 84,
+        "positives": 14,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "balanced_accuracy": 0.5
+      },
+      "calibration_alert": {
+        "n": 84,
+        "positives": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "balanced_accuracy": null
+      },
+      "no_feasible_bid": {
+        "n": 84,
+        "positives": 3,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "balanced_accuracy": 0.5
+      }
+    },
+    "warning_macro_f1": 0.0,
+    "approval_required": {
+      "n": 84,
+      "positives": 14,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "balanced_accuracy": 0.5
+    }
+  }
+}

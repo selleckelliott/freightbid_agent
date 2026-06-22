@@ -29,6 +29,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Risk-aware stress test (Phase 5.5)**](#phase-55--risk-aware-stress-test-the-capstone) | full stack re-scored on **realized collectible profit** across the 10 worlds · models frozen | **Full risk-aware beats raw EV 4/10** (5 neutral, 1 honest regression) · recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts `risky_brokers` **+5.7%** · baseline left flat |
 | [**Workflow graph + teacher traces (Phase 6.1)**](#phase-61--workflow-graph--teacher-trace-generator) | compile the orchestrated engine into an explicit graph + deterministic teacher traces | **16-node graph · 19 edges** · 560 provenance-stamped traces · hard train/eval separation (**25** feature-eligible fields) · determinism-pinned |
 | [**Dispatcher dataset (Phase 6.2)**](#phase-62--synthetic-dispatcher-conversation-dataset) | reshape the 560 traces into training examples in **two forms** (structured rows + NL conversations) | **asymmetric** train/eval boundary (inputs = 25-field `inference_context`; targets may predict engine outputs) · procedure-free prompt · deterministic human-in-the-loop (real approval enum) · determinism-pinned |
+| [**Compiled dispatcher model (Phase 6.3)**](#phase-63--distilled-multi-head-compiled-dispatcher-model) | distill the workflow into a deterministic **multi-head sklearn model** that emits the JSON recommendation from case facts alone | **5 purpose-built heads** · action **macro-F1 0.94 vs 0.30** majority baseline · market-relative **bid-ratio** target ($35 MAE) · **manifest-hash-gated** (refuses to serve on mismatch) · full provenance · determinism-pinned |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1628,6 +1629,79 @@ python -m ml.data.build_compiled_dispatcher_dataset --limit 200  # quick smoke
 **Next in Phase 6.** 6.3 distills the multi-head compiled dispatcher that emits the JSON recommendation
 **from `inference_context` alone**, 6.4 shadows it beside the source engine, and 6.5 benchmarks
 compiled-vs-orchestrated on decision quality **and** context/cost.
+
+## Phase 6.3 — Distilled Multi-Head Compiled Dispatcher Model
+
+> 6.3 is where the procedure becomes **learned parameters**. The teacher engine's 6.2 rows train a
+> single committed artifact — `CompiledDispatcherModel` — that reads the **same 22-field case facts a
+> dispatcher would** and emits the full JSON recommendation: which load, what bid, the risk-adjusted EV,
+> the warnings, and whether a human must approve. No workflow prompt, no routing graph, no engine at
+> runtime. It never has to *beat* the engine; it has to prove the **tradeoff**.
+
+**One artifact, five purpose-built heads — not one multi-output estimator.** FreightBid's targets are
+genuinely mixed, so forcing them through a single estimator would be brittle. Instead each target gets
+the right tool, masking, and class handling, all packaged into one joblib:
+
+| Head | Type | Target | Trained on |
+| --- | --- | --- | --- |
+| `action` | classifier (class-balanced) | `decision` ∈ {`bid`, `no_bid`, `approval_required`} | all rows |
+| `bid_ratio` | regressor | **`bid_rpm / market_rate`** — a market-relative multiplier | *biddable* rows only |
+| `risk_adjusted_ev` | regressor | teacher risk-adjusted EV | *feasible* rows only |
+| `warning::*` | 3 binary classifiers | `payment_risk` / `calibration_alert` / `no_feasible_bid` | all rows |
+| `approval_required` | binary classifier | human approval required | all rows |
+
+**Predict a ratio, not dollars.** The bid head learns the dimensionless `bid_rpm / market_rate` (~1.0
+across worlds) and the served bid is reconstructed — `rpm = ratio × market_rate`,
+`amount = rpm × loaded_miles`. A market-relative multiplier generalizes far better than raw dollars,
+and a head only consumes the rows it applies to (no-bid rows carry no ratio, so they never enter the
+bid head — a test pins this).
+
+**Imbalance is treated as a first-class problem.** The canonical action split is **448 / 92 / 20**
+(`bid` / `approval_required` / `no_bid`), so plain accuracy is meaningless. Heads are
+`class_weight="balanced"` and scored with **macro-F1, balanced accuracy, and per-class recall with
+support** — never bulk accuracy. The result on the held-out test slice:
+
+| Head | Result (canonical test, n=84) |
+| --- | --- |
+| **action** | **macro-F1 0.939**, balanced-acc 0.924, acc 0.952 — vs majority baseline **macro-F1 0.296** (**+0.64**) |
+| action recall | `bid` 0.99 · `approval_required` 0.79 · `no_bid` 1.00 — the small classes are *not* ignored |
+| **bid_ratio** | MAE 0.0196 (≈ **$35 / load** reconstructed), R² 0.34 |
+| **risk_adjusted_ev** | MAE $58.9, R² 0.64 |
+| **warnings** | `payment_risk` F1 0.81 · `no_feasible_bid` F1 1.00 · `calibration_alert` constant/absent in canon |
+| **approval_required** | F1 0.81 |
+
+**The `inference_context`-only boundary is enforced in the weights, not just the docs.** The feature
+manifest is `inference_context` minus pure identifiers (load id, snapshot time, broker id) = **22
+fields**; constructing the model with any `node_outputs`/`eval_labels` field raises, the manifest is
+SHA-256 hashed onto the artifact, and at inference the model **refuses to serve** on a hash mismatch or
+a missing feature (`FeatureManifestError`). A test smuggles a `risk_adjusted_ev_at_target` into the
+feature dict and proves the prediction is **byte-identical** — the model builds its matrix from the
+manifest alone, so a teacher-only field simply *cannot* enter it. A compiled model that silently
+consumed an engine internal would defeat the whole point of compiling.
+
+**Deterministic and fully provenanced.** Rows are sorted by `scenario_id` and the HGB heads run with
+`early_stopping=False` (no internal RNG split), so a fixed seed gives byte-identical predictions
+(pinned by a train-twice test). The committed `ml/artifacts/compiled_dispatcher_model_metadata.json`
+records everything needed to defend or reproduce the artifact: `feature_manifest_hash`, the teacher
+schema / workflow-graph / **source-policy** versions, the dataset determinism hash + git commit, the
+seed, train/val/test counts, per-head test metrics, target names, and estimator types. The model
+itself (`…model.joblib`) is **gitignored**; only the metadata + summary JSON are committed (matching the
+repo's existing `ml/artifacts/` convention for model descriptors).
+
+```bash
+python -m ml.training.train_compiled_dispatcher_model              # train → joblib + metadata + summary
+python -m ml.training.evaluate_compiled_dispatcher_model           # per-head report + baseline comparison
+```
+
+20 new tests pin the contracts: features are `inference_context`-only and a forbidden field can't enter
+the matrix; the manifest rejects `node_outputs`/`eval_labels`; hash-mismatch / missing-feature / unfit
+all refuse; training is deterministic; the artifact round-trips through joblib; per-head predictions
+serialize to a stable DTO and 6-key runtime JSON; the bid head trains on biddable rows only; rare
+classes appear in the metrics; and the model **beats the majority baseline** on action macro-F1.
+
+**Next in Phase 6.** 6.4 runs the compiled model in **shadow mode** beside the source engine
+(agreement / regret / fallback, default OFF, no-op without artifact, cannot submit or bypass approval),
+and 6.5 benchmarks compiled-vs-orchestrated on decision quality **and** context/cost.
 
 ## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
