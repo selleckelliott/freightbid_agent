@@ -7,6 +7,7 @@ from adapters.outbound.distance.haversine import HaversineDistanceProvider
 from adapters.outbound.memory.bid_repository import InMemoryBidApprovalRepository
 from adapters.outbound.memory.load_repository import InMemoryLoadRepository
 from adapters.outbound.memory.truck_repository import InMemoryTruckRepository
+from adapters.outbound.payment_risk.model_adapter import ModelPaymentRiskAdapter
 from adapters.outbound.tolls.flat_rate import FlatRateTollEstimator
 from adapters.outbound.winnability.model_adapter import ModelWinnabilityAdapter
 from application.bid_approval_service import BidApprovalService
@@ -58,7 +59,33 @@ def _build_ev_recommender(bid_cfg: BidRecommenderConfig) -> EVBidRecommender | N
         return None
     adapter = ModelWinnabilityAdapter.from_artifact(artifact)
     logger.info("winnability model loaded from %s; EV surfacing enabled", artifact)
-    return EVBidRecommender(adapter, bid_cfg)
+    payment = _build_payment_adapter(bid_cfg)
+    return EVBidRecommender(adapter, bid_cfg, payment=payment)
+
+
+def _build_payment_adapter(bid_cfg: BidRecommenderConfig) -> ModelPaymentRiskAdapter | None:
+    """Wire the Phase 5.2 payment-risk adapter only when risk-adjusted EV is on AND the
+    artifact exists.
+
+    Returns ``None`` (so ``EVBidRecommender`` ranks by raw EV — risk-blind) when the
+    flag is off, or on but the gitignored 5.2 artifact is absent — the latter logged as
+    a warning rather than raised, mirroring the winnability wiring above.
+    """
+    if not bid_cfg.risk_adjusted_ev_enabled:
+        return None
+    artifact = Path(bid_cfg.payment_model_path)
+    if not artifact.is_absolute():
+        artifact = ROOT / artifact
+    if not artifact.exists():
+        logger.warning(
+            "risk-adjusted EV enabled but payment-risk artifact %s not found; "
+            "serving risk-blind EV bids",
+            artifact,
+        )
+        return None
+    adapter = ModelPaymentRiskAdapter.from_artifact(artifact)
+    logger.info("payment-risk model loaded from %s; risk-adjusted EV enabled", artifact)
+    return adapter
 
 
 @dataclass

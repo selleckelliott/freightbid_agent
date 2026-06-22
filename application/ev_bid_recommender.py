@@ -39,6 +39,7 @@ from domain.models.bid_recommendation import (
     ScoredCandidate,
 )
 from ml.features.winnability_features import BidQuery, market_rate_for
+from ports.payment_risk import PaymentEstimate, PaymentRiskPort
 from ports.winnability import WinnabilityPort
 
 # A fallback strategy maps (query, estimated_cost, market_rate, loaded_miles) -> ask $.
@@ -51,10 +52,14 @@ class EVBidRecommender:
         winnability: WinnabilityPort,
         config: BidRecommenderConfig,
         margin_fallback: Optional[MarginFallback] = None,
+        payment: Optional[PaymentRiskPort] = None,
     ) -> None:
         self._win = winnability
         self._cfg = config
         self._margin_fallback = margin_fallback or self._default_margin_fallback
+        # Optional Phase 5.2 payment-risk port. ``None`` (or the flag off) ⇒ the
+        # recommender ranks by raw EV — byte-identical to Phase 4.3.
+        self._payment = payment
 
     # -- public API --------------------------------------------------------
     def score(
@@ -86,7 +91,10 @@ class EVBidRecommender:
         if probs is None:
             return None
 
-        candidates = self._score(candidate_rpms, probs, cost, miles, market_rate)
+        estimate = self._payment_estimate(query)
+        candidates = self._score(
+            candidate_rpms, probs, cost, miles, market_rate, estimate
+        )
         return CandidateScoring(
             estimated_cost=round(cost, 2),
             market_rate=round(market_rate, 4),
@@ -134,6 +142,8 @@ class EVBidRecommender:
 
         options = self._build_ladder(eligible, market_rate, cost)
         recommended = self._pick_recommended(options)
+        payment_available = any(s.risk_adjusted_ev is not None for s in eligible)
+        ra_positive, ra_warning = self._risk_positivity(eligible, payment_available)
         return BidRecommendation(
             load_id=load_id,
             broker_id=broker_id,
@@ -145,6 +155,9 @@ class EVBidRecommender:
             recommended_ask=recommended.ask_amount,
             winnability_available=True,
             rationale=self._summary_rationale(options, recommended, cost, market_rate),
+            payment_risk_available=payment_available,
+            risk_adjusted_ev_positive=ra_positive,
+            risk_adjusted_warning=ra_warning,
         )
 
     # -- candidate generation ---------------------------------------------
@@ -188,6 +201,7 @@ class EVBidRecommender:
         cost: float,
         miles: float,
         market_rate: float,
+        estimate: Optional[PaymentEstimate] = None,
     ) -> List[ScoredCandidate]:
         cfg = self._cfg
         out: List[ScoredCandidate] = []
@@ -195,10 +209,15 @@ class EVBidRecommender:
             ask = rpm * miles
             profit = ask - cost
             if profit < cfg.min_profit_dollars:
-                continue  # guardrail: profit floor
+                continue  # guardrail: profit floor (always on RAW profit)
             ratio = rpm / market_rate if market_rate > 0 else nan
             extrapolated = isnan(ratio) or not (
                 cfg.trained_ask_ratio_min <= ratio <= cfg.trained_ask_ratio_max
+            )
+            risk = (
+                self._risk_fields(ask, cost, float(p), estimate)
+                if estimate is not None
+                else {}
             )
             out.append(
                 ScoredCandidate(
@@ -208,28 +227,108 @@ class EVBidRecommender:
                     win_probability=float(p),
                     expected_value=round(p * profit, 2),
                     extrapolated=extrapolated,
+                    **risk,
                 )
             )
         return out
+
+    # -- Phase 5.1: risk-adjusted EV --------------------------------------
+    def _payment_estimate(self, query: BidQuery) -> Optional[PaymentEstimate]:
+        """The load/broker's payment risk, or ``None`` when risk adjustment is off.
+
+        Computed once per load (``p_default`` / ``expected_pay_days`` are broker-driven,
+        not per-ask) and threaded into every candidate's scoring.
+        """
+        if not self._cfg.risk_adjusted_ev_enabled or self._payment is None:
+            return None
+        return self._payment.estimate(query)
+
+    def _risk_fields(
+        self, ask: float, cost: float, p_win: float, estimate: PaymentEstimate
+    ) -> dict:
+        """Risk-adjusted EV breakdown for one ask.
+
+        Discounts *revenue* (not profit) by collection probability and subtracts the
+        full operating cost, because fuel/driver/deadhead are paid whether or not the
+        broker pays. A slow-pay penalty charges the cash-cost rate for each day beyond
+        the free payment window. All values are finite floats — never ``NaN``.
+        """
+        cfg = self._cfg
+        p_default = min(max(float(estimate.p_default), 0.0), 1.0)  # defensive clamp
+        p_collect = 1.0 - p_default
+        expected_collected_revenue = ask * p_collect
+        pay_days = estimate.expected_pay_days
+        if pay_days is not None:
+            delay_penalty = (
+                expected_collected_revenue
+                * cfg.annual_cash_cost_rate
+                * max(float(pay_days) - cfg.free_pay_days, 0.0)
+                / 365.0
+            )
+        else:
+            delay_penalty = 0.0  # no pay-days head ⇒ default risk only, no delay term
+        risk_adjusted_profit = expected_collected_revenue - cost - delay_penalty
+        risk_adjusted_ev = p_win * risk_adjusted_profit
+        return {
+            "risk_adjusted_ev": round(risk_adjusted_ev, 2),
+            "p_default": round(p_default, 4),
+            "p_collect": round(p_collect, 4),
+            "expected_pay_days": (
+                round(float(pay_days), 2) if pay_days is not None else None
+            ),
+            "delay_penalty": round(delay_penalty, 2),
+            "expected_collected_revenue": round(expected_collected_revenue, 2),
+            "risk_adjusted_profit_if_won": round(risk_adjusted_profit, 2),
+        }
+
+    @staticmethod
+    def _risk_positivity(
+        eligible: List[ScoredCandidate], payment_available: bool
+    ) -> tuple[Optional[bool], Optional[str]]:
+        """Honest "every option loses money" signal — surface, never block.
+
+        Returns ``(None, None)`` when risk is off; otherwise whether any in-support ask
+        has a positive risk-adjusted EV, plus a warning when none do. The recommender
+        still returns its best (least-negative) option in that case.
+        """
+        if not payment_available:
+            return None, None
+        best = max(
+            (s.risk_adjusted_ev for s in eligible if s.risk_adjusted_ev is not None),
+            default=None,
+        )
+        positive = best is not None and best > 0
+        warning = (
+            None if positive else "All candidate asks have negative risk-adjusted EV."
+        )
+        return positive, warning
 
     # -- ladder ------------------------------------------------------------
     def _build_ladder(
         self, eligible: List[ScoredCandidate], market_rate: float, cost: float
     ) -> List[BidOption]:
         cfg = self._cfg
-        max_ev_c = max(eligible, key=lambda s: s.expected_value)
+        # Rank by ``ranking_ev`` — risk-adjusted EV when payment risk is wired, else raw
+        # EV (then ``ranking_ev == expected_value`` and every selection below is
+        # identical to Phase 4.3). ``max_ev`` keeps the raw EV of the recommended rung
+        # for the unchanged rationale text.
+        max_ev_c = max(eligible, key=lambda s: s.ranking_ev)
         max_ev = max_ev_c.expected_value
+        max_obj = max_ev_c.ranking_ev
 
         cons_pool = [s for s in eligible if s.win_probability >= cfg.conservative_min_win_prob]
-        conservative = max(cons_pool, key=lambda s: s.expected_value) if cons_pool else None
+        conservative = max(cons_pool, key=lambda s: s.ranking_ev) if cons_pool else None
 
+        # When ``max_obj`` is negative (all asks lose money after payment risk) the
+        # tolerance band inverts, so no rung qualifies as target and the recommendation
+        # collapses to the least-negative max-EV rung — flagged by the warning, not hidden.
         tgt_pool = [
             s
             for s in eligible
-            if s.expected_value >= cfg.target_ev_tolerance * max_ev
+            if s.ranking_ev >= cfg.target_ev_tolerance * max_obj
             and s.win_probability >= cfg.target_min_win_prob
         ]
-        target = max(tgt_pool, key=lambda s: s.expected_value) if tgt_pool else None
+        target = max(tgt_pool, key=lambda s: s.ranking_ev) if tgt_pool else None
 
         str_pool = [s for s in eligible if s.win_probability >= cfg.stretch_min_win_prob]
         stretch = max(str_pool, key=lambda s: s.ask_rpm) if str_pool else None
@@ -255,6 +354,13 @@ class EVBidRecommender:
                     expected_value=s.expected_value,
                     extrapolated=s.extrapolated,
                     rationale=self._rung_rationale(label, s, max_ev),
+                    risk_adjusted_ev=s.risk_adjusted_ev,
+                    p_default=s.p_default,
+                    p_collect=s.p_collect,
+                    expected_pay_days=s.expected_pay_days,
+                    delay_penalty=s.delay_penalty,
+                    expected_collected_revenue=s.expected_collected_revenue,
+                    risk_adjusted_profit_if_won=s.risk_adjusted_profit_if_won,
                 )
             )
         return options

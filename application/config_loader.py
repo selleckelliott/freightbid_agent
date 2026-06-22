@@ -72,6 +72,17 @@ class BidRecommenderConfig:
     enabled: bool = False
     model_path: str = "ml/artifacts/winnability_model.joblib"
     metadata_path: str = "ml/artifacts/winnability_model_metadata.json"
+    # -- Phase 5.1: risk-adjusted EV (payment risk) ------------------------
+    # When ``risk_adjusted_ev_enabled`` is True AND a payment-risk model is wired, the
+    # recommender ranks candidate asks by expected *collectible* profit: revenue is
+    # discounted by ``p_collect`` and a slow-pay penalty is charged at
+    # ``annual_cash_cost_rate`` for each day past ``free_pay_days``. Default off ⇒
+    # byte-identical Phase 4.3b behavior.
+    risk_adjusted_ev_enabled: bool = False
+    annual_cash_cost_rate: float = 0.18
+    free_pay_days: float = 30.0
+    payment_model_path: str = "ml/artifacts/payment_risk_model.joblib"
+    payment_metadata_path: str = "ml/artifacts/payment_risk_model_metadata.json"
 
 
 @dataclass(frozen=True)
@@ -126,6 +137,8 @@ def load_bid_recommender_config(config_dir: str | Path) -> BidRecommenderConfig:
     cg = doc.get("candidate_generation", {}) or {}
     ladder = doc.get("ladder", {}) or {}
     model = doc.get("model", {}) or {}
+    rae = doc.get("risk_adjusted_ev", {}) or {}
+    pay = rae.get("payment_model", {}) or {}
     d = BidRecommenderConfig()
     return BidRecommenderConfig(
         anchor_multipliers=tuple(cg.get("anchor_multipliers", d.anchor_multipliers)),
@@ -150,6 +163,11 @@ def load_bid_recommender_config(config_dir: str | Path) -> BidRecommenderConfig:
         enabled=bool(model.get("enabled", d.enabled)),
         model_path=str(model.get("artifact_path", d.model_path)),
         metadata_path=str(model.get("metadata_path", d.metadata_path)),
+        risk_adjusted_ev_enabled=bool(rae.get("enabled", d.risk_adjusted_ev_enabled)),
+        annual_cash_cost_rate=float(rae.get("annual_cash_cost_rate", d.annual_cash_cost_rate)),
+        free_pay_days=float(rae.get("free_pay_days", d.free_pay_days)),
+        payment_model_path=str(pay.get("artifact_path", d.payment_model_path)),
+        payment_metadata_path=str(pay.get("metadata_path", d.payment_metadata_path)),
     )
 
 

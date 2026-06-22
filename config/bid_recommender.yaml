@@ -57,6 +57,34 @@ model:
   artifact_path: "ml/artifacts/winnability_model.joblib"
   metadata_path: "ml/artifacts/winnability_model_metadata.json"
 
+risk_adjusted_ev:
+  # Phase 5.1 — risk-adjusted EV objective. When enabled AND the payment-risk model
+  # below is present, the recommender ranks candidate asks by expected *collectible*
+  # profit instead of expected won-load margin:
+  #   p_collect                   = 1 - p_default            (from the 5.2 model)
+  #   expected_collected_revenue  = ask * p_collect
+  #   delay_penalty               = ask * p_collect * annual_cash_cost_rate
+  #                                 * max(expected_pay_days - free_pay_days, 0) / 365
+  #   risk_adjusted_ev            = P(win) * (collected_revenue - cost - delay_penalty)
+  # Revenue (not profit) is discounted by collection risk, because operating cost is
+  # paid whether or not the broker's check clears. Default off, or with no payment-risk
+  # artifact present, falls back to raw EV — byte-identical to Phase 4.3b.
+  enabled: false
+
+  # Annual cost of cash used to penalize slow-but-collected payment. 0.18 reflects a
+  # small carrier's factoring-equivalent cost of capital.
+  annual_cash_cost_rate: 0.18
+
+  # Days of payment terms charged no delay penalty (net-30). Only days *beyond* this
+  # incur the cash-cost penalty; expected_pay_days within terms ⇒ zero penalty.
+  free_pay_days: 30
+
+  payment_model:
+    # Phase 5.2 calibrated payment-risk artifact (gitignored joblib). Enabled-but-missing
+    # degrades gracefully to risk-blind EV, mirroring the winnability flag above.
+    artifact_path: "ml/artifacts/payment_risk_model.joblib"
+    metadata_path: "ml/artifacts/payment_risk_model_metadata.json"
+
 approval:
   # Phase 4.4 — human-in-the-loop bid approval workflow.
   # A bid draft lives for this many minutes before it lazily expires (enforced from the

@@ -33,6 +33,24 @@ class ScoredCandidate:
     win_probability: float
     expected_value: float
     extrapolated: bool
+    # -- Phase 5.1: optional risk-adjusted EV (None unless payment risk is wired) --
+    # The objective shifts from "expected profit if won" to "expected *collectible*
+    # profit after default + payment-delay risk". All None when payment risk is off or
+    # unavailable, so ``ranking_ev`` collapses to ``expected_value`` and behavior is
+    # identical to Phase 4.3.
+    risk_adjusted_ev: Optional[float] = None
+    p_default: Optional[float] = None
+    p_collect: Optional[float] = None
+    expected_pay_days: Optional[float] = None
+    delay_penalty: Optional[float] = None
+    expected_collected_revenue: Optional[float] = None
+    risk_adjusted_profit_if_won: Optional[float] = None
+
+    @property
+    def ranking_ev(self) -> float:
+        """The objective the ladder ranks by: risk-adjusted EV when payment risk is
+        available, else the raw expected value (so risk-off ranking is unchanged)."""
+        return self.risk_adjusted_ev if self.risk_adjusted_ev is not None else self.expected_value
 
 
 @dataclass(frozen=True)
@@ -59,6 +77,19 @@ class BidOption:
     expected_value: float
     extrapolated: bool
     rationale: str
+    # -- Phase 5.1: optional risk-adjusted EV (None unless payment risk is wired) --
+    risk_adjusted_ev: Optional[float] = None
+    p_default: Optional[float] = None
+    p_collect: Optional[float] = None
+    expected_pay_days: Optional[float] = None
+    delay_penalty: Optional[float] = None
+    expected_collected_revenue: Optional[float] = None
+    risk_adjusted_profit_if_won: Optional[float] = None
+
+    @property
+    def ranking_ev(self) -> float:
+        """Risk-adjusted EV when available, else raw expected value."""
+        return self.risk_adjusted_ev if self.risk_adjusted_ev is not None else self.expected_value
 
 
 @dataclass(frozen=True)
@@ -80,6 +111,16 @@ class BidRecommendation:
     recommended_ask: float
     winnability_available: bool
     rationale: str
+    # -- Phase 5.1: risk-adjusted EV (defaults preserve pre-5.1 construction) -----
+    # ``payment_risk_available`` is True only when the risk-adjusted objective was
+    # actually applied (flag on AND a payment estimate was produced). When every
+    # in-support candidate has a negative risk-adjusted EV the recommender still
+    # returns its best (least-negative) option but flags it via
+    # ``risk_adjusted_ev_positive=False`` + ``risk_adjusted_warning`` rather than
+    # suppressing the recommendation.
+    payment_risk_available: bool = False
+    risk_adjusted_ev_positive: Optional[bool] = None
+    risk_adjusted_warning: Optional[str] = None
 
     def option(self, label: str) -> Optional[BidOption]:
         """Return the ladder rung with ``label``, or ``None`` if it was omitted."""

@@ -70,10 +70,34 @@ def _render_bid_ev(console: Console, bid: dict[str, Any]) -> None:
                 for r in ladder
             )
             console.print(f"[dim]  Ladder: {rungs}[/dim]")
+        _render_bid_risk(console, bid)
     elif bid.get("winnability_available") is False:
         console.print(
             "[dim]  EV: winnability model unavailable — cost-plus-margin bid[/dim]"
         )
+
+
+def _render_bid_risk(console: Console, bid: dict[str, Any]) -> None:
+    """Render the optional Phase 5.1 risk-adjusted EV line (no-op when risk is off)."""
+    if not bid.get("payment_risk_available"):
+        return
+    pd = bid.get("p_default_at_target")
+    days = bid.get("expected_pay_days_at_target")
+    pen = bid.get("delay_penalty_at_target")
+    ra = bid.get("risk_adjusted_ev_at_target")
+    pd_str = f"{pd:.0%}" if pd is not None else "n/a"
+    days_str = f"~{days:.0f}d" if days is not None else "n/a"
+    pen_str = f"${pen:,.0f}" if pen is not None else "$0"
+    ra_str = f"${ra:,.0f}" if ra is not None else "n/a"
+    console.print(
+        f"[dim]  Risk-adj: default {pd_str}, pay {days_str}, delay {pen_str}, "
+        f"risk-adj EV {ra_str}[/dim]"
+    )
+    if bid.get("risk_adjusted_ev_positive") is False:
+        warn = bid.get("risk_adjusted_warning") or (
+            "All candidate asks have negative risk-adjusted EV."
+        )
+        console.print(f"[yellow]  ! {warn}[/yellow]")
 
 
 def build_plan_table(data: dict[str, Any]) -> Table:
