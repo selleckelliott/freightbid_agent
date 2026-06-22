@@ -1,0 +1,40 @@
+# Phase 5.4 — Recalibration workflow configuration.
+#
+# Drives benchmarks/run_recalibration_workflow.py. When the Phase 5.3 monitor flags a market
+# whose predicted P(win) no longer matches the realized win rate, this workflow repairs it
+# WITHOUT retraining the base model: fit a lightweight post-hoc calibrator on a recent window
+# of outcomes, evaluate it on a later (disjoint) holdout window, and promote it only if it is
+# provably safer. The base winnability model stays frozen.
+#
+# Promotion guardrail (judged on the held-out eval window):
+#   promote iff  post_ece < pre_ece
+#           and  severity(post) <= severity(pre)
+#           and  post_brier <= pre_brier + max_brier_worsening
+# Otherwise the base model is kept (recalibration can overcorrect).
+#
+# Severity (OK / WATCH / ALERT) reuses the Phase 5.3 thresholds in
+# config/calibration_monitor.yaml, so the language is consistent across detect (5.3) and
+# repair (5.4).
+
+recalibration:
+  # enabled gates wiring the recalibrated adapter into a live path. Default off => wiring it
+  # in changes nothing (the offline benchmark always computes so drift can be studied).
+  enabled: false
+
+  # method: post-hoc map. "sigmoid" (Platt: repaired = sigmoid(a*logit(raw)+b)) is monotonic,
+  # two-parameter, and stable on small windows — the default. "isotonic" is an optional
+  # comparator for larger windows.
+  method: sigmoid
+
+  # min_samples: minimum fit-window rows required to attempt recalibration (else keep base).
+  min_samples: 500
+
+  # Time split inside each world (never fit and evaluate on the same outcomes):
+  #   first fit_days  -> fit the recalibrator on recent outcomes
+  #   next  eval_days -> judge the repaired calibration on later, disjoint outcomes
+  fit_days: 7
+  eval_days: 14
+
+  # Promotion guardrails.
+  max_brier_worsening: 0.01      # reject a map that worsens Brier by more than this
+  require_ece_improvement: true  # promote only if ECE strictly improves on the eval window

@@ -25,6 +25,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Payment-risk model (Phase 5.2)**](#phase-52--calibrated-payment-risk-model) | calibrated HGB `P(default)` + `E[pay_days]` head | **test ECE 0.003** · PR-AUC 0.140 > baselines · pay-days MAE 4.0d · the risk signal 5.1 folds into EV |
 | [**Risk-adjusted EV (Phase 5.1)**](#phase-51--risk-adjusted-ev-objective) | fold 5.2 `p_collect` + `E[pay_days]` into the bid objective | objective → **expected collectible profit** · discounts revenue, keeps full cost · safer-broker preference · flag-gated, **byte-identical when off** |
 | [**Calibration drift monitor (Phase 5.3)**](#phase-53--calibration-drift-monitor) | label-based `P(win)`-vs-outcome monitor over 10 frozen-model worlds | **3 ALERT / 7 OK** · reserve/win-curve worlds flagged (ECE ≈ 0.20, over-optimistic), payment shifts stay calibrated · severity OK/WATCH/ALERT |
+| [**Recalibration workflow (Phase 5.4)**](#phase-54--recalibration-workflow) | post-hoc Platt map fit on a recent window, judged on a later holdout · base model frozen | **3/3 ALERT worlds repaired** (ECE ≈ 0.20 → ≈ 0.03, WATCH/OK) · promote-only-if-safer guardrail leaves the 7 calibrated worlds alone |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1299,7 +1300,86 @@ python -m benchmarks.chart_calibration_monitor           # render the panel abov
 
 This phase **detects only** — it changes no recommender behavior (it reads predictions and
 outcomes, nothing else) and does not retrain or repair. Closing the loop — repairing the
-flagged drift *without* retraining the base model — is **Phase 5.4**.
+flagged drift *without* retraining the base model — is
+**[Phase 5.4](#phase-54--recalibration-workflow)**, below.
+
+## Phase 5.4 — Recalibration Workflow
+
+> Phase 5.4 repairs flagged win-probability drift by fitting a lightweight post-hoc calibrator
+> on recent outcomes, then evaluating it on a later holdout window. The base winnability model
+> remains **frozen**, so this tests *operational recalibration* rather than retraining.
+
+[Phase 5.3](#phase-53--calibration-drift-monitor) answered *are the probabilities still
+trustworthy?* and flagged three reserve / win-curve worlds **ALERT** (ECE ≈ 0.20). Phase 5.4
+answers *what do we do when they are not?* — without touching the
+`HistGradientBoostingClassifier`. The base model is wrapped, not retrained:
+
+```
+base_winnability_model(load, ask) → raw P(win)
+recalibrator(raw P(win))          → repaired P(win)
+```
+
+**A two-parameter Platt map, by choice.** The default recalibrator is a sigmoid / Platt map,
+`repaired = sigmoid(a · logit(raw) + b)`. Over a small, possibly noisy recalibration window
+that is the conservative choice: it is **monotonic** (it never reorders bids), has only **two
+parameters** (so it can't overfit a short window), and is **explainable** — `a < 1` simply
+shrinks an over-confident model's logits back toward 0.5. It is clearly a thin *repair layer*,
+not a second model. Isotonic regression ships as an optional comparator (`method: isotonic`)
+for larger windows but is **not** the default.
+
+**Two rules keep the claim honest.**
+
+1. **Never fit and evaluate on the same outcomes.** Each world is carved by calendar day into
+   an early **fit** window (`fit_days = 7`) and a later, **disjoint** **eval** window
+   (`eval_days = 14`); the map is fit on the first and judged only on the second. On top of
+   that, the fit/eval windows come from a *separate, later operational draw* (a fresh snapshot
+   seed) that the frozen base model never trained on — so even the no-shift `baseline` world is
+   scored purely out-of-sample, exactly like 5.3's held-out test split, instead of on the model's
+   own training days.
+2. **Only promote a safer map.** On the held-out eval window, the recalibrator is accepted only
+   if it improves calibration without making anything worse:
+
+   ```
+   promote iff  post_ece   <  pre_ece
+           and  severity(post) ≤ severity(pre)
+           and  post_brier  ≤  pre_brier + max_brier_worsening   (0.01)
+   ```
+
+   Otherwise the base model is kept — recalibration can overcorrect, and a guardrail that can
+   say *no* is what makes a promotion mean something.
+
+**Result — every flagged world repaired, every calibrated world left alone.** The base model is
+trained + isotonic-calibrated once on baseline (the served 4.2/5.3 artifact) and frozen; a
+sigmoid map is then fit and judged per world over the same 10 broker-quality worlds:
+
+| World class | Worlds | Base (pre) | Recalibrated (post) | Decision |
+| --- | --- | --- | --- | --- |
+| reserve / win-curve | `tight_brokers`, `high_contention`, `degraded_corner` | **ALERT** · ECE 0.17–0.21 | **WATCH/OK** · ECE 0.02–0.04 | **promoted — repaired** |
+| baseline + payment/coverage | `baseline`, `unknown_credit`, `risky_brokers`, `disappearing_loads`, `no_rate_heavy` | OK · ECE ≤ 0.01 | ≈ unchanged | **kept** — `no_ece_improvement` |
+| already-OK, mild | `sharp_win_curve`, `slow_pay` | OK · ECE 0.02 | OK · ECE ≤ 0.01 | promoted — harmless sub-threshold gain |
+
+**3/3 ALERT worlds repaired (ECE ≈ 0.20 → ≈ 0.03), 5 promoted across 10 worlds.** Concretely,
+on `tight_brokers` the frozen model predicts ≈ 0.93 `P(win)` on bids it actually wins ≈ 54% of
+the time (ECE 0.205, ALERT); the fitted map (`a ≈ 0.5`) shrinks that confidence so predicted ≈
+observed on the *later* 14-day holdout (ECE 0.035, WATCH). Just as important is what the
+guardrail **declines** to do: the five already-calibrated worlds — `baseline` included — are
+left untouched (`no_ece_improvement`), so the workflow only ever fires where there is real drift
+to fix.
+
+![Recalibration workflow: left, eval-window reliability curves where the three drifted worlds' base models bow far below the diagonal (over-optimistic, dashed) and snap back onto it after recalibration (solid); right, per-world ECE bars showing the ALERT worlds collapsing from ≈0.20 to ≈0.03 with a promotion check](benchmarks/recalibration_workflow_comparison.png)
+
+```bash
+python -m benchmarks.run_recalibration_workflow --fast    # 2-world smoke (~0.5 min)
+python -m benchmarks.run_recalibration_workflow --days 21  # canonical 10-world sweep
+python -m benchmarks.chart_recalibration_workflow          # render the panel above
+```
+
+This phase **repairs, but does not deploy.** The recalibrated adapter
+(`RecalibratedWinnabilityAdapter`) wraps the base port and is behavior-preserving by
+construction — with no promoted map (or no base model) it returns exactly what the base
+returns — and it is **not** wired into the live container, so the out-of-the-box recommender is
+unchanged (`recalibration.enabled` defaults to `false`). What remains is to re-score the EV edge
+once payment risk is priced in — the **Phase 5.5** risk-aware stress capstone.
 
 ## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
@@ -1341,6 +1421,15 @@ flagged drift *without* retraining the base model — is **Phase 5.4**.
   worlds that break `P(win)` — the ones that move the reservation / win curve (ECE ≈ 0.20,
   badly over-optimistic) — from broker payment/coverage shifts, which leave calibration
   intact. Trust has to be measured where the labels are.
+- **Repairing trust is not the same as retraining.** Once the monitor flagged the
+  reserve/win-curve worlds, [Phase 5.4](#phase-54--recalibration-workflow) fit a two-parameter
+  Platt map on a *recent* window of outcomes and judged it on a *later, disjoint* one — the
+  frozen booster never moved. A promote-only-if-safer guardrail (ECE must improve, severity must
+  not worsen, Brier barely moves) repaired all **3 ALERT worlds** (ECE ≈ 0.20 → ≈ 0.03) and
+  *declined* to touch the 5 already-calibrated worlds, baseline included. The discipline is the
+  time split: fit and eval never share an outcome, so "it's calibrated now" is a claim about the
+  *next* bids, not the ones the map was fit on — and a thin, monotonic map is far easier to trust
+  in production than a silently retrained model.
 
 ## Limitations & next work
 **Limitations**
@@ -1381,12 +1470,14 @@ flagged drift *without* retraining the base model — is **Phase 5.4**.
 - **Phase 5 — risk-aware bidding & recalibration (in progress).** The
   [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is built,
   [risk-adjusted EV](#phase-51--risk-adjusted-ev-objective) (5.1) folds it into the objective
-  behind a default-off flag, and a
-  [calibration-drift monitor](#phase-53--calibration-drift-monitor) (5.3) now stands watch
-  over the frozen win-model — flagging the reserve / win-curve worlds Phase 4.5 exposed as
-  **ALERT** (ECE ≈ 0.20) while payment shifts stay calibrated. Next, a recalibration workflow
-  (5.4) repairs the flagged drift *without* retraining the base model, and a risk-aware stress
-  test (5.5) re-scores the EV edge once payment risk is priced in.
+  behind a default-off flag, a
+  [calibration-drift monitor](#phase-53--calibration-drift-monitor) (5.3) stands watch over the
+  frozen win-model — flagging the reserve / win-curve worlds Phase 4.5 exposed as **ALERT**
+  (ECE ≈ 0.20) while payment shifts stay calibrated — and a
+  [recalibration workflow](#phase-54--recalibration-workflow) (5.4) now **repairs all 3 flagged
+  worlds** (ECE ≈ 0.20 → ≈ 0.03) with a post-hoc Platt map fit on a recent window and validated
+  on a later holdout, base model frozen. Next, a risk-aware stress test (5.5) re-scores the EV
+  edge once payment risk is priced in.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
