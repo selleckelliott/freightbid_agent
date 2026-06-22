@@ -1,0 +1,37 @@
+# Phase 5.3 — Calibration drift monitor configuration.
+#
+# Drives benchmarks/run_calibration_monitor.py. The monitor is label-based: it compares a
+# model's predicted probabilities against the realized binary outcomes they were meant to
+# predict and asks "are the probabilities still trustworthy?" (Phase 5.4 answers "what do we
+# do when they are not?"). Detection only — no retraining, no repair, no model replacement.
+#
+# Severity (per world):
+#   ALERT if ece >= ece_alert_threshold OR abs(bias) >= bias_alert_threshold
+#   WATCH if ece >= ece_watch_threshold OR abs(bias) >= bias_watch_threshold
+#   OK    otherwise
+# where bias = mean(predicted) - observed_event_rate (signed; + is over-optimistic).
+# Below min_samples a world is flagged insufficient_data and its severity is gated to OK
+# (a small, noisy slice must not cry wolf).
+
+calibration_monitor:
+  # --- severity bands -------------------------------------------------------
+  ece_watch_threshold: 0.03
+  ece_alert_threshold: 0.07
+  bias_watch_threshold: 0.05
+  bias_alert_threshold: 0.10
+  min_samples: 500
+  n_bins: 10
+
+  # --- what to monitor ------------------------------------------------------
+  # target: which model's probabilities to score. "winnability" compares the
+  # baseline-trained P(win) against realized bid_won on each world's held-out test split.
+  # The same monitor core also serves payment default (p_default vs payment_defaulted);
+  # winnability is wired first because Phase 4.5 already proved drift there.
+  target: winnability
+
+  # conditions: the stress worlds to replay the fixed baseline model across. Reuses the
+  # Phase 4.5 broker-quality worlds so calibration drift is measured on the *same* shifts
+  # the EV sweep already characterized. The reserve / win-curve worlds (tight_brokers,
+  # sharp_win_curve, high_contention) move the true win curve and should trip WATCH/ALERT;
+  # the baseline (training) world is the in-distribution reference and should stay OK.
+  conditions: config/broker_quality_stress.yaml
