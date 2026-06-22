@@ -26,6 +26,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Risk-adjusted EV (Phase 5.1)**](#phase-51--risk-adjusted-ev-objective) | fold 5.2 `p_collect` + `E[pay_days]` into the bid objective | objective → **expected collectible profit** · discounts revenue, keeps full cost · safer-broker preference · flag-gated, **byte-identical when off** |
 | [**Calibration drift monitor (Phase 5.3)**](#phase-53--calibration-drift-monitor) | label-based `P(win)`-vs-outcome monitor over 10 frozen-model worlds | **3 ALERT / 7 OK** · reserve/win-curve worlds flagged (ECE ≈ 0.20, over-optimistic), payment shifts stay calibrated · severity OK/WATCH/ALERT |
 | [**Recalibration workflow (Phase 5.4)**](#phase-54--recalibration-workflow) | post-hoc Platt map fit on a recent window, judged on a later holdout · base model frozen | **3/3 ALERT worlds repaired** (ECE ≈ 0.20 → ≈ 0.03, WATCH/OK) · promote-only-if-safer guardrail leaves the 7 calibrated worlds alone |
+| [**Risk-aware stress test (Phase 5.5)**](#phase-55--risk-aware-stress-test-the-capstone) | full stack re-scored on **realized collectible profit** across the 10 worlds · models frozen | **Full risk-aware beats raw EV 4/10** (5 neutral, 1 honest regression) · recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts `risky_brokers` **+5.7%** · baseline left flat |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1379,7 +1380,90 @@ This phase **repairs, but does not deploy.** The recalibrated adapter
 construction — with no promoted map (or no base model) it returns exactly what the base
 returns — and it is **not** wired into the live container, so the out-of-the-box recommender is
 unchanged (`recalibration.enabled` defaults to `false`). What remains is to re-score the EV edge
-once payment risk is priced in — the **Phase 5.5** risk-aware stress capstone.
+once payment risk is priced in — the **[Phase 5.5](#phase-55--risk-aware-stress-test-the-capstone)**
+risk-aware stress capstone.
+
+## Phase 5.5 — Risk-Aware Stress Test (the capstone)
+
+> Phase 5.5 evaluates the **full risk-aware bidding stack** under broker-market stress on a new
+> headline metric — **realized collectible profit**. Risk-adjusted EV addresses the payment-quality
+> worlds that raw EV could not see, while recalibration repairs win-probability drift in the
+> reserve / win-curve shifts. **Evaluation only:** nothing is trained beyond the frozen baseline.
+
+Phase 5 was built as two tracks — [payment risk](#phase-51--risk-adjusted-ev-objective) (5.1 + 5.2)
+and [calibration repair](#phase-53--calibration-drift-monitor) (5.3 + 5.4). Phase 5.5 runs them
+**together** over the same
+[10 broker-quality worlds](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market)
+and asks one question: *does the whole stack earn more collectible profit than plain EV bidding when
+the broker market degrades?*
+
+**The metric is the point.** Through Phase 4.5 the realized objective was `P(win) × (ask − cost)` —
+payment-blind, so slower pay, unknown credit and risky brokers were **orthogonal** to it. Phase 5.5
+scores **realized collectible profit**, oracle-weighted over the win *and* the payment draw using the
+world's **true** broker latents (`true_default_prob`, `true_pay_days`) and the **true** win curve:
+
+```
+if won & collected:  ask − cost − realized_delay_penalty
+if won & defaulted:  −cost            # the truck still burned fuel, hours and deadhead
+if lost:              0
+```
+
+This is exactly the [Phase 5.1](#phase-51--risk-adjusted-ev-objective) objective evaluated with
+oracle inputs — the payment analogue of 4.5's `realized = oracle_P(win) × profit`. Keep the old
+metric and payment quality stays invisible; switching to collectible profit is what finally lets the
+two Phase 5 tracks show up.
+
+**Four policy arms, identical loads, Common Random Numbers.** Models are trained **once on baseline
+and frozen** (the calibrated winnability model and the 5.2 payment model); every world is then drawn
+at a later *operational* seed so the scored loads are out-of-sample, and all four arms pick a target
+ask on the **same** eval-window loads:
+
+| Arm | Picks its ask by | Isolates |
+| --- | --- | --- |
+| **1 · best fixed** | best of conservative `×0.95` / posted rate / stretch `×1.10` | the no-model floor |
+| **2 · raw EV** | risk-blind expected value (4.3b) | does EV bidding help? *(vs fixed)* |
+| **3 · risk-adjusted EV** | collectible EV with 5.1 + 5.2 payment risk | does pricing payment help? *(vs raw)* |
+| **4 · full risk-aware** | arm 3 with the promoted [5.4 recalibrator](#phase-54--recalibration-workflow) on `P(win)` | does recalibration help? *(vs risk-adj)* |
+
+The **headline verdict** is arm 4 vs arm 2 (full risk-aware vs raw EV), with the same HOLDS `> +1%`
+/ NEUTRAL `±1%` / REGRESSION `< −1%` bands used since Phase 3.4.
+
+**Result — the two tracks light up exactly where they should.** Collectible profit per arm
+(`$`/load, canonical 21-day sweep), grouped by what each world stresses:
+
+| World class | Worlds | raw EV → full | full vs raw | recal | what moved it |
+| --- | --- | --- | --- | --- | --- |
+| reserve / win-curve | `tight_brokers`, `high_contention`, `degraded_corner` | 75 → 94 · 69 → 85 · 53 → 61 | **+24.5% · +23.8% · +13.6% HOLDS** | ✓ promoted | **recalibrated `P(win)`** |
+| payment quality | `risky_brokers` | 107 → 113 | **+5.7% HOLDS** | — kept | **risk-adjusted EV** (walks the worst payers) |
+| calibrated / coverage | `baseline`, `disappearing_loads`, `unknown_credit`, `no_rate_heavy`, `sharp_win_curve` | ≈ 205 → ≈ 204 | −0.1% to −0.8% **NEUTRAL** | — | nothing — correctly left flat |
+| uniform slow pay | `slow_pay` | 193 → 187 | **−2.9% REGRESSION** | ✓ promoted | honest cost of over-discounting |
+
+**Two levers, and the order matters.** The decomposition (the chart's right panel) is the honest
+punchline. In the three win-curve worlds the **payment-risk lever alone is *negative*** (risk-adj vs
+raw: **−15.6 / −14.4 / −9.5**): risk-adjusting a *miscalibrated*, over-optimistic `P(win)` just
+sharpens a wrong number. The **recalibration lever** (full vs risk-adj: **+47.5 / +44.6 / +25.5**)
+more than recovers it — repairing `P(win)` *first* lifts the win rate back onto reality
+(`tight_brokers` 0.29 → 0.37) and is what unlocks the net HOLDS. Where the win curve is intact,
+recalibration correctly does nothing and the payment lever stands on its own: `risky_brokers` gains
+**+5.7%** purely from risk-adjusted EV stepping away from the brokers most likely to default
+(default-rate-on-won ≈ 0.20). The lone `slow_pay` regression is honest too — a *uniform* pay-day
+slowdown offers no safer broker to switch to, so discounting only shaves margin (realized pay ≈
+61 days) with nothing to gain back.
+
+![Risk-aware stress test: left, per-world collectible-profit uplift of full risk-aware vs raw EV colored by verdict — four HOLDS bars (the three win-curve worlds and risky_brokers), five neutral, one slow_pay regression; right, the two-lever decomposition showing the payment-risk lever going negative in the win-curve worlds while the recalibration lever more than recovers it](benchmarks/risk_aware_stress_comparison.png)
+
+```bash
+python -m benchmarks.run_risk_aware_stress --fast                     # 2-world smoke (~1 min)
+python -m benchmarks.run_risk_aware_stress --days 21 --max-loads 600  # canonical 10-world sweep
+python -m benchmarks.chart_risk_aware_stress                          # render the panel above
+```
+
+**This closes Phase 5.** The stack is *evaluated*, not deployed: the live recommender stays
+payment-blind and un-recalibrated by default (`risk_adjusted_ev.enabled` and `recalibration.enabled`
+both `false`), so the headline numbers describe what the system *can* do once those flags are
+flipped, not a silent change to the out-of-the-box behavior. Risk-adjusted EV finally makes
+payment-quality worlds visible, and recalibration repairs the win-probability drift that 4.5 first
+exposed — measured the way it would actually be used, on realized collectible profit.
 
 ## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
@@ -1430,6 +1514,16 @@ once payment risk is priced in — the **Phase 5.5** risk-aware stress capstone.
   time split: fit and eval never share an outcome, so "it's calibrated now" is a claim about the
   *next* bids, not the ones the map was fit on — and a thin, monotonic map is far easier to trust
   in production than a silently retrained model.
+- **Switch the metric, or the whole phase is invisible.** Through Phase 4.5 the realized
+  objective was payment-blind `P(win) × (ask − cost)`, so slower pay and risky credit moved
+  *nothing*. Only by scoring [realized collectible profit](#phase-55--risk-aware-stress-test-the-capstone)
+  (5.5) — charging the truck its full cost even when the broker defaults — do the two Phase 5 tracks
+  finally show up. And the **order of the two levers matters**: in the reserve / win-curve worlds,
+  pricing payment risk on top of a *miscalibrated* `P(win)` actually *loses* money (−10 to −16),
+  because it sharpens a probability that is already wrong; recalibrating `P(win)` **first** is what
+  unlocks the +25 to +48 swing and the net HOLDS (+14–25%). Where the win curve is intact,
+  recalibration correctly stands down and risk-adjusted EV earns its **+5.7%** on `risky_brokers`
+  alone by stepping away from likely defaulters. Calibrate, *then* risk-adjust — not the reverse.
 
 ## Limitations & next work
 **Limitations**
@@ -1450,8 +1544,10 @@ once payment risk is priced in — the **Phase 5.5** risk-aware stress capstone.
   [calibrated `P(default)` + `E[pay_days]`](#phase-52--calibrated-payment-risk-model)
   into a **risk-adjusted EV** that discounts revenue by `p_collect` and penalizes slow
   pay — but it ships **behind a default-off flag**, so the out-of-the-box recommender is
-  still payment-blind until enabled, and the gain has **not yet been stress-tested**
-  (that is Phase 5.5).
+  still payment-blind until enabled.
+  [Phase 5.5](#phase-55--risk-aware-stress-test-the-capstone) confirms the gain under stress
+  (`risky_brokers` **+5.7%** collectible profit), but the **live default stays payment-blind by
+  design** — the stress test evaluates the stack, it does not deploy it.
 
 **Next work**
 - **Phase 4 — broker / load quality & winnability.** The
@@ -1467,17 +1563,20 @@ once payment risk is priced in — the **Phase 5.5** risk-aware stress capstone.
   thread from 4.5 is **risk-adjusted EV** — folding expected payment into the bid
   objective so the recommender stops treating a slow / defaulting broker like a
   reliable one — plus periodic recalibration of the frozen win-model under market shift.
-- **Phase 5 — risk-aware bidding & recalibration (in progress).** The
+- **Phase 5 — risk-aware bidding & recalibration (complete).** The
   [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is built,
   [risk-adjusted EV](#phase-51--risk-adjusted-ev-objective) (5.1) folds it into the objective
   behind a default-off flag, a
   [calibration-drift monitor](#phase-53--calibration-drift-monitor) (5.3) stands watch over the
   frozen win-model — flagging the reserve / win-curve worlds Phase 4.5 exposed as **ALERT**
   (ECE ≈ 0.20) while payment shifts stay calibrated — and a
-  [recalibration workflow](#phase-54--recalibration-workflow) (5.4) now **repairs all 3 flagged
+  [recalibration workflow](#phase-54--recalibration-workflow) (5.4) **repairs all 3 flagged
   worlds** (ECE ≈ 0.20 → ≈ 0.03) with a post-hoc Platt map fit on a recent window and validated
-  on a later holdout, base model frozen. Next, a risk-aware stress test (5.5) re-scores the EV
-  edge once payment risk is priced in.
+  on a later holdout, base model frozen. The
+  [risk-aware stress capstone](#phase-55--risk-aware-stress-test-the-capstone) (5.5) re-scores the
+  whole stack on **realized collectible profit** across the 10 worlds: full risk-aware beats raw EV
+  in **4/10** — recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts
+  `risky_brokers` **+5.7%**, baseline left flat — closing Phase 5.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

@@ -1,0 +1,59 @@
+# Phase 5.5 — Risk-aware stress test (the Phase 5 capstone).
+#
+# Drives benchmarks/run_risk_aware_stress.py. This is an EVALUATION-ONLY sweep: it
+# re-scores the bid policies under broker-quality stress on **realized collectible
+# profit** — the metric that finally prices in payment default and pay-delay risk —
+# combining the two Phase 5 tracks:
+#
+#   * payment risk   : 5.1 risk-adjusted EV objective + 5.2 payment-risk model
+#   * calibration    : 5.3 drift monitor + 5.4 post-hoc recalibration (promoted only
+#                      when the guardrail passes)
+#
+# Four policy arms are compared on the SAME held-out eval-window loads of each world,
+# scored against a payment + win ORACLE (true broker latents true_default_prob /
+# true_pay_days and the true win curve win_prob(reserve, ask)) — never the models:
+#
+#   1. best_fixed        — best of {conservative market x0.95, posted_rate, stretch x1.10}
+#   2. raw_ev            — EV recommender, risk-blind ranking (Phase 4.3b)
+#   3. risk_adjusted_ev  — EV recommender ranking by collectible EV (Phase 5.1 + 5.2)
+#   4. full_risk_aware   — risk_adjusted_ev + the promoted 5.4 recalibrator on P(win)
+#
+# Headline verdict = full_risk_aware vs raw_ev (HOLDS > +1% / NEUTRAL +/-1% /
+# REGRESSION < -1% collectible-profit uplift).
+#
+# No model is trained or retrained here beyond the baseline freeze; no live Truckstop,
+# auto-bidding, approval-workflow change, or UI. See README Phase 5.5.
+#
+# Cross-config single sources of truth (NOT duplicated here):
+#   * recalibration method / fit_days / eval_days / promotion guardrail
+#       -> config/recalibration.yaml        (recalibration: block)
+#   * OK / WATCH / ALERT severity thresholds + min_samples
+#       -> config/calibration_monitor.yaml  (calibration_monitor: block)
+#   * collectible-profit cash-cost model (annual_cash_cost_rate, free_pay_days,
+#     cost_per_loaded_mile) — the SAME knobs Phase 5.1 ranks with, so the oracle
+#     metric and the policy objective agree
+#       -> config/bid_recommender.yaml       (risk_adjusted_ev: block)
+
+risk_aware_stress:
+  # Stress worlds: reuse the Phase 4.5 broker-quality conditions so the capstone is
+  # measured on the same shifts the EV / calibration sweeps already characterized.
+  conditions: config/broker_quality_stress.yaml
+
+  # Synthetic horizon per world. Must cover recalibration fit_days + eval_days (7 + 14
+  # = 21 by default); all four arms are scored on the later eval window.
+  days: 21
+
+  # Verdict band (percentage points of collectible-profit uplift) for full_risk_aware
+  # vs raw_ev — mirrors the +/-1% idiom of the Phase 3.4 / 4.5 sweeps.
+  uplift_band_pct: 1.0
+
+  # Worlds to call out in the report. The payment-quality worlds should finally move
+  # under collectible profit (risk_adjusted_ev > raw_ev), and the reserve / win-curve
+  # worlds should benefit from the recalibrated P(win) (full_risk_aware >= risk_adjusted_ev).
+  watch_worlds:
+    - slow_pay
+    - unknown_credit
+    - risky_brokers
+    - tight_brokers
+    - high_contention
+    - degraded_corner

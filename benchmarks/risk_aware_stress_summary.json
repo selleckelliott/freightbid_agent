@@ -1,0 +1,680 @@
+{
+  "config": {
+    "fast": false,
+    "days": 21,
+    "max_loads": 600,
+    "uplift_band_pct": 1.0,
+    "condition_count": 10,
+    "trained_on": "baseline",
+    "base_calibration": "isotonic(validation)",
+    "recalibration": {
+      "enabled": false,
+      "method": "sigmoid",
+      "min_samples": 500,
+      "fit_days": 7,
+      "eval_days": 14,
+      "max_brier_worsening": 0.01,
+      "require_ece_improvement": true
+    },
+    "thresholds": {
+      "ece_watch": 0.03,
+      "ece_alert": 0.07,
+      "bias_watch": 0.05,
+      "bias_alert": 0.1,
+      "min_samples": 500,
+      "n_bins": 10
+    },
+    "annual_cash_cost_rate": 0.18,
+    "free_pay_days": 30.0,
+    "cost_per_loaded_mile": 1.39,
+    "win_logistic_scale_rpm_baseline": 0.06,
+    "winnability_seed": 42,
+    "payment_seed": 45,
+    "operational_seed": 1042,
+    "operational_seed_offset": 1000,
+    "watch_worlds": [
+      "slow_pay",
+      "unknown_credit",
+      "risky_brokers",
+      "tight_brokers",
+      "high_contention",
+      "degraded_corner"
+    ]
+  },
+  "generated_at_utc": "2026-06-22T18:56:04.972840+00:00",
+  "runtime_seconds": 438.3,
+  "tally": {
+    "HOLDS": 4,
+    "NEUTRAL": 5,
+    "REGRESSION": 1
+  },
+  "promoted_count": 5,
+  "payment_quality_worlds_improved": [
+    "risky_brokers"
+  ],
+  "headline": "Full risk-aware beats raw EV on collectible profit in 4/10 worlds (neutral 5, regression 1); risk-adjusted EV improves 1 payment-quality world(s); recalibration promoted in 5.",
+  "conditions": [
+    {
+      "name": "baseline",
+      "lens": "reference",
+      "rationale": "Canonical Phase 4.1/4.3 world (unposted 0.15, brokers default, reserve center 1.05, win-scale 0.06). The model is trained here; this condition reconciles with the shipped Phase 4.3 EV-vs-fixed ordering.",
+      "overrides": {},
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 175.91,
+          "win_rate": 0.4629,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.092,
+          "average_realized_pay_days": 38.26,
+          "delay_penalty_total": 1666.22,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 205.06,
+          "win_rate": 0.8064,
+          "avg_ask_rpm": 2.0323,
+          "default_rate_on_won_loads": 0.1034,
+          "average_realized_pay_days": 41.37,
+          "delay_penalty_total": 3099.8
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 204.22,
+          "win_rate": 0.7502,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.1028,
+          "average_realized_pay_days": 41.23,
+          "delay_penalty_total": 2888.24
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 204.22,
+          "win_rate": 0.7502,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.1028,
+          "average_realized_pay_days": 41.23,
+          "delay_penalty_total": 2888.24
+        }
+      },
+      "uplift_vs_raw_ev": -0.4,
+      "uplift_vs_fixed": 16.1,
+      "risk_adj_uplift_vs_raw": -0.4,
+      "full_uplift_vs_risk_adj": 0.0,
+      "verdict": "NEUTRAL",
+      "recalibrator_promoted": false,
+      "recalibrator_reason": "no_ece_improvement",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.007645,
+      "ece_after": 0.007692
+    },
+    {
+      "name": "degraded_corner",
+      "lens": "both",
+      "rationale": "Everything hostile at once: a no-rate, hotly-contested board served by slow-paying, risky, low-bonded brokers. The decisive test \u2014 if the EV policy stays positive here it is not a one-world artifact.",
+      "overrides": {
+        "synthetic_data": {
+          "unposted_rate_fraction": 0.4
+        },
+        "brokers": {
+          "pay_days_slow": 78.0,
+          "default_prob_worst": 0.3,
+          "bonded_fraction": 0.25
+        },
+        "outcomes": {
+          "reservation_contention_drop": 0.32,
+          "late_pay_threshold_days": 35.0
+        }
+      },
+      "n_loads": 584,
+      "arms": {
+        "best_fixed": {
+          "n": 584,
+          "collectible_profit": 30.58,
+          "win_rate": 0.1104,
+          "avg_ask_rpm": 2.2225,
+          "default_rate_on_won_loads": 0.144,
+          "average_realized_pay_days": 44.75,
+          "delay_penalty_total": 597.6,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 584,
+          "collectible_profit": 53.46,
+          "win_rate": 0.383,
+          "avg_ask_rpm": 2.0182,
+          "default_rate_on_won_loads": 0.1811,
+          "average_realized_pay_days": 52.8,
+          "delay_penalty_total": 2758.34
+        },
+        "risk_adjusted_ev": {
+          "n": 584,
+          "collectible_profit": 48.39,
+          "win_rate": 0.3034,
+          "avg_ask_rpm": 2.066,
+          "default_rate_on_won_loads": 0.1791,
+          "average_realized_pay_days": 52.28,
+          "delay_penalty_total": 2141.22
+        },
+        "full_risk_aware": {
+          "n": 584,
+          "collectible_profit": 60.72,
+          "win_rate": 0.4167,
+          "avg_ask_rpm": 1.998,
+          "default_rate_on_won_loads": 0.1679,
+          "average_realized_pay_days": 49.77,
+          "delay_penalty_total": 2644.58
+        }
+      },
+      "uplift_vs_raw_ev": 13.6,
+      "uplift_vs_fixed": 98.6,
+      "risk_adj_uplift_vs_raw": -9.5,
+      "full_uplift_vs_risk_adj": 25.5,
+      "verdict": "HOLDS",
+      "recalibrator_promoted": true,
+      "recalibrator_reason": "promoted",
+      "calibration_severity_before": "ALERT",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.172148,
+      "ece_after": 0.022687
+    },
+    {
+      "name": "disappearing_loads",
+      "lens": "calibration",
+      "rationale": "Loads cover much faster (half-life 18->8h) and contention accelerates coverage harder (factor 4->7). Moves coverage/censoring labels \u2014 a calibration stress; the EV oracle (profit-if-won) is coverage-agnostic.",
+      "overrides": {
+        "outcomes": {
+          "base_cover_halflife_hours": 8.0,
+          "contention_cover_factor": 7.0
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 175.91,
+          "win_rate": 0.4629,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.092,
+          "average_realized_pay_days": 38.26,
+          "delay_penalty_total": 1666.22,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 205.06,
+          "win_rate": 0.8064,
+          "avg_ask_rpm": 2.0323,
+          "default_rate_on_won_loads": 0.1034,
+          "average_realized_pay_days": 41.37,
+          "delay_penalty_total": 3099.8
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 204.22,
+          "win_rate": 0.7502,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.1028,
+          "average_realized_pay_days": 41.23,
+          "delay_penalty_total": 2888.24
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 204.22,
+          "win_rate": 0.7502,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.1028,
+          "average_realized_pay_days": 41.23,
+          "delay_penalty_total": 2888.24
+        }
+      },
+      "uplift_vs_raw_ev": -0.4,
+      "uplift_vs_fixed": 16.1,
+      "risk_adj_uplift_vs_raw": -0.4,
+      "full_uplift_vs_risk_adj": 0.0,
+      "verdict": "NEUTRAL",
+      "recalibrator_promoted": false,
+      "recalibrator_reason": "no_ece_improvement",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.007645,
+      "ece_after": 0.007692
+    },
+    {
+      "name": "high_contention",
+      "lens": "ev",
+      "rationale": "Contested loads push the broker reserve down much harder (reservation_contention_drop 0.15->0.35): the same ask wins less often on hot loads. Moves the hidden reserve -> a genuine EV-lens stress.",
+      "overrides": {
+        "outcomes": {
+          "reservation_contention_drop": 0.35
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 30.23,
+          "win_rate": 0.0828,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.0769,
+          "average_realized_pay_days": 34.39,
+          "delay_penalty_total": 198.64,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 68.62,
+          "win_rate": 0.2709,
+          "avg_ask_rpm": 2.0323,
+          "default_rate_on_won_loads": 0.0976,
+          "average_realized_pay_days": 39.71,
+          "delay_penalty_total": 975.94
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 58.71,
+          "win_rate": 0.2134,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.0964,
+          "average_realized_pay_days": 39.43,
+          "delay_penalty_total": 771.72
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 84.92,
+          "win_rate": 0.3431,
+          "avg_ask_rpm": 1.9957,
+          "default_rate_on_won_loads": 0.09,
+          "average_realized_pay_days": 37.65,
+          "delay_penalty_total": 1081.01
+        }
+      },
+      "uplift_vs_raw_ev": 23.8,
+      "uplift_vs_fixed": 180.9,
+      "risk_adj_uplift_vs_raw": -14.4,
+      "full_uplift_vs_risk_adj": 44.6,
+      "verdict": "HOLDS",
+      "recalibrator_promoted": true,
+      "recalibrator_reason": "promoted",
+      "calibration_severity_before": "ALERT",
+      "calibration_severity_after": "WATCH",
+      "ece_before": 0.204154,
+      "ece_after": 0.033518
+    },
+    {
+      "name": "no_rate_heavy",
+      "lens": "ev",
+      "rationale": "Triple the \"call for rate\" share (unposted 0.15->0.45). Shrinks the priced board and forces the recommender to lean on market-rate anchoring far more often \u2014 a direct EV stress on the bid-laddering itself.",
+      "overrides": {
+        "synthetic_data": {
+          "unposted_rate_fraction": 0.45
+        }
+      },
+      "n_loads": 586,
+      "arms": {
+        "best_fixed": {
+          "n": 586,
+          "collectible_profit": 176.35,
+          "win_rate": 0.4648,
+          "avg_ask_rpm": 2.2222,
+          "default_rate_on_won_loads": 0.0922,
+          "average_realized_pay_days": 38.34,
+          "delay_penalty_total": 1739.56,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 586,
+          "collectible_profit": 204.78,
+          "win_rate": 0.8068,
+          "avg_ask_rpm": 2.035,
+          "default_rate_on_won_loads": 0.1035,
+          "average_realized_pay_days": 41.43,
+          "delay_penalty_total": 3206.5
+        },
+        "risk_adjusted_ev": {
+          "n": 586,
+          "collectible_profit": 203.08,
+          "win_rate": 0.7471,
+          "avg_ask_rpm": 2.0737,
+          "default_rate_on_won_loads": 0.1028,
+          "average_realized_pay_days": 41.23,
+          "delay_penalty_total": 2959.07
+        },
+        "full_risk_aware": {
+          "n": 586,
+          "collectible_profit": 203.08,
+          "win_rate": 0.7471,
+          "avg_ask_rpm": 2.0737,
+          "default_rate_on_won_loads": 0.1028,
+          "average_realized_pay_days": 41.23,
+          "delay_penalty_total": 2959.07
+        }
+      },
+      "uplift_vs_raw_ev": -0.8,
+      "uplift_vs_fixed": 15.2,
+      "risk_adj_uplift_vs_raw": -0.8,
+      "full_uplift_vs_risk_adj": 0.0,
+      "verdict": "NEUTRAL",
+      "recalibrator_promoted": false,
+      "recalibrator_reason": "no_ece_improvement",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.005296,
+      "ece_after": 0.006557
+    },
+    {
+      "name": "risky_brokers",
+      "lens": "calibration",
+      "rationale": "A nastier pool: worst-broker default risk doubles (0.16->0.32), bonded share falls (0.45->0.22) and quick-pay thins (0.30->0.12). Shifts the credit/risk features the model scores; realized bid profit is unaffected.",
+      "overrides": {
+        "brokers": {
+          "default_prob_worst": 0.32,
+          "bonded_fraction": 0.22,
+          "quick_pay_fraction": 0.12
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 120.32,
+          "win_rate": 0.4629,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.1782,
+          "average_realized_pay_days": 37.77,
+          "delay_penalty_total": 1456.04,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 106.96,
+          "win_rate": 0.8063,
+          "avg_ask_rpm": 2.0305,
+          "default_rate_on_won_loads": 0.2019,
+          "average_realized_pay_days": 40.9,
+          "delay_penalty_total": 2681.38
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 113.07,
+          "win_rate": 0.7479,
+          "avg_ask_rpm": 2.0706,
+          "default_rate_on_won_loads": 0.2011,
+          "average_realized_pay_days": 40.75,
+          "delay_penalty_total": 2486.26
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 113.07,
+          "win_rate": 0.7479,
+          "avg_ask_rpm": 2.0706,
+          "default_rate_on_won_loads": 0.2011,
+          "average_realized_pay_days": 40.75,
+          "delay_penalty_total": 2486.26
+        }
+      },
+      "uplift_vs_raw_ev": 5.7,
+      "uplift_vs_fixed": -6.0,
+      "risk_adj_uplift_vs_raw": 5.7,
+      "full_uplift_vs_risk_adj": 0.0,
+      "verdict": "HOLDS",
+      "recalibrator_promoted": false,
+      "recalibrator_reason": "no_ece_improvement",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.007553,
+      "ece_after": 0.007987
+    },
+    {
+      "name": "sharp_win_curve",
+      "lens": "ev",
+      "rationale": "The accept/reject threshold around the reserve sharpens (win_logistic_scale_rpm 0.06->0.025): mispricing is punished harder, so bid precision matters more. Stresses whether the EV ladder still lands well.",
+      "overrides": {
+        "outcomes": {
+          "win_logistic_scale_rpm": 0.025
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 176.49,
+          "win_rate": 0.4561,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.0901,
+          "average_realized_pay_days": 37.76,
+          "delay_penalty_total": 1601.3,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 213.21,
+          "win_rate": 0.8381,
+          "avg_ask_rpm": 2.0323,
+          "default_rate_on_won_loads": 0.1036,
+          "average_realized_pay_days": 41.43,
+          "delay_penalty_total": 3233.2
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 211.1,
+          "win_rate": 0.778,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.1029,
+          "average_realized_pay_days": 41.25,
+          "delay_penalty_total": 2992.89
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 212.3,
+          "win_rate": 0.7763,
+          "avg_ask_rpm": 2.0727,
+          "default_rate_on_won_loads": 0.1031,
+          "average_realized_pay_days": 41.31,
+          "delay_penalty_total": 3006.76
+        }
+      },
+      "uplift_vs_raw_ev": -0.4,
+      "uplift_vs_fixed": 20.3,
+      "risk_adj_uplift_vs_raw": -1.0,
+      "full_uplift_vs_risk_adj": 0.6,
+      "verdict": "NEUTRAL",
+      "recalibrator_promoted": true,
+      "recalibrator_reason": "promoted",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.023472,
+      "ece_after": 0.00726
+    },
+    {
+      "name": "slow_pay",
+      "lens": "calibration",
+      "rationale": "Brokers pay far slower (fast 18->30, slow 55->80 days) and the \"late\" bar tightens (45->35). Payment timing is orthogonal to realized bid profit, so this mainly stresses model calibration via shifted broker pay features.",
+      "overrides": {
+        "brokers": {
+          "pay_days_fast": 30.0,
+          "pay_days_slow": 80.0
+        },
+        "outcomes": {
+          "late_pay_threshold_days": 35.0
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 170.92,
+          "win_rate": 0.4629,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.092,
+          "average_realized_pay_days": 57.13,
+          "delay_penalty_total": 4526.04,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 192.82,
+          "win_rate": 0.8282,
+          "avg_ask_rpm": 2.0124,
+          "default_rate_on_won_loads": 0.103,
+          "average_realized_pay_days": 61.06,
+          "delay_penalty_total": 8012.08
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 188.18,
+          "win_rate": 0.742,
+          "avg_ask_rpm": 2.0643,
+          "default_rate_on_won_loads": 0.1022,
+          "average_realized_pay_days": 60.73,
+          "delay_penalty_total": 7072.88
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 187.27,
+          "win_rate": 0.7001,
+          "avg_ask_rpm": 2.0926,
+          "default_rate_on_won_loads": 0.1015,
+          "average_realized_pay_days": 60.55,
+          "delay_penalty_total": 6660.47
+        }
+      },
+      "uplift_vs_raw_ev": -2.9,
+      "uplift_vs_fixed": 9.6,
+      "risk_adj_uplift_vs_raw": -2.4,
+      "full_uplift_vs_risk_adj": -0.5,
+      "verdict": "REGRESSION",
+      "recalibrator_promoted": true,
+      "recalibrator_reason": "promoted",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.020493,
+      "ece_after": 0.009558
+    },
+    {
+      "name": "tight_brokers",
+      "lens": "ev",
+      "rationale": "Brokers are stingier across the board (reservation_center_mult 1.05->0.92): reserves sit below market, squeezing the profitable win region. The hardest single EV-lens test of margin discipline.",
+      "overrides": {
+        "outcomes": {
+          "reservation_center_mult": 0.92
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 29.61,
+          "win_rate": 0.0766,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.0729,
+          "average_realized_pay_days": 33.36,
+          "delay_penalty_total": 174.19,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 75.36,
+          "win_rate": 0.2918,
+          "avg_ask_rpm": 2.0323,
+          "default_rate_on_won_loads": 0.0961,
+          "average_realized_pay_days": 39.46,
+          "delay_penalty_total": 1008.4
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 63.62,
+          "win_rate": 0.2272,
+          "avg_ask_rpm": 2.0699,
+          "default_rate_on_won_loads": 0.0953,
+          "average_realized_pay_days": 39.25,
+          "delay_penalty_total": 801.95
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 93.86,
+          "win_rate": 0.3715,
+          "avg_ask_rpm": 1.9948,
+          "default_rate_on_won_loads": 0.0889,
+          "average_realized_pay_days": 37.48,
+          "delay_penalty_total": 1132.77
+        }
+      },
+      "uplift_vs_raw_ev": 24.5,
+      "uplift_vs_fixed": 217.0,
+      "risk_adj_uplift_vs_raw": -15.6,
+      "full_uplift_vs_risk_adj": 47.5,
+      "verdict": "HOLDS",
+      "recalibrator_promoted": true,
+      "recalibrator_reason": "promoted",
+      "calibration_severity_before": "ALERT",
+      "calibration_severity_after": "WATCH",
+      "ece_before": 0.204885,
+      "ece_after": 0.035117
+    },
+    {
+      "name": "unknown_credit",
+      "lens": "calibration",
+      "rationale": "Far more brokers post with paywalled/blank credit (unknown 0.18->0.45). The \"unknown\" credit bucket the model leans on becomes dominant \u2014 a pure covariate-shift stress on calibration, not on EV.",
+      "overrides": {
+        "brokers": {
+          "unknown_credit_fraction": 0.45
+        }
+      },
+      "n_loads": 573,
+      "arms": {
+        "best_fixed": {
+          "n": 573,
+          "collectible_profit": 175.91,
+          "win_rate": 0.4629,
+          "avg_ask_rpm": 2.2207,
+          "default_rate_on_won_loads": 0.092,
+          "average_realized_pay_days": 38.26,
+          "delay_penalty_total": 1666.22,
+          "fixed_winner": "conservative_fixed"
+        },
+        "raw_ev": {
+          "n": 573,
+          "collectible_profit": 204.87,
+          "win_rate": 0.8005,
+          "avg_ask_rpm": 2.0345,
+          "default_rate_on_won_loads": 0.1033,
+          "average_realized_pay_days": 41.35,
+          "delay_penalty_total": 3082.07
+        },
+        "risk_adjusted_ev": {
+          "n": 573,
+          "collectible_profit": 204.63,
+          "win_rate": 0.751,
+          "avg_ask_rpm": 2.0693,
+          "default_rate_on_won_loads": 0.103,
+          "average_realized_pay_days": 41.29,
+          "delay_penalty_total": 2902.44
+        },
+        "full_risk_aware": {
+          "n": 573,
+          "collectible_profit": 204.63,
+          "win_rate": 0.751,
+          "avg_ask_rpm": 2.0693,
+          "default_rate_on_won_loads": 0.103,
+          "average_realized_pay_days": 41.29,
+          "delay_penalty_total": 2902.44
+        }
+      },
+      "uplift_vs_raw_ev": -0.1,
+      "uplift_vs_fixed": 16.3,
+      "risk_adj_uplift_vs_raw": -0.1,
+      "full_uplift_vs_risk_adj": 0.0,
+      "verdict": "NEUTRAL",
+      "recalibrator_promoted": false,
+      "recalibrator_reason": "no_ece_improvement",
+      "calibration_severity_before": "OK",
+      "calibration_severity_after": "OK",
+      "ece_before": 0.008531,
+      "ece_after": 0.009237
+    }
+  ]
+}
