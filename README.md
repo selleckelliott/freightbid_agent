@@ -23,6 +23,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**EV bid recommender (Phase 4.3)**](#phase-43--expected-value-bid-recommender) | calibrated P(win) × margin → bid ladder | **+32.8% realized profit vs best fixed** · only $39 EV-regret vs a clairvoyant oracle |
 | [**Broker-quality stress (Phase 4.5)**](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market) | 10 broker-quality shifts · model frozen on baseline | **EV beats best fixed 10/10** · uplift grows to +160% as markets harden · payment risk shown **orthogonal** to bid profit |
 | [**Payment-risk model (Phase 5.2)**](#phase-52--calibrated-payment-risk-model) | calibrated HGB `P(default)` + `E[pay_days]` head | **test ECE 0.003** · PR-AUC 0.140 > baselines · pay-days MAE 4.0d · the risk signal 5.1 folds into EV |
+| [**Risk-adjusted EV (Phase 5.1)**](#phase-51--risk-adjusted-ev-objective) | fold 5.2 `p_collect` + `E[pay_days]` into the bid objective | objective → **expected collectible profit** · discounts revenue, keeps full cost · safer-broker preference · flag-gated, **byte-identical when off** |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1181,7 +1182,64 @@ reliability diagram are committed. Next, **Phase 5.1** folds `p_collect` and
 `E[pay_days]` into a **risk-adjusted EV** objective so the recommender stops treating a
 slow / defaulting broker like a reliable one.
 
-## What I learned
+## Phase 5.1 — Risk-Adjusted EV Objective
+
+Phase 5.1 changes the bid objective from **expected won-load margin** to **expected
+*collectible* profit**. The recommender now optionally discounts revenue by predicted
+collection risk and penalizes slow-but-collected payment using a configurable cash-cost
+rate, while preserving raw-EV behavior when the feature flag or the
+[Phase 5.2 payment-risk artifact](#phase-52--calibrated-payment-risk-model) is
+unavailable. It is the payoff for 5.2 — the calibrated `P(default)` finally enters the
+decision instead of sitting beside it.
+
+**The financial-honesty correction.** The tempting shortcut — multiply EV by
+`p_collect` — is wrong: `P(win) × profit × p_collect` quietly makes the *operating cost
+vanish* when the broker defaults. But fuel, driver, deadhead and tolls are paid whether
+or not the check clears. So the objective discounts **revenue**, not profit, and always
+subtracts the **full** cost:
+
+```
+p_collect                   = 1 − P(default)                       # from the 5.2 model
+expected_collected_revenue  = ask × p_collect
+delay_penalty               = ask × p_collect × annual_cash_cost_rate
+                              × max(expected_pay_days − free_pay_days, 0) / 365
+risk_adjusted_profit_if_won = expected_collected_revenue − cost − delay_penalty
+risk_adjusted_ev            = P(win) × risk_adjusted_profit_if_won
+```
+
+The slow-pay term charges a **cash-cost rate** (default **18%/yr**, a small carrier's
+factoring-equivalent cost of capital) for each day a *collected* invoice sits past a
+free window (default **net-30**). `P(default)` is clamped to `[0, 1]`; if the model
+carries no pay-days head the delay term is simply zero — the default-risk discount on
+revenue still applies.
+
+**Flag-gated and inert by default.** `risk_adjusted_ev.enabled` defaults **off**; with
+it off, or with no payment artifact present, the recommender ranks by raw EV and every
+recommendation is **byte-identical** to Phase 4.3b — a guarantee pinned by tests
+(flag-off, model-missing, and `payment.estimate() → None` each reproduce the prior
+output exactly). When on, candidate asks are ranked by `risk_adjusted_ev` instead of raw
+EV; candidate generation and the guardrails (still applied to **raw** profit) are
+otherwise untouched.
+
+Because risk lowers the marginal value of a bigger invoice (more revenue exposed to
+default), the objective **prefers the safer broker** and, all else equal, pulls the
+recommended ask down as `P(default)` rises. On a sample Dallas load the live model
+(`P(default) ≈ 0.10`, `E[pay_days] ≈ 43`) trims a **$185 raw EV to $122** collectible —
+the ~10% collection haircut plus a ~$3.50 delay penalty — beside an unchanged
+cost-plus-margin bid.
+
+**Honest "every option loses money" signal.** When *all* in-support asks have negative
+risk-adjusted EV (e.g. a near-certain defaulter), the recommender does **not** silently
+return a "best" loss — it still surfaces its least-negative option but flags
+`risk_adjusted_ev_positive = false` with a `risk_adjusted_warning`, so a human sees the
+load is expected to lose money after payment risk. Surfacing it rather than blocking
+keeps 5.1 narrow.
+
+Every input is exposed for inspectability — `raw_ev`, `risk_adjusted_ev`, `p_default`,
+`p_collect`, `expected_pay_days`, `delay_penalty`, `expected_collected_revenue`,
+`risk_adjusted_profit_if_won` — on each ladder rung and through the live API/CLI. The
+objective change is deliberately *not* re-benchmarked here; stress-testing the
+risk-adjusted recommender across broker-quality shifts is the **Phase 5.5** capstone.
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
   destination model's per-decision predicted-vs-realized onward-deadhead
   correlation is weak (~0.02), yet steering the *distribution* of accepted loads
@@ -1208,6 +1266,12 @@ slow / defaulting broker like a reliable one.
   the gradient booster on *ranking* (Phase 5.2). The model still earns its keep because
   the probability gets *multiplied into* the bid objective, where a trustworthy 5% beats
   a slightly sharper ordering — calibration (test ECE 0.003), not AUC, is the deliverable.
+- **Discounting profit by collection risk double-counts the cost.** The honest
+  risk-adjusted EV (Phase 5.1) discounts *revenue* by `p_collect` and still subtracts the
+  **full** operating cost — fuel, driver and deadhead are paid whether or not the broker's
+  check clears. The seductive `P(win) × profit × p_collect` would quietly refund the cost
+  on default; getting the accounting right is exactly what lets risk-adjusted EV go
+  honestly *negative* on a likely defaulter instead of just shrinking toward zero.
 
 ## Limitations & next work
 **Limitations**
@@ -1220,13 +1284,16 @@ slow / defaulting broker like a reliable one.
   realized onward-deadhead inside the loop; the gain is aggregate, not per-decision.
 - **Censored labels.** Onward-deadhead is capped (300 mi) and ~8% censored, so the
   regressor learns a truncated target.
-- **Payment risk is not yet in the bid objective.** Realized bid profit is
-  `P(win) × (ask − cost)` with no payment term, so the Phase 4.5 sweep confirmed slower
-  pay / unknown credit / risky brokers moved *neither* the EV verdict nor calibration —
-  the recommender would happily bid into a broker that won't pay. Phase 5.2 now supplies
-  the missing signal — a [calibrated `P(default)` + `E[pay_days]` model](#phase-52--calibrated-payment-risk-model)
-  — but **folding it into a risk-adjusted EV objective is Phase 5.1**, so today's
-  recommender is still payment-blind.
+- **Payment risk now enters the bid objective (flag-gated).** Through Phase 4.5 the
+  realized objective was `P(win) × (ask − cost)` with no payment term, so slower pay /
+  unknown credit / risky brokers moved *neither* the EV verdict nor calibration — the
+  recommender would happily bid into a broker that won't pay.
+  [Phase 5.1](#phase-51--risk-adjusted-ev-objective) folds the
+  [calibrated `P(default)` + `E[pay_days]`](#phase-52--calibrated-payment-risk-model)
+  into a **risk-adjusted EV** that discounts revenue by `p_collect` and penalizes slow
+  pay — but it ships **behind a default-off flag**, so the out-of-the-box recommender is
+  still payment-blind until enabled, and the gain has **not yet been stress-tested**
+  (that is Phase 5.5).
 
 **Next work**
 - **Phase 4 — broker / load quality & winnability.** The
@@ -1245,9 +1312,11 @@ slow / defaulting broker like a reliable one.
 - **Phase 5 — risk-aware bidding & recalibration (in progress).** The
   [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is
   built — `P(default)` + `E[pay_days]` from observable broker columns, served behind a
-  no-op-safe port; **risk-adjusted EV** (5.1) folds it into the objective, and a
-  calibration-drift monitor plus recalibration workflow (5.3–5.4) repair the frozen
-  win-model under the market shift Phase 4.5 exposed.
+  no-op-safe port — and [risk-adjusted EV](#phase-51--risk-adjusted-ev-objective) (5.1)
+  now folds it into the objective behind a default-off flag; a calibration-drift monitor
+  plus recalibration workflow (5.3–5.4) repair the frozen win-model under the market
+  shift Phase 4.5 exposed, and a risk-aware stress test (5.5) re-scores the EV edge once
+  payment risk is priced in.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.

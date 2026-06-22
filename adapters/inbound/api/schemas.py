@@ -118,6 +118,16 @@ class BidLadderRungDTO(BaseModel):
     expected_value: float
     extrapolated: bool
     rationale: str
+    # -- Phase 5.1: optional risk-adjusted EV (null unless payment risk is wired) --
+    # Kept in sync with domain ``BidOption`` so ``BidLadderRungDTO(**asdict(rung))``
+    # keeps working (the mapper expands every dataclass field as a keyword).
+    risk_adjusted_ev: Optional[float] = None
+    p_default: Optional[float] = None
+    p_collect: Optional[float] = None
+    expected_pay_days: Optional[float] = None
+    delay_penalty: Optional[float] = None
+    expected_collected_revenue: Optional[float] = None
+    risk_adjusted_profit_if_won: Optional[float] = None
 
 
 class BidRangeDTO(BaseModel):
@@ -137,6 +147,17 @@ class BidRangeDTO(BaseModel):
     ev_recommended_bid: Optional[float] = None
     ev_recommended_rate_per_mile: Optional[float] = None
     ladder: Optional[List[BidLadderRungDTO]] = None
+    # -- Phase 5.1: optional risk-adjusted EV (null unless payment risk is wired) --
+    payment_risk_available: Optional[bool] = None
+    risk_adjusted_ev_at_target: Optional[float] = None
+    p_default_at_target: Optional[float] = None
+    p_collect_at_target: Optional[float] = None
+    expected_pay_days_at_target: Optional[float] = None
+    delay_penalty_at_target: Optional[float] = None
+    expected_collected_revenue_at_target: Optional[float] = None
+    risk_adjusted_profit_at_target: Optional[float] = None
+    risk_adjusted_ev_positive: Optional[bool] = None
+    risk_adjusted_warning: Optional[str] = None
 
 
 RankedLoad.model_rebuild()

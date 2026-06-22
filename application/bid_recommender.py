@@ -42,6 +42,20 @@ class BidRange:
     ev_recommended_bid: Optional[float] = None
     ev_recommended_rate_per_mile: Optional[float] = None
     ladder: Optional[List[BidOption]] = None
+    # -- Phase 5.1: optional risk-adjusted EV (None unless payment risk is wired) --
+    # Populated only when the recommendation actually applied risk adjustment. The
+    # ``*_at_target`` fields mirror the recommended rung; ``risk_adjusted_ev_positive``
+    # / ``risk_adjusted_warning`` carry the honest "every ask loses money" signal.
+    payment_risk_available: Optional[bool] = None
+    risk_adjusted_ev_at_target: Optional[float] = None
+    p_default_at_target: Optional[float] = None
+    p_collect_at_target: Optional[float] = None
+    expected_pay_days_at_target: Optional[float] = None
+    delay_penalty_at_target: Optional[float] = None
+    expected_collected_revenue_at_target: Optional[float] = None
+    risk_adjusted_profit_at_target: Optional[float] = None
+    risk_adjusted_ev_positive: Optional[bool] = None
+    risk_adjusted_warning: Optional[str] = None
 
 
 def bid_query_from_load(load: Load, decided_at: datetime) -> BidQuery:
@@ -167,3 +181,20 @@ class BidRecommenderService:
         bid_range.ev_recommended_bid = rec.recommended_ask
         bid_range.ev_recommended_rate_per_mile = round(rec.recommended_ask / miles, 4)
         bid_range.ladder = rec.options
+
+        # Phase 5.1: fold the recommended rung's risk-adjusted EV breakdown through,
+        # only when payment risk was actually applied (else these stay None — the 4.3b
+        # output is unchanged).
+        if rec.payment_risk_available:
+            bid_range.payment_risk_available = True
+            bid_range.risk_adjusted_ev_at_target = chosen.risk_adjusted_ev
+            bid_range.p_default_at_target = chosen.p_default
+            bid_range.p_collect_at_target = chosen.p_collect
+            bid_range.expected_pay_days_at_target = chosen.expected_pay_days
+            bid_range.delay_penalty_at_target = chosen.delay_penalty
+            bid_range.expected_collected_revenue_at_target = (
+                chosen.expected_collected_revenue
+            )
+            bid_range.risk_adjusted_profit_at_target = chosen.risk_adjusted_profit_if_won
+            bid_range.risk_adjusted_ev_positive = rec.risk_adjusted_ev_positive
+            bid_range.risk_adjusted_warning = rec.risk_adjusted_warning

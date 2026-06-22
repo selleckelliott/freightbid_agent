@@ -54,6 +54,16 @@ def bid_range_to_dto(bid: BidRange) -> BidRangeDTO:
         ev_recommended_bid=bid.ev_recommended_bid,
         ev_recommended_rate_per_mile=bid.ev_recommended_rate_per_mile,
         ladder=ladder,
+        payment_risk_available=bid.payment_risk_available,
+        risk_adjusted_ev_at_target=bid.risk_adjusted_ev_at_target,
+        p_default_at_target=bid.p_default_at_target,
+        p_collect_at_target=bid.p_collect_at_target,
+        expected_pay_days_at_target=bid.expected_pay_days_at_target,
+        delay_penalty_at_target=bid.delay_penalty_at_target,
+        expected_collected_revenue_at_target=bid.expected_collected_revenue_at_target,
+        risk_adjusted_profit_at_target=bid.risk_adjusted_profit_at_target,
+        risk_adjusted_ev_positive=bid.risk_adjusted_ev_positive,
+        risk_adjusted_warning=bid.risk_adjusted_warning,
     )
 
 
