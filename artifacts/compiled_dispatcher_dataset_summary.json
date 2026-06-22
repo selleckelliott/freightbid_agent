@@ -1,0 +1,165 @@
+{
+  "dataset_version": "1.0.0",
+  "teacher_trace_schema_version": "1.0.0",
+  "workflow_graph_version": "1.0.0",
+  "source_policy_version": "phase-5.5-full-risk-aware",
+  "generated": {
+    "n_examples": 560,
+    "n_conversations": 560,
+    "n_worlds": 7,
+    "n_with_human_action": 92
+  },
+  "determinism_hash": "9dfc0355d34d112064d65e1967f3e72c78cc3dcc16b894f5b823c9378a529946",
+  "category_histogram": {
+    "clean_bid": 448,
+    "payment_escalation": 92,
+    "infeasible_no_bid": 20
+  },
+  "coverage_flag_histogram": {
+    "profitable_bid": 448,
+    "recalibration_applied": 560,
+    "approval_required": 92,
+    "high_default_risk": 92,
+    "no_safe_bid": 20,
+    "slow_pay_world": 80
+  },
+  "decision_histogram": {
+    "bid": 448,
+    "approval_required": 92,
+    "no_bid": 20
+  },
+  "hub_branch_histogram": {
+    "clean_bid": 448,
+    "escalated": 92,
+    "infeasible": 20
+  },
+  "warning_histogram": {
+    "payment_risk": 92,
+    "no_feasible_bid": 20
+  },
+  "human_action_histogram": {
+    "submitted_mock": 28,
+    "edited": 25,
+    "approved": 26,
+    "rejected": 13
+  },
+  "per_world": [
+    {
+      "world": "baseline",
+      "n": 80,
+      "categories": {
+        "clean_bid": 66,
+        "payment_escalation": 11,
+        "infeasible_no_bid": 3
+      }
+    },
+    {
+      "world": "degraded_corner",
+      "n": 80,
+      "categories": {
+        "clean_bid": 63,
+        "payment_escalation": 15,
+        "infeasible_no_bid": 2
+      }
+    },
+    {
+      "world": "high_contention",
+      "n": 80,
+      "categories": {
+        "clean_bid": 66,
+        "payment_escalation": 11,
+        "infeasible_no_bid": 3
+      }
+    },
+    {
+      "world": "risky_brokers",
+      "n": 80,
+      "categories": {
+        "clean_bid": 65,
+        "payment_escalation": 12,
+        "infeasible_no_bid": 3
+      }
+    },
+    {
+      "world": "slow_pay",
+      "n": 80,
+      "categories": {
+        "clean_bid": 52,
+        "payment_escalation": 25,
+        "infeasible_no_bid": 3
+      }
+    },
+    {
+      "world": "tight_brokers",
+      "n": 80,
+      "categories": {
+        "clean_bid": 66,
+        "payment_escalation": 11,
+        "infeasible_no_bid": 3
+      }
+    },
+    {
+      "world": "unknown_credit",
+      "n": 80,
+      "categories": {
+        "clean_bid": 70,
+        "infeasible_no_bid": 3,
+        "payment_escalation": 7
+      }
+    }
+  ],
+  "train_eligibility": {
+    "features_source": "inference_context",
+    "feature_fields": [
+      "appointment_required",
+      "broker_age_days",
+      "broker_bonded",
+      "broker_credit_bucket",
+      "broker_days_to_pay",
+      "broker_id",
+      "broker_quick_pay_available",
+      "commodity",
+      "cost_per_loaded_mile",
+      "equipment_type",
+      "has_posted_rate",
+      "length",
+      "load_age_hours",
+      "load_id",
+      "load_views",
+      "loaded_miles",
+      "market_rate",
+      "mode",
+      "origin_lat",
+      "origin_lon",
+      "posted_rate_per_mile",
+      "snapshot_time",
+      "tarp_required",
+      "truck_equipment_type",
+      "weight"
+    ],
+    "target_fields": [
+      "recommended_load_id",
+      "decision",
+      "hub_branch",
+      "approval_decision",
+      "recommended_bid_amount",
+      "recommended_bid_rpm",
+      "risk_adjusted_ev",
+      "win_probability",
+      "p_default",
+      "warnings",
+      "explanation"
+    ],
+    "note": "Inputs (features/prompt) are inference_context only; targets/completion may include node_outputs (e.g. risk_adjusted_ev) as predicted outputs, never inputs.",
+    "leakage_check": "pass"
+  },
+  "provenance": {
+    "git_commit": "f88296d0f14af71f86c1b42c0846ec7bc5c48027",
+    "model_artifact_ids": {
+      "winnability": "winnability:isotonic:seed=42:days=14",
+      "payment": "payment:gbm:seed=45",
+      "recalibrator": "recalibrator:sigmoid"
+    },
+    "random_seed": 1042
+  }
+}

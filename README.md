@@ -28,6 +28,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Recalibration workflow (Phase 5.4)**](#phase-54--recalibration-workflow) | post-hoc Platt map fit on a recent window, judged on a later holdout · base model frozen | **3/3 ALERT worlds repaired** (ECE ≈ 0.20 → ≈ 0.03, WATCH/OK) · promote-only-if-safer guardrail leaves the 7 calibrated worlds alone |
 | [**Risk-aware stress test (Phase 5.5)**](#phase-55--risk-aware-stress-test-the-capstone) | full stack re-scored on **realized collectible profit** across the 10 worlds · models frozen | **Full risk-aware beats raw EV 4/10** (5 neutral, 1 honest regression) · recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts `risky_brokers` **+5.7%** · baseline left flat |
 | [**Workflow graph + teacher traces (Phase 6.1)**](#phase-61--workflow-graph--teacher-trace-generator) | compile the orchestrated engine into an explicit graph + deterministic teacher traces | **16-node graph · 19 edges** · 560 provenance-stamped traces · hard train/eval separation (**25** feature-eligible fields) · determinism-pinned |
+| [**Dispatcher dataset (Phase 6.2)**](#phase-62--synthetic-dispatcher-conversation-dataset) | reshape the 560 traces into training examples in **two forms** (structured rows + NL conversations) | **asymmetric** train/eval boundary (inputs = 25-field `inference_context`; targets may predict engine outputs) · procedure-free prompt · deterministic human-in-the-loop (real approval enum) · determinism-pinned |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1561,6 +1562,72 @@ that emits the JSON recommendation **from `inference_context` alone**, 6.4 runs 
 beside the source engine (default off · no-op without artifact · cannot submit · cannot bypass
 approval), and 6.5 benchmarks compiled-vs-orchestrated on decision quality **and** context/cost. The
 compiled model never has to *beat* the engine — it has to prove the tradeoff.
+
+## Phase 6.2 — Synthetic Dispatcher Conversation Dataset
+
+> 6.2 reshapes the 560 Phase 6.1 teacher traces into training examples — **without** retraining or
+> touching the engine. It is a pure, deterministic transform: traces in, two committed-shape datasets
+> out, with the train/eval boundary enforced at construction.
+
+**Two forms from one trace.** Every trace renders into both (a) a **structured feature/label row**
+(`data/compiled_dispatcher_dataset.jsonl`) — the matrix the committed sklearn dispatcher (6.3) trains
+on — and (b) a **natural-language conversation** (`data/compiled_dispatcher_conversations.jsonl`) —
+system + dispatcher case-facts prompt → JSON recommendation, for the optional LLM path behind the
+same port. Both stream to **gitignored** `data/`; only the lean
+`artifacts/compiled_dispatcher_dataset_summary.json` is committed.
+
+**The keystone is an *asymmetric* train-eligibility boundary.** It is the subtle rule that makes the
+whole phase honest:
+
+| Side | Source | Rule |
+| --- | --- | --- |
+| **Inputs** (features + the NL prompt) | `inference_context` **only** | `build_features` is the single chokepoint; `assert_features_inference_only` rejects any `node_outputs`/`eval_labels` key, any unknown key, and any missing key — so inputs are *exactly* the 25-field contract |
+| **Outputs** (targets + the JSON completion) | `recommendation` **and** `node_outputs` | predicting `risk_adjusted_ev` / `p_win` / `p_default` is a **regression head, not leakage** — the model estimates them *from observable facts alone* at inference |
+
+That asymmetry is the point: a `node_output` as an **input** would tie the compiled model back to the
+source engine at runtime (defeating compilation), but as a **target** it is just another quantity to
+learn. The prompt is deliberately **procedure-free** — truck / load / broker / market case facts only,
+no node list, no routing rules, no model output — and a test asserts it contains none of the telltale
+substrings (`risk_adjusted_ev`, `p_default`, `calibration`, `reservation`, `hub`, …).
+
+**Coverage taxonomy — a primary category + secondary flags, never a feature.** Each example is
+stratified by a primary `scenario_category` (branch × warning) and a set of secondary `coverage_flags`
+(the user's path list), recorded for honest reporting and never fed to the model. The canonical 560:
+
+| `scenario_category` | n | decision |
+| --- | --- | --- |
+| `clean_bid` | 448 | `bid` (auto-eligible) |
+| `payment_escalation` | 92 | `approval_required` (`p_default ≥ 0.15`) |
+| `infeasible_no_bid` | 20 | `no_bid` |
+
+As in 6.1, `calibration_escalation` and `negative_ev_no_bid` are **rare/absent in the canonical batch**
+— recalibration repairs every flagged world to operational OK, and the engine seldom recommends into a
+guaranteed loss — so both are pinned by **crafted-trace unit tests** rather than manufactured in a
+world. (At tiny test scale, calibration is noisier and both paths *do* appear naturally — a nice
+corroboration.)
+
+**Synthetic human-in-the-loop, grounded in the real enum.** The 92 `approval_required` conversations
+each get a deterministic continuation — `sha256(scenario_id) → {APPROVED, EDITED, REJECTED,
+SUBMITTED_MOCK}` from the real `BidApprovalStatus` (Phase 4.4) — so the conversation set exercises the
+full approval lifecycle (canonical: submitted_mock 28 · approved 26 · edited 25 · rejected 13) with
+**no dependence on hidden outcomes**. These appear **only** in conversations — the structured rows
+never carry a human action, and an edited bid is a transparent `0.97×` nudge, not a realized number.
+
+**Deterministic and order-independent.** Traces are sorted by `scenario_id` before rendering, so
+`build_dataset` is reproducible regardless of input order; the committed summary pins a
+`determinism_hash` (`9dfc0355…`) over both forms. 28 new tests cover the no-leakage keystone (incl.
+*negative* tests that a `node_output`/`eval_label`/unknown key raises), the target & 6-key runtime
+contract, the procedure-free prompt, the deterministic human actions, the rare crafted categories, and
+a real seeded teacher batch end-to-end.
+
+```bash
+python -m ml.data.build_compiled_dispatcher_dataset            # 560 rows + 560 convs → committed summary
+python -m ml.data.build_compiled_dispatcher_dataset --limit 200  # quick smoke
+```
+
+**Next in Phase 6.** 6.3 distills the multi-head compiled dispatcher that emits the JSON recommendation
+**from `inference_context` alone**, 6.4 shadows it beside the source engine, and 6.5 benchmarks
+compiled-vs-orchestrated on decision quality **and** context/cost.
 
 ## What I learned
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
