@@ -3,6 +3,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from adapters.outbound.clock import SystemClock
+from adapters.outbound.compiled_dispatcher.noop_compiled_dispatcher import NoopCompiledDispatcher
+from adapters.outbound.compiled_dispatcher.sklearn_compiled_dispatcher import (
+    SklearnCompiledDispatcher,
+)
 from adapters.outbound.distance.haversine import HaversineDistanceProvider
 from adapters.outbound.memory.bid_repository import InMemoryBidApprovalRepository
 from adapters.outbound.memory.load_repository import InMemoryLoadRepository
@@ -16,8 +20,10 @@ from application.config_loader import (
     AppConfig,
     BidApprovalConfig,
     BidRecommenderConfig,
+    CompiledDispatcherConfig,
     load_bid_approval_config,
     load_bid_recommender_config,
+    load_compiled_dispatcher_config,
     load_config,
 )
 from application.ev_bid_recommender import EVBidRecommender
@@ -26,9 +32,17 @@ from application.ortools_distance_planner import ORToolsDistancePlanner
 from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
 from application.plan_builder import PlanBuilderService
 from application.recommend_loads import RecommendLoadsService
+from application.services.shadow_compiled_dispatcher_service import (
+    ShadowCompiledDispatcherService,
+)
 from domain.scoring.heuristic_scoring import HeuristicScoringStrategy
+from ml.models.compiled_dispatcher_model import (
+    default_feature_manifest,
+    feature_manifest_hash,
+)
 from ports.bid_repository import BidApprovalRepositoryPort
 from ports.clock import ClockPort
+from ports.compiled_dispatcher import REASON_DISABLED, REASON_NO_ARTIFACT
 from ports.load_repository import LoadRepositoryPort
 from ports.truck_repository import TruckRepositoryPort
 
@@ -88,6 +102,42 @@ def _build_payment_adapter(bid_cfg: BidRecommenderConfig) -> ModelPaymentRiskAda
     return adapter
 
 
+def _build_compiled_dispatcher_shadow(
+    cfg: CompiledDispatcherConfig,
+) -> ShadowCompiledDispatcherService:
+    """Wire the Phase 6.4 shadow compiled dispatcher — fail-closed at every step.
+
+    Default off, missing artifact, or a load failure all degrade to the :class:`NoopCompiledDispatcher`
+    (so the shadow service reports ``compiled_available=False`` with a reason and the source
+    recommendation is untouched). When enabled with a present artifact, the loaded model is gated on a
+    feature-manifest-hash match against the current inference contract — a mismatch is reported as
+    unavailable (``manifest_mismatch``) rather than served.
+    """
+    if not cfg.enabled:
+        return ShadowCompiledDispatcherService(NoopCompiledDispatcher(REASON_DISABLED))
+    artifact = Path(cfg.artifact_path)
+    if not artifact.is_absolute():
+        artifact = ROOT / artifact
+    if not artifact.exists():
+        logger.warning(
+            "compiled dispatcher enabled but artifact %s not found; shadow disabled", artifact
+        )
+        return ShadowCompiledDispatcherService(NoopCompiledDispatcher(REASON_NO_ARTIFACT))
+    expected_hash = feature_manifest_hash(default_feature_manifest())
+    try:
+        adapter = SklearnCompiledDispatcher.from_artifact(
+            artifact, expected_manifest_hash=expected_hash
+        )
+    except Exception:  # noqa: BLE001 — a bad artifact must never block app boot
+        logger.warning(
+            "failed to load compiled dispatcher artifact %s; shadow disabled", artifact,
+            exc_info=True,
+        )
+        return ShadowCompiledDispatcherService(NoopCompiledDispatcher(REASON_NO_ARTIFACT))
+    logger.info("compiled dispatcher loaded from %s; shadow mode enabled", artifact)
+    return ShadowCompiledDispatcherService(adapter)
+
+
 @dataclass
 class Container:
     config: AppConfig
@@ -105,6 +155,8 @@ class Container:
     bid_repo: BidApprovalRepositoryPort
     bid_approval_config: BidApprovalConfig
     bid_approval_service: BidApprovalService
+    compiled_dispatcher_config: CompiledDispatcherConfig
+    compiled_dispatcher_shadow: ShadowCompiledDispatcherService
 
 
 def build_container(
@@ -166,6 +218,9 @@ def build_container(
         config=bid_approval_config,
     )
 
+    compiled_dispatcher_config = load_compiled_dispatcher_config(config_dir)
+    compiled_dispatcher_shadow = _build_compiled_dispatcher_shadow(compiled_dispatcher_config)
+
     return Container(
         config=config,
         load_repo=load_repo,
@@ -182,4 +237,6 @@ def build_container(
         bid_repo=bid_repo,
         bid_approval_config=bid_approval_config,
         bid_approval_service=bid_approval_service,
+        compiled_dispatcher_config=compiled_dispatcher_config,
+        compiled_dispatcher_shadow=compiled_dispatcher_shadow,
     )

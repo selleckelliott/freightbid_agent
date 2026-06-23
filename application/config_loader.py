@@ -98,6 +98,20 @@ class BidApprovalConfig:
     default_actor: str = "dispatcher"
 
 
+@dataclass(frozen=True)
+class CompiledDispatcherConfig:
+    """Phase 6.4 shadow compiled-dispatcher policy (config/compiled_dispatcher.yaml).
+
+    Default off ⇒ the compiled dispatcher is a no-op and the source recommendation is byte-identical.
+    ``shadow_mode`` is effectively non-optional for now — there is no active mode in Phase 6.4, so the
+    compiled model never owns a decision and cannot draft/approve/submit a bid.
+    """
+
+    enabled: bool = False
+    artifact_path: str = "ml/artifacts/compiled_dispatcher_model.joblib"
+    shadow_mode: bool = True
+
+
 def _load_yaml(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
         return yaml.safe_load(fh) or {}
@@ -180,6 +194,24 @@ def load_bid_approval_config(config_dir: str | Path) -> BidApprovalConfig:
     return BidApprovalConfig(
         draft_ttl_minutes=float(approval.get("draft_ttl_minutes", d.draft_ttl_minutes)),
         default_actor=str(approval.get("default_actor", d.default_actor)),
+    )
+
+
+def load_compiled_dispatcher_config(config_dir: str | Path) -> CompiledDispatcherConfig:
+    """Load the Phase 6.4 shadow compiled-dispatcher policy from ``compiled_dispatcher.yaml``.
+
+    A missing file (e.g. an older config dir) falls back to the disabled defaults, so the app always
+    boots with the compiled dispatcher off.
+    """
+    path = Path(config_dir) / "compiled_dispatcher.yaml"
+    d = CompiledDispatcherConfig()
+    if not path.exists():
+        return d
+    doc = _load_yaml(path).get("compiled_dispatcher") or {}
+    return CompiledDispatcherConfig(
+        enabled=bool(doc.get("enabled", d.enabled)),
+        artifact_path=str(doc.get("artifact_path", d.artifact_path)),
+        shadow_mode=bool(doc.get("shadow_mode", d.shadow_mode)),
     )
 
 

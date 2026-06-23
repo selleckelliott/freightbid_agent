@@ -30,6 +30,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Workflow graph + teacher traces (Phase 6.1)**](#phase-61--workflow-graph--teacher-trace-generator) | compile the orchestrated engine into an explicit graph + deterministic teacher traces | **16-node graph · 19 edges** · 560 provenance-stamped traces · hard train/eval separation (**25** feature-eligible fields) · determinism-pinned |
 | [**Dispatcher dataset (Phase 6.2)**](#phase-62--synthetic-dispatcher-conversation-dataset) | reshape the 560 traces into training examples in **two forms** (structured rows + NL conversations) | **asymmetric** train/eval boundary (inputs = 25-field `inference_context`; targets may predict engine outputs) · procedure-free prompt · deterministic human-in-the-loop (real approval enum) · determinism-pinned |
 | [**Compiled dispatcher model (Phase 6.3)**](#phase-63--distilled-multi-head-compiled-dispatcher-model) | distill the workflow into a deterministic **multi-head sklearn model** that emits the JSON recommendation from case facts alone | **5 purpose-built heads** · action **macro-F1 0.94 vs 0.30** majority baseline · market-relative **bid-ratio** target ($35 MAE) · **manifest-hash-gated** (refuses to serve on mismatch) · full provenance · determinism-pinned |
+| [**Shadow-mode dispatcher (Phase 6.4)**](#phase-64--shadow-mode-compiled-dispatcher-adapter) | run the compiled model **beside** the source engine for agreement/regret — never in control | **default OFF · source byte-identical** · 1 port / 2 adapters / 1 service · fails closed on disabled/no-artifact/**manifest-mismatch**/invalid-output/exception · can't draft/approve/submit · additive `/rank` banner · **29 tests** |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1703,7 +1704,74 @@ classes appear in the metrics; and the model **beats the majority baseline** on 
 (agreement / regret / fallback, default OFF, no-op without artifact, cannot submit or bypass approval),
 and 6.5 benchmarks compiled-vs-orchestrated on decision quality **and** context/cost.
 
-## What I learned
+## Phase 6.4 — Shadow-Mode Compiled Dispatcher Adapter
+
+> 6.4 plugs the compiled model in **beside** the source engine and lets it *watch*. It runs on the
+> same case facts, its recommendation is compared to the engine's, and the disagreement is recorded —
+> but the source engine still owns every decision. This is the safety rehearsal before any future
+> promotion: prove the compiled model can run in production traffic **without touching it**.
+
+**The source engine still decides — the compiled model is additive metadata.** Even with the flag on,
+`/rank` returns the *exact same* ranked loads and bids; the only thing added is a `compiled_shadow`
+banner. A test pins this: the `ranked` array is **byte-identical** with shadow OFF vs ON, and the
+source recommendation object is unchanged after the comparison runs.
+
+**One port, two adapters, one service** (mirrors the winnability / payment-risk wiring):
+
+| Piece | Role |
+| --- | --- |
+| `ports/compiled_dispatcher.py` | the `CompiledDispatcherPort` ABC + the read-only DTOs (`CompiledDispatcherAvailability`, `CompiledDispatcherShadowComparison`) and the shared prediction shape |
+| `adapters/outbound/compiled_dispatcher/noop_compiled_dispatcher.py` | always-unavailable — the **default** wiring (flag off / no artifact) |
+| `adapters/outbound/compiled_dispatcher/sklearn_compiled_dispatcher.py` | wraps the frozen Phase 6.3 `CompiledDispatcherModel` artifact, manifest-hash gated |
+| `application/services/shadow_compiled_dispatcher_service.py` | runs both sides, computes the comparison, **fails closed**, never mutates the source |
+
+**The comparison is the deliverable.** For one load the shadow service reports, side by side:
+`source_action` vs `compiled_action` (+ `action_agrees`), `source_bid` vs `compiled_bid` (+ `bid_delta`
+/ `bid_delta_percent`), `source_approval_required` vs `compiled_approval_required` (+ `approval_agrees`),
+`source_warnings` vs `compiled_warnings` (+ a Jaccard `warning_agreement`), the two risk-adjusted EVs
+(+ `ev_delta`), `compiled_latency_ms`, and — when the compiled side can't serve — a `fallback_reason`.
+`shadow_only` is **always `true`**.
+
+**It fails closed, every way it can.** The service never raises into the source path; instead each
+failure mode degrades to a comparison with `compiled_available = false` and a reason, source side intact:
+
+| Situation | `fallback_reason` |
+| --- | --- |
+| flag off | `disabled` |
+| enabled but artifact missing / unloadable | `no_artifact` |
+| artifact's feature-manifest hash ≠ inference contract | `manifest_mismatch` |
+| compiled output fails schema validation (bad action / unknown warning / negative bid) | `invalid_output` |
+| the model raised at predict time | `prediction_error` |
+
+**No bid authority — structurally.** The shadow service is constructed with a *single* read-only port
+and holds **no** reference to the bid-approval repository or service, so it **cannot** draft, approve,
+or `submit_mock` a bid — a test asserts the constructor takes only `port` and that none of its
+collaborators expose those methods, and a spy port proves they're never called.
+
+```bash
+# config/compiled_dispatcher.yaml — default OFF ⇒ /rank is byte-identical, compiled_shadow: null
+compiled_dispatcher:
+  enabled: false
+  artifact_path: ml/artifacts/compiled_dispatcher_model.joblib
+  shadow_mode: true
+```
+
+When enabled, the CLI makes the contract explicit under the ranked table:
+`Compiled dispatcher: shadow only — source engine still decides.`
+
+29 new tests pin it all: the comparison math (action / bid / approval / Jaccard-warning / EV deltas);
+all five fail-closed reasons; the source object is **unchanged** after both available and fallback
+comparisons; the service can't reach bid authority; the sklearn adapter serves, round-trips, and
+translates a manifest error into a fail-closed reason; the container wires OFF→no-op and
+ON→available / no-artifact / manifest-mismatch; and `/rank` is `compiled_shadow: null` when off and a
+banner with **byte-identical `ranked`** when on.
+
+**Next in Phase 6.** 6.5 is the capstone: benchmark {full engine, in-context workflow-prompt baseline,
+compiled model, simple baseline} on **decision quality** (top-1/top-3 agreement, collectible-profit
+regret, default exposure, calibration/approval agreement, invalid/fallback rate) **and context/cost**,
+across the Phase 3/4/5 worlds, plus a recompile test (change one rule → regenerate → recompile → measure).
+
+
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
   destination model's per-decision predicted-vs-realized onward-deadhead
   correlation is weak (~0.02), yet steering the *distribution* of accepted loads
