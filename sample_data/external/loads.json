@@ -1,0 +1,38 @@
+{
+  "loads": [
+    {
+      "load_id": 6001,
+      "reference": "TS-6001",
+      "equipment": "Dry Van",
+      "gross_weight": 21500,
+      "origin_city": "Memphis", "origin_state": "Tennessee",
+      "origin_latitude": 35.1495, "origin_longitude": -90.0490,
+      "destination_city": "Nashville", "destination_state": "TN",
+      "destination_latitude": 36.1627, "destination_longitude": -86.7816,
+      "miles": 212,
+      "rate_per_mile": 2.65,
+      "posted_at": "2026-06-04T07:30:00Z",
+      "pickup_window_start": "2026-06-04T12:00:00Z",
+      "pickup_window_end": "2026-06-04T18:00:00Z",
+      "delivery_window_start": "2026-06-05T06:00:00Z",
+      "delivery_window_end": "2026-06-05T16:00:00Z",
+      "broker_id": "BRK-101"
+    },
+    {
+      "load_id": 6002,
+      "reference": "TS-6002",
+      "equipment": "FD",
+      "gross_weight": 9800,
+      "origin_city": "Little Rock", "origin_state": "AR",
+      "origin_latitude": 34.7465, "origin_longitude": -92.2896,
+      "destination_city": "Memphis", "destination_state": "Tennessee",
+      "destination_latitude": 35.1495, "destination_longitude": -90.0490,
+      "miles": 137,
+      "total_rate": 575.0,
+      "posted_at": "2026-06-04T09:00:00Z",
+      "pickup_date": "2026-06-05T10:00:00Z",
+      "delivery_date": "2026-06-05T20:00:00Z",
+      "broker_id": "BRK-100"
+    }
+  ]
+}

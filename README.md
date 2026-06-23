@@ -32,6 +32,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Compiled dispatcher model (Phase 6.3)**](#phase-63--distilled-multi-head-compiled-dispatcher-model) | distill the workflow into a deterministic **multi-head sklearn model** that emits the JSON recommendation from case facts alone | **5 purpose-built heads** · action **macro-F1 0.94 vs 0.30** majority baseline · market-relative **bid-ratio** target ($35 MAE) · **manifest-hash-gated** (refuses to serve on mismatch) · full provenance · determinism-pinned |
 | [**Shadow-mode dispatcher (Phase 6.4)**](#phase-64--shadow-mode-compiled-dispatcher-adapter) | run the compiled model **beside** the source engine for agreement/regret — never in control | **default OFF · source byte-identical** · 1 port / 2 adapters / 1 service · fails closed on disabled/no-artifact/**manifest-mismatch**/invalid-output/exception · can't draft/approve/submit · additive `/rank` banner · **29 tests** |
 | [**Compiled-vs-source stress + cost (Phase 6.5)**](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark) | benchmark the compiled model against the full source engine across 10 shifted worlds on **collectible-profit regret** + safety-critical misses + context/cost | **0/10 worlds PASS** the strict 2%-regret + zero-safety bar — compiled *tracks* source profit (within ±8% on 8/10, beats the naive baseline) but commits a **safety-critical miss in every world** and its tight-market warnings collapse (warn agreement **0.84 → 0.09**) · compiling replaces **~3.9 engine calls/decision**, shrinks the decision payload **1.7×**, recompiles after a rule change in **~31s** · verdict: **stays shadow-only, source stays authoritative** |
+| [**Real-world data contracts (Phase 7.1)**](#phase-71--real-world-data-contracts) | anti-corruption ingress: messy external load/broker rows → a validated domain `Load`, PII redacted at one chokepoint | **integration-ready, not live** · CSV **and** JSON normalize to identical domain objects · per-row structured errors (**reject-row-not-batch**) · broker kept as a **redacted reference, never fed to ML** · internal `Load` + `/loads` ingress **byte-identical** · **21 tests** (488 total) |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1903,6 +1904,51 @@ shadow-only and the source engine stays authoritative**, and 6.5 is the evidence
 worlds where the compiled model is merely cheaper (calm, in-distribution) versus where it is unsafe
 (tight margins, reserve/win-curve shifts, anywhere approval discipline carries the risk). That boundary
 — not a win over the engine — is the right way to close Phase 6.
+
+## Phase 7.1 — Real-World Data Contracts
+
+> Phase 7 turns the corner from *research-grade decision engine* to *integration-ready operator tool* —
+> **no new intelligence layer**, just the hardening that lets the existing engine meet real-world data.
+> 7.1 is the front door: a validated **ingress contract** for messy external load-board and broker rows.
+> It is **integration readiness, not live integration** — there is still no Truckstop API and no
+> auto-bidding; this phase only proves FreightBid can *ingest* real-shaped data safely.
+
+**An anti-corruption layer, not a model change.** The internal `domain/models/load.py` `Load` and the
+engine on top of it are **untouched**. A new framework-light package `application/ingestion/` validates
+the outside world and maps **into** that existing `Load`, so the trusted `/rank` · `/plan` · `/bids` ·
+`/loads` paths stay **byte-identical**. `RawExternalLoad` (pydantic) accepts the aliases and units a real
+feed actually uses, coerces them strictly, and `to_domain_load()` applies the cross-field rules:
+
+| External (raw, permissive) | → Domain `Load` (strict) |
+| --- | --- |
+| `posting_id` / `id` `"5101"` | `load_id` `5101` (int — non-numeric ids are a typed error) |
+| `rate_per_mile` `"$3.54"` × `trip_miles` `"240"` | `total_rate` `849.60` (precedence: explicit `total_rate`, else per-mile × miles, else a `missing` error) |
+| `weight_lbs` `"22,000 lb"` | `weight` `22000.0` |
+| `origin_state` `"Texas"` / equipment `"V"` | `"TX"` / `"Dry Van"` (state + equipment normalization) |
+| single `pickup_date` (no window) | `pickup_window_start == _end`; `created_at` defaults to `posted_at` or pickup |
+
+**Bad rows are rejected one at a time, never the batch.** Every coercion failure becomes a structured
+`RowValidationError` carrying the `row_index`, a best-effort `identifier`, and a list of `{field, code,
+message}` — codes are `missing` / `type` / `value` / `structure`, and the field is reported as the
+**canonical contract name** regardless of which alias the feed happened to use. A malformed CSV with one
+good row and two broken ones imports the good row and reports exactly two row failures; **CSV and JSON
+feeds normalize to identical domain objects**.
+
+**PII is redacted at a single chokepoint.** `RawExternalBroker` carries real contact fields (email, phone,
+address, contact name); `redaction.py` is the *only* place they are handled, turning email/phone into
+salted-hash pseudonymous tokens (`email:…` / `phone:…`) and address/name into presence booleans, and
+emitting a frozen `BrokerReference`. `contains_pii()` / `assert_no_raw_pii()` guard every export-facing
+dict. Per the settled design, that reference is **carried as redacted audit context only — it is never
+fed into the winnability/payment ML feature builders**, which stay synthetic.
+
+```bash
+# fixtures: sample_data/external/{loads.csv, loads.json, brokers.csv, loads_malformed.csv}
+PYTHONPATH=. python -m pytest tests/test_real_data_contracts.py -q   # 21 tests
+```
+
+21 new tests pin the external→domain mapping, the per-row error shape, the CSV/JSON equivalence, the
+PII-redaction invariant (no raw email/phone/address/name survives), and a **regression guard** that the
+domain `Load`, `LoadDTO`, and the `/loads` ingress are unchanged. Full suite: **488 passing**.
 
 
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
