@@ -21,6 +21,8 @@ from adapters.inbound.api.schemas import (
     IngestResponse,
     PlanResponse,
     PlanStopDTO,
+    PullRequest,
+    PullResponse,
     RankRequest,
     RankResponse,
     RankedLoad,
@@ -62,6 +64,25 @@ def create_app(container=None) -> FastAPI:
         loads = [load_from_dto(l) for l in req.loads]
         container.load_repo.add_many(loads)
         return IngestResponse(accepted=len(loads))
+
+    @app.post("/loads/pull", response_model=PullResponse)
+    def pull_loads(req: PullRequest | None = None):
+        """Phase 7.2 thin live wiring: pull external-style rows from the configured sandbox/replay
+        board, validate via the 7.1 contract, and ingest the accepted loads. Additive — the synthetic
+        ``POST /loads`` ingress is unchanged."""
+        req = req or PullRequest()
+        report = container.load_board_ingest.pull(limit=req.limit, replace=req.replace)
+        return PullResponse(
+            source=report.source,
+            available=report.available,
+            fetched=report.fetched,
+            accepted=report.accepted,
+            rejected=report.rejected,
+            load_ids=report.load_ids,
+            errors=report.errors,
+            reason=report.reason,
+            replaced=report.replaced,
+        )
 
     @app.get("/loads")
     def list_loads():

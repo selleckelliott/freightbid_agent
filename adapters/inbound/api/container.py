@@ -8,6 +8,8 @@ from adapters.outbound.compiled_dispatcher.sklearn_compiled_dispatcher import (
     SklearnCompiledDispatcher,
 )
 from adapters.outbound.distance.haversine import HaversineDistanceProvider
+from adapters.outbound.load_board.replay import RecordedLoadBoardReplayAdapter
+from adapters.outbound.load_board.sandbox import SandboxLoadBoardAdapter
 from adapters.outbound.memory.bid_repository import InMemoryBidApprovalRepository
 from adapters.outbound.memory.load_repository import InMemoryLoadRepository
 from adapters.outbound.memory.truck_repository import InMemoryTruckRepository
@@ -21,13 +23,16 @@ from application.config_loader import (
     BidApprovalConfig,
     BidRecommenderConfig,
     CompiledDispatcherConfig,
+    LoadBoardConfig,
     load_bid_approval_config,
     load_bid_recommender_config,
     load_compiled_dispatcher_config,
     load_config,
+    load_load_board_config,
 )
 from application.ev_bid_recommender import EVBidRecommender
 from application.evaluate_loads import EvaluateLoadsService
+from application.ingestion.board_ingest import LoadBoardIngestService
 from application.ortools_distance_planner import ORToolsDistancePlanner
 from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
 from application.plan_builder import PlanBuilderService
@@ -43,6 +48,7 @@ from ml.models.compiled_dispatcher_model import (
 from ports.bid_repository import BidApprovalRepositoryPort
 from ports.clock import ClockPort
 from ports.compiled_dispatcher import REASON_DISABLED, REASON_NO_ARTIFACT
+from ports.load_board import LoadBoardPort
 from ports.load_repository import LoadRepositoryPort
 from ports.truck_repository import TruckRepositoryPort
 
@@ -138,6 +144,23 @@ def _build_compiled_dispatcher_shadow(
     return ShadowCompiledDispatcherService(adapter)
 
 
+def _build_load_board(cfg: LoadBoardConfig) -> LoadBoardPort:
+    """Wire the Phase 7.2 load board from config.
+
+    Default = the seeded sandbox generator (so the live ``pull`` flow works with no external data);
+    ``replay`` re-emits a recorded feed file (resolved under the repo root), failing closed to an
+    unavailable board if the file is missing/unreadable rather than raising at boot.
+    """
+    if cfg.source == "replay":
+        feed = Path(cfg.feed_path)
+        if not feed.is_absolute():
+            feed = ROOT / feed
+        logger.info("load board: replay from %s", feed)
+        return RecordedLoadBoardReplayAdapter(feed, cfg.feed_format)
+    logger.info("load board: sandbox (seed=%s, count=%s)", cfg.seed, cfg.count)
+    return SandboxLoadBoardAdapter(seed=cfg.seed, count=cfg.count)
+
+
 @dataclass
 class Container:
     config: AppConfig
@@ -157,6 +180,9 @@ class Container:
     bid_approval_service: BidApprovalService
     compiled_dispatcher_config: CompiledDispatcherConfig
     compiled_dispatcher_shadow: ShadowCompiledDispatcherService
+    load_board_config: LoadBoardConfig
+    load_board: LoadBoardPort
+    load_board_ingest: LoadBoardIngestService
 
 
 def build_container(
@@ -221,6 +247,10 @@ def build_container(
     compiled_dispatcher_config = load_compiled_dispatcher_config(config_dir)
     compiled_dispatcher_shadow = _build_compiled_dispatcher_shadow(compiled_dispatcher_config)
 
+    load_board_config = load_load_board_config(config_dir)
+    load_board = _build_load_board(load_board_config)
+    load_board_ingest = LoadBoardIngestService(load_board, load_repo)
+
     return Container(
         config=config,
         load_repo=load_repo,
@@ -239,4 +269,7 @@ def build_container(
         bid_approval_service=bid_approval_service,
         compiled_dispatcher_config=compiled_dispatcher_config,
         compiled_dispatcher_shadow=compiled_dispatcher_shadow,
+        load_board_config=load_board_config,
+        load_board=load_board,
+        load_board_ingest=load_board_ingest,
     )

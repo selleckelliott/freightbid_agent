@@ -1,0 +1,10 @@
+# Phase 7.2 - sandbox/replay load-board policy.
+# source: sandbox (seeded deterministic generator, default) | replay (re-emit a recorded feed file).
+# There is no live Truckstop source - live integration is out of scope for Phase 7.
+load_board:
+  source: sandbox
+  seed: 7
+  count: 12
+  # used only when source: replay
+  feed_path: sample_data/external/recorded_feed.json
+  feed_format: null

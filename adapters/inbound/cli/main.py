@@ -52,6 +52,34 @@ def clear(api: str = typer.Option(DEFAULT_API, "--api")):
 
 
 @app.command()
+def pull(
+    limit: int = typer.Option(None, "--limit", help="Cap the number of loads pulled."),
+    replace: bool = typer.Option(False, "--replace", help="Clear existing loads before ingesting."),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Pull external-style loads from the configured sandbox/replay board (Phase 7.2).
+
+    Validates each row through the real-world data contract and ingests the accepted loads. The board
+    source is configured in config/load_board.yaml - there is no live Truckstop integration.
+    """
+    body = {"limit": limit, "replace": replace}
+    with _client(api) as c:
+        data = _check(c.post("/loads/pull", json=body))
+    if not data.get("available", False):
+        console.print(
+            f"[yellow]Load board '{data.get('source')}' unavailable: {data.get('reason')}[/yellow]"
+        )
+        return
+    console.print(
+        f"[green]Pulled from {data['source']}[/green]: fetched {data['fetched']}, "
+        f"accepted {data['accepted']}, rejected {data['rejected']}"
+        + (" (replaced existing)" if data.get("replaced") else "")
+    )
+    for err in data.get("errors", []):
+        console.print(f"  [red]row {err.get('row_index')}[/red] ({err.get('identifier')}): {err.get('errors')}")
+
+
+@app.command()
 def rank(
     truck_file: Path,
     top_n: int = typer.Option(10, "--top-n"),

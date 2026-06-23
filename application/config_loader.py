@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -112,6 +112,22 @@ class CompiledDispatcherConfig:
     shadow_mode: bool = True
 
 
+@dataclass(frozen=True)
+class LoadBoardConfig:
+    """Phase 7.2 sandbox/replay load-board policy (config/load_board.yaml).
+
+    ``source`` selects the adapter: ``sandbox`` (a seeded, deterministic generator — the default, so the
+    live ``pull`` flow works with no external data) or ``replay`` (re-emit a recorded feed file). There
+    is no live Truckstop source — that is out of scope for Phase 7.
+    """
+
+    source: str = "sandbox"  # sandbox | replay
+    seed: int = 7
+    count: int = 12
+    feed_path: str = "sample_data/external/recorded_feed.json"
+    feed_format: Optional[str] = None
+
+
 def _load_yaml(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as fh:
         return yaml.safe_load(fh) or {}
@@ -212,6 +228,26 @@ def load_compiled_dispatcher_config(config_dir: str | Path) -> CompiledDispatche
         enabled=bool(doc.get("enabled", d.enabled)),
         artifact_path=str(doc.get("artifact_path", d.artifact_path)),
         shadow_mode=bool(doc.get("shadow_mode", d.shadow_mode)),
+    )
+
+
+def load_load_board_config(config_dir: str | Path) -> LoadBoardConfig:
+    """Load the Phase 7.2 load-board policy from ``load_board.yaml``.
+
+    A missing file falls back to the sandbox defaults, so the live ``pull`` flow always has a board.
+    """
+    path = Path(config_dir) / "load_board.yaml"
+    d = LoadBoardConfig()
+    if not path.exists():
+        return d
+    doc = _load_yaml(path).get("load_board") or {}
+    fmt = doc.get("feed_format", d.feed_format)
+    return LoadBoardConfig(
+        source=str(doc.get("source", d.source)).lower(),
+        seed=int(doc.get("seed", d.seed)),
+        count=int(doc.get("count", d.count)),
+        feed_path=str(doc.get("feed_path", d.feed_path)),
+        feed_format=str(fmt) if fmt else None,
     )
 
 
