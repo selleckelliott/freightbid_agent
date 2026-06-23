@@ -1,0 +1,84 @@
+{
+  "config": {
+    "fast": false,
+    "days": 21,
+    "eval_days": 14,
+    "max_loads": 400,
+    "sample_decisions": 400,
+    "world": "baseline",
+    "eval_seed_offset": 1000,
+    "compiled_model_seed": 650,
+    "feature_manifest_hash": "becc4c621057842a603ed36c81735db8e8ab8eba49d0ee587f25bddc1b0e4276",
+    "feature_count": 22,
+    "workflow_graph_version": "1.0.0",
+    "compiled_used_for_decision": false,
+    "shadow_only": true
+  },
+  "generated_at_utc": "2026-06-23T18:11:50.044735+00:00",
+  "latency_per_decision": {
+    "source": {
+      "mean_ms": 77.3204,
+      "p50_ms": 74.8697,
+      "p95_ms": 102.1332,
+      "n": 400
+    },
+    "compiled": {
+      "mean_ms": 89.4868,
+      "p50_ms": 92.0732,
+      "p95_ms": 129.84,
+      "n": 400
+    },
+    "speedup_x": 0.9,
+    "note": "Wall-clock is ~parity for the in-memory classical engine (both sides are dominated by Python/pandas per-call overhead). The runtime/$ win scales with how expensive each replaced node is - it materializes when the source nodes are frontier-model or remote-service calls (the paper's regime), which the calls-avoided metric captures directly."
+  },
+  "engine_calls_per_decision": {
+    "winnability_calls_source": 1.96,
+    "payment_calls_source": 1.96,
+    "total_source": 3.92,
+    "total_compiled": 0,
+    "calls_avoided_per_decision": 3.92
+  },
+  "decision_payload_bytes": {
+    "source_decision_row_mean": 386.5,
+    "compiled_runtime_json_mean": 231.6,
+    "reduction_x": 1.7
+  },
+  "context_width": {
+    "compiled_feature_manifest_fields": 22,
+    "compiled_features_populated_mean": 24.6,
+    "source_workflow_nodes": 16
+  },
+  "tokens_per_decision": {
+    "source": null,
+    "compiled": null,
+    "note": "null for the sklearn path; populated only behind an LLM adapter"
+  },
+  "artifact": {
+    "joblib_bytes": 3063299,
+    "save_seconds": 0.2899,
+    "cold_load_seconds": 0.2509
+  },
+  "recompile_test": {
+    "rule_changed": "DecisionHubPolicy.payment_default_warn 0.15 -> 0.08",
+    "regenerate_traces_seconds": 26.71,
+    "recompile_fit_seconds": 4.4,
+    "time_to_recompile_seconds": 31.11,
+    "source_action_distribution_before": {
+      "bid": 311,
+      "approval_required": 73,
+      "no_bid": 16
+    },
+    "source_action_distribution_after": {
+      "approval_required": 309,
+      "bid": 75,
+      "no_bid": 16
+    },
+    "post_change_action_agreement": 1.0
+  },
+  "timing": {
+    "assemble_seconds": 15.5,
+    "initial_compile_seconds": 4.06
+  },
+  "headline": "Compiling the dispatcher into weights replaces ~3.9 source-engine port calls per decision with one in-memory predict, shrinks the decision payload ~1.7x (387B -> 232B), and needs only a 22-field context vs the 16-node workflow; a full rule-change recompile takes ~31s. Wall-clock latency is ~parity for the in-memory engine - the runtime/$ win scales with how expensive each replaced node is. Compiled stays shadow-only.",
+  "runtime_seconds": 150.1
+}

@@ -1,0 +1,48 @@
+# Phase 6.5 — Compiled-vs-orchestrated stress + cost/context benchmark.
+#
+# Drives benchmarks/run_compiled_dispatcher_stress.py (decision quality + safety +
+# collectible-profit regret) and benchmarks/run_context_cost_benchmark.py (runtime /
+# context cost). The capstone question, paper-style:
+#
+#   How much decision quality do we lose, and how much runtime/context cost do we
+#   save, by serving the compiled dispatcher instead of the full source engine?
+#
+# Three systems are scored on the SAME loads of each world:
+#   1. source     — the full Phase 5.5 risk-aware engine (the trusted authority).
+#   2. compiled    — the frozen Phase 6.3 multi-head model, run through the Phase 6.4
+#                    shadow service (shadow-only; never decides).
+#   3. baseline    — the Phase 6.3 majority predictor (a trivial floor for context).
+#
+# The compiled model is trained ONCE on the 7 canonical multi-world teacher traces (the
+# Phase 6.1/6.2/6.3 worlds, on a distinct operational draw) and then frozen; every world is
+# distribution shift at inference, never retraining — mirroring the Phase 5.5 discipline.
+
+compiled_dispatcher_stress:
+  # Reuse the Phase 4.5 / 5.5 broker-quality worlds (single source of truth).
+  conditions: config/broker_quality_stress.yaml
+  days: 21
+  max_loads: null                 # cap eval-window loads scored per world (null = all)
+
+  # Verdict thresholds on collectible-profit regret (compiled vs source), in percent.
+  #   PASS   regret <= regret_pass_pct  AND no safety-critical miss
+  #   WATCH  regret <= regret_watch_pct OR a minor (non-critical) miss
+  #   FAIL   regret >  regret_watch_pct OR a safety-critical miss
+  regret_pass_pct: 2.0
+  regret_watch_pct: 5.0
+
+  # Worlds where the broker market is hostile: dropping a source payment/calibration
+  # warning here is a SAFETY-CRITICAL miss (suppressing risk exactly where it matters).
+  risky_worlds:
+    - slow_pay
+    - unknown_credit
+    - risky_brokers
+    - tight_brokers
+    - high_contention
+    - degraded_corner
+
+  # Smoke subset (baseline reference + one decisive reserve/win-curve drifter).
+  fast_conditions:
+    - baseline
+    - tight_brokers
+  fast_days: 6
+  fast_max_loads: 120

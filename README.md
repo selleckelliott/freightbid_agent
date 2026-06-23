@@ -31,6 +31,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Dispatcher dataset (Phase 6.2)**](#phase-62--synthetic-dispatcher-conversation-dataset) | reshape the 560 traces into training examples in **two forms** (structured rows + NL conversations) | **asymmetric** train/eval boundary (inputs = 25-field `inference_context`; targets may predict engine outputs) · procedure-free prompt · deterministic human-in-the-loop (real approval enum) · determinism-pinned |
 | [**Compiled dispatcher model (Phase 6.3)**](#phase-63--distilled-multi-head-compiled-dispatcher-model) | distill the workflow into a deterministic **multi-head sklearn model** that emits the JSON recommendation from case facts alone | **5 purpose-built heads** · action **macro-F1 0.94 vs 0.30** majority baseline · market-relative **bid-ratio** target ($35 MAE) · **manifest-hash-gated** (refuses to serve on mismatch) · full provenance · determinism-pinned |
 | [**Shadow-mode dispatcher (Phase 6.4)**](#phase-64--shadow-mode-compiled-dispatcher-adapter) | run the compiled model **beside** the source engine for agreement/regret — never in control | **default OFF · source byte-identical** · 1 port / 2 adapters / 1 service · fails closed on disabled/no-artifact/**manifest-mismatch**/invalid-output/exception · can't draft/approve/submit · additive `/rank` banner · **29 tests** |
+| [**Compiled-vs-source stress + cost (Phase 6.5)**](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark) | benchmark the compiled model against the full source engine across 10 shifted worlds on **collectible-profit regret** + safety-critical misses + context/cost | **0/10 worlds PASS** the strict 2%-regret + zero-safety bar — compiled *tracks* source profit (within ±8% on 8/10, beats the naive baseline) but commits a **safety-critical miss in every world** and its tight-market warnings collapse (warn agreement **0.84 → 0.09**) · compiling replaces **~3.9 engine calls/decision**, shrinks the decision payload **1.7×**, recompiles after a rule change in **~31s** · verdict: **stays shadow-only, source stays authoritative** |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1766,10 +1767,142 @@ translates a manifest error into a fail-closed reason; the container wires OFF�
 ON→available / no-artifact / manifest-mismatch; and `/rank` is `compiled_shadow: null` when off and a
 banner with **byte-identical `ranked`** when on.
 
-**Next in Phase 6.** 6.5 is the capstone: benchmark {full engine, in-context workflow-prompt baseline,
-compiled model, simple baseline} on **decision quality** (top-1/top-3 agreement, collectible-profit
-regret, default exposure, calibration/approval agreement, invalid/fallback rate) **and context/cost**,
-across the Phase 3/4/5 worlds, plus a recompile test (change one rule → regenerate → recompile → measure).
+**Phase 6 closes with the capstone benchmark below.**
+
+## Phase 6.5 — Compiled-vs-Orchestrated Stress + Cost/Context Benchmark
+
+> The paper's question, made honest for FreightBid: **how much decision quality do we lose, and how
+> much runtime/context/orchestration cost do we save, by replacing the full source engine with the
+> compiled dispatcher?** 6.5 measures both sides across shifted broker worlds — and then refuses to
+> let the cost win paper over the safety loss. The compiled model stays **shadow-only**; the benchmark
+> is what *maps* where it could ever be trusted.
+
+**Three systems, one set of loads.** For every load in every world the harness scores three arms on the
+*same* draw, then compares each learned arm to the source engine:
+
+| Arm | What it is |
+| --- | --- |
+| **source** | the full orchestrated FreightBid engine (the authority — every other arm is judged against it) |
+| **compiled** | the frozen Phase 6.3 multi-head model, run through the **shipped 6.4 shadow service** (manifest-gated, fails closed) |
+| **baseline** | a majority/most-frequent-action dummy — the "is the compiled model doing anything?" control |
+
+The compiled model is **trained once on the 7 canonical worlds** (4,200 traces) and **frozen**, then
+scored on all 10 broker-quality worlds at a different seed — so 7 are in-distribution-but-out-of-sample
+and 3 (`disappearing_loads`, `no_rate_heavy`, `sharp_win_curve`) are fully held out.
+
+**The headline metric is collectible-profit regret, not agreement.** Re-using the Phase 5.5 accounting
+(`won & collected → ask − cost − delay`; `won & defaulted → −cost`; `lost → 0`), each arm's realized
+collectible profit is summed per world and `regret% = (source − arm) / |source| × 100` (positive ⇒ the
+arm left money on the table). A **fallback** row — where the compiled side can't serve — defers to the
+source, so it contributes **zero** regret by construction.
+
+**The verdict is gated on safety, not just profit.** Per world:
+
+| Verdict | Rule |
+| --- | --- |
+| **PASS** | regret ≤ 2% **and** zero safety-critical misses |
+| **WATCH** | regret ≤ 5% **or** a minor (agreement-only) miss |
+| **FAIL** | regret > 5% **or** *any* safety-critical miss |
+
+A **safety-critical miss** is the compiled model doing something the source engine specifically gated:
+(a) source says `no_bid`, compiled bids; (b) source says `approval_required`, compiled returns a clean
+bid; (c) in a risky world, compiled *drops* a payment- or calibration-warning the source raised. Per the
+brief, **one** such miss fails the world outright.
+
+### Result: the compiled model tracks profit but is not safe enough to be authoritative
+
+Canonical run — 10 worlds × 3 arms, 21-day windows, ~600 loads/world (compiled frozen on the 7-world
+train draw):
+
+| World (lens) | regret % | action | approval | warning | crit | minor | verdict |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| baseline `[base]` | −3.1% | 0.84 | 0.84 | 0.84 | 52 | 59 | **FAIL** |
+| disappearing_loads `[calibration]` | −3.1% | 0.84 | 0.84 | 0.84 | 52 | 59 | **FAIL** |
+| sharp_win_curve `[ev]` | −3.1% | 0.84 | 0.84 | 0.84 | 52 | 59 | **FAIL** |
+| unknown_credit `[calibration]` | −3.1% | 0.87 | 0.87 | 0.86 | 48 | 41 | **FAIL** |
+| no_rate_heavy `[ev]` | −3.6% | 0.86 | 0.86 | 0.86 | 42 | 57 | **FAIL** |
+| risky_brokers `[calibration]` | −5.4% | 0.84 | 0.84 | 0.84 | 56 | 57 | **FAIL** |
+| slow_pay `[calibration]` | −7.1% | 0.77 | 0.75 | 0.75 | 60 | 112 | **FAIL** |
+| degraded_corner `[both]` | +5.3% | 0.78 | 0.77 | 0.77 | 62 | 98 | **FAIL** |
+| high_contention `[ev]` | **+17.4%** | 0.84 | 0.84 | **0.09** | 55 | **521** | **FAIL** |
+| tight_brokers `[ev]` | **+17.7%** | 0.84 | 0.84 | **0.09** | 55 | **521** | **FAIL** |
+
+**0 / 10 worlds PASS** (0 WATCH, 10 FAIL); mean action agreement **83%**; a safety-critical miss in
+**every** world (a steady ~42–62 of ~600 loads — the model's residual action-level disagreement rate,
+roughly constant across markets). Three things are true at once, and the benchmark is built to show all three:
+
+- **It tracks the source on profit** — regret stays within ±8% on 8/10 worlds (everything but the two
+  tight markets), and on most worlds it is
+  *negative*, i.e. the compiled model books **more** collectible profit than the engine. That is not a
+  win: it earns the extra dollars precisely by taking the bids the source engine gates for
+  `approval_required` or refuses as `no_bid`. **Lower regret here is the model cashing in the very risk
+  the source is holding back** — which is exactly why the verdict is gated on the safety misses, not on
+  profit alone. It also clears the dummy: compiled regret magnitude beats the majority baseline's on
+  almost every world.
+- **It goes blind to caution exactly where it matters most.** On `tight_brokers` and `high_contention`
+  — hard, low-margin markets — warning agreement falls off a cliff (**0.84 → 0.09**) and regret balloons
+  to **+17%**. Distillation smoothed away the source's soft *calibration-watch* caution — the compiled
+  model has no head for that tier — so on those worlds **521 of ~600 loads** lose the watch signal. By
+  the strict taxonomy that is a **minor** miss, not a safety-critical one (the model *can't* emit a
+  warning it was never given a head for), so it shows up in the minor column, not the crit column — the
+  hard safety-critical count there (~55) is in line with every other world. What actually fails these two
+  worlds is the **regret blowup plus the wholesale loss of the watch-tier signal**: the compiled model
+  bids confidently into the markets where the engine is most carefully raising its hand. The held-out
+  `[ev]` lens (reserve/win-curve shifts) is where it hurts most.
+- **Action agreement (83%) hides the danger.** Top-line action match looks healthy, but agreement is
+  not safety: an 84%-action-agreeing model that loses tight-market warnings and auto-bids past approval
+  gates is *more* dangerous than an obviously-broken one. The whole point of splitting safety-critical
+  from minor misses is to separate "usually agrees" from "safe to trust."
+
+### The cost/context side: compiling is cheaper context, not a free lunch
+
+A separate benchmark (`run_context_cost_benchmark.py`) times the source engine against the compiled
+predict on the baseline world and counts what compiling actually buys:
+
+| Measure | Source engine | Compiled model |
+| --- | --- | --- |
+| engine **port calls / decision** | ~3.9 (`win_probabilities` + `payment.estimate` + …) | **0** (one in-memory `predict`) |
+| decision **payload size** | 386 B | **232 B** (1.7× smaller) |
+| runtime **context** | 16-node workflow | **22-field** feature vector |
+| artifact **cold-load** | — | 251 ms (≈3 MB joblib) |
+| **rule-change recompile** | — | **~31 s**, post-change agreement 100% |
+| wall-clock latency / decision | 77 ms | 89 ms (**~parity / 0.9×**) |
+
+**The honest framing matters here.** For this *in-memory classical* engine, wall-clock latency is at
+**parity** — both sides are dominated by Python/pandas per-call overhead, so compiling buys **no speedup
+today**. What it does buy is *structural*: ~3.9 orchestrated engine calls replaced by one predict, a
+1.7× smaller decision payload, and a procedure-free 22-field context instead of the 16-node graph. That
+runtime/$ saving only turns into real money when each replaced node is an **expensive** service or
+frontier-model call — which is the paper's regime, not this repo's. We report the parity rather than
+dressing it up.
+
+**Flexibility / recompile test.** To show the compile loop is cheap to *re-run*, the benchmark tightens
+one workflow rule (`payment_default_warn 0.15 → 0.08`), re-traces the same snapshots, and retrains:
+**~31 s end-to-end**, with the recompiled model reproducing the new policy's decisions at **100%**
+in-sample agreement. Changing the procedure is a regenerate-and-recompile, not a re-engineering.
+
+### Verdict
+
+```bash
+python -m benchmarks.run_compiled_dispatcher_stress --days 21 --max-loads 600   # 10 worlds x 3 arms -> stress summary
+python -m benchmarks.run_context_cost_benchmark      --days 21 --max-loads 400   # cost/context summary
+python -m benchmarks.chart_compiled_dispatcher_results                           # -> benchmarks/compiled_dispatcher_results.png
+```
+
+23 new tests pin the regret math, the three verdict bands, the safety-critical cases (including that
+suppressing the un-modelable soft *calibration-watch* tier is a **minor**, not a safety-critical, miss),
+the collectible-profit accounting, the scale lookup, and a seeded end-to-end smoke. Committed artifacts:
+`benchmarks/compiled_dispatcher_stress_summary.json`, `benchmarks/context_cost_summary.json`, and the
+chart (model joblib + full traces stay gitignored).
+
+**The capstone's conclusion is a boundary, not a trophy.** Compiling the FreightBid procedure into a
+small model genuinely shrinks the runtime context and replaces the orchestrated engine calls — but at a
+**safety cost the strict bar will not absorb**: it bids past approval gates, takes loads the engine
+refuses, and goes quiet on warnings exactly in the hardest markets. So the compiled dispatcher **stays
+shadow-only and the source engine stays authoritative**, and 6.5 is the evidence for *why* — it maps the
+worlds where the compiled model is merely cheaper (calm, in-distribution) versus where it is unsafe
+(tight margins, reserve/win-curve shifts, anywhere approval discipline carries the risk). That boundary
+— not a win over the engine — is the right way to close Phase 6.
 
 
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
@@ -1830,6 +1963,17 @@ across the Phase 3/4/5 worlds, plus a recompile test (change one rule → regene
   unlocks the +25 to +48 swing and the net HOLDS (+14–25%). Where the win curve is intact,
   recalibration correctly stands down and risk-adjusted EV earns its **+5.7%** on `risky_brokers`
   alone by stepping away from likely defaulters. Calibrate, *then* risk-adjust — not the reverse.
+- **Compiling buys cheaper context, not a free decision.** Distilling the whole dispatch procedure into
+  a small model ([Phase 6.3](#phase-63--distilled-multi-head-compiled-dispatcher-model)) and running it
+  beside the engine ([6.4](#phase-64--shadow-mode-compiled-dispatcher-adapter)) really does replace
+  ~3.9 orchestrated engine calls per decision with one in-memory predict and a 22-field context — but the
+  [stress test](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark) (6.5) is what keeps the
+  story honest: the compiled model *tracks* source profit (often booking **more**, because it bids the
+  loads the engine gates) yet fails **0/10** worlds on safety-critical misses, and its tight-market
+  warnings collapse (agreement **0.84 → 0.09**) exactly where caution matters. Action agreement of 83%
+  hides that. So the right capstone result was a **boundary, not a trophy** — measure where compiling is
+  merely cheaper versus where it is unsafe, then keep it shadow-only and leave the engine authoritative.
+
 
 ## Limitations & next work
 **Limitations**
@@ -1883,6 +2027,19 @@ across the Phase 3/4/5 worlds, plus a recompile test (change one rule → regene
   whole stack on **realized collectible profit** across the 10 worlds: full risk-aware beats raw EV
   in **4/10** — recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts
   `risky_brokers` **+5.7%**, baseline left flat — closing Phase 5.
+- **Phase 6 — compiled dispatcher agent (complete).** The orchestrated engine is compiled into a
+  *subterranean* agent: an explicit [16-node workflow graph + teacher traces](#phase-61--workflow-graph--teacher-trace-generator)
+  (6.1), a [two-form dispatcher dataset](#phase-62--synthetic-dispatcher-conversation-dataset) (6.2),
+  a [distilled multi-head model](#phase-63--distilled-multi-head-compiled-dispatcher-model) (6.3,
+  action **macro-F1 0.94**) that emits the JSON recommendation from case facts alone, a
+  [default-off shadow adapter](#phase-64--shadow-mode-compiled-dispatcher-adapter) (6.4) that runs it
+  beside the engine **byte-identically**, and a
+  [compiled-vs-source stress + cost capstone](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark)
+  (6.5). The capstone's verdict is a **boundary**: compiling replaces ~3.9 engine calls/decision and
+  shrinks the context, but the compiled model fails **0/10** stress worlds on safety-critical misses, so
+  it **stays shadow-only and the source engine stays authoritative**. The open thread is an **LLM
+  adapter** behind the same `CompiledDispatcherPort` — a real fine-tuned small model where the token/$
+  saving actually materializes.
 - **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
 - **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
