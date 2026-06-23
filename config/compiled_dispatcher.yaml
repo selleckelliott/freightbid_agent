@@ -1,0 +1,11 @@
+# Phase 6.4 — Shadow-Mode Compiled Dispatcher Adapter.
+#
+# The compiled dispatcher (Phase 6.3 distilled multi-head model) runs BESIDE the source engine for
+# agreement/regret comparison only. It NEVER owns the recommendation and cannot draft, approve, or
+# submit a bid. Default OFF ⇒ no-op (the source recommendation is byte-identical).
+#
+# `shadow_mode` is effectively non-optional for now: there is no active mode in Phase 6.4.
+compiled_dispatcher:
+  enabled: false
+  artifact_path: ml/artifacts/compiled_dispatcher_model.joblib
+  shadow_mode: true

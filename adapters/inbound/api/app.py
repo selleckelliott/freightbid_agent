@@ -14,6 +14,7 @@ from adapters.inbound.api.schemas import (
     BidActionRequest,
     BidDraftDTO,
     BidQueueResponse,
+    CompiledShadowDTO,
     CreateBidDraftRequest,
     EditBidRequest,
     IngestRequest,
@@ -27,8 +28,25 @@ from adapters.inbound.api.schemas import (
 from application.bid_approval_service import BidDraftNotFound, LoadNotFoundForBid
 from domain.enums.bid_approval_status import BidApprovalStatus
 from domain.models.bid_draft import InvalidBidTransition
+from ports.compiled_dispatcher import SHADOW_ONLY
 
 CONFIG_DIR = Path(os.environ.get("FREIGHTBID_CONFIG_DIR", Path(__file__).resolve().parents[3] / "config"))
+
+
+def _compiled_shadow_banner(container) -> "CompiledShadowDTO | None":
+    """Additive Phase 6.4 surface: ``None`` when the compiled dispatcher is OFF, else an availability
+    banner. Never affects the ``ranked`` items — the source engine still decides (``shadow_only``).
+    """
+    if not container.compiled_dispatcher_config.enabled:
+        return None
+    avail = container.compiled_dispatcher_shadow.availability()
+    return CompiledShadowDTO(
+        compiled_available=avail.available,
+        shadow_only=SHADOW_ONLY,
+        reason=avail.reason,
+        artifact_path=avail.artifact_path,
+        feature_manifest_hash=avail.feature_manifest_hash,
+    )
 
 
 def create_app(container=None) -> FastAPI:
@@ -88,7 +106,11 @@ def create_app(container=None) -> FastAPI:
                     bid=bid_range_to_dto(bid),
                 )
             )
-        return RankResponse(truck_id=truck.truck_id, ranked=items)
+        return RankResponse(
+            truck_id=truck.truck_id,
+            ranked=items,
+            compiled_shadow=_compiled_shadow_banner(container),
+        )
 
     @app.post("/plan", response_model=PlanResponse)
     def plan(req: RankRequest):

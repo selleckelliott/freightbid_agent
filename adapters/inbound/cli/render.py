@@ -49,6 +49,20 @@ def render_rank(console: Console, data: dict[str, Any]) -> None:
         bid = row["bid"]
         console.print(f"[dim]  Bid: {bid['rationale']}[/dim]")
         _render_bid_ev(console, bid)
+    _render_compiled_shadow(console, data.get("compiled_shadow"))
+
+
+def _render_compiled_shadow(console: Console, shadow: dict[str, Any] | None) -> None:
+    """Render the optional Phase 6.4 shadow banner (no-op when the compiled dispatcher is off)."""
+    if not shadow:
+        return
+    console.print(
+        "[dim]Compiled dispatcher: shadow only — source engine still decides.[/dim]"
+    )
+    if not shadow.get("compiled_available"):
+        console.print(
+            f"[dim]  (compiled model unavailable: {shadow.get('reason')})[/dim]"
+        )
 
 
 def _render_bid_ev(console: Console, bid: dict[str, Any]) -> None:

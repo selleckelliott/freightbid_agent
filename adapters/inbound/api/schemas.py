@@ -72,9 +72,24 @@ class RankedLoad(BaseModel):
     bid: "BidRangeDTO"
 
 
+class CompiledShadowDTO(BaseModel):
+    compiled_available: bool
+    shadow_only: bool
+    reason: Optional[str] = None
+    artifact_path: Optional[str] = None
+    feature_manifest_hash: Optional[str] = None
+
+
 class RankResponse(BaseModel):
     truck_id: int
     ranked: List[RankedLoad]
+    # -- Phase 6.4: additive shadow compiled-dispatcher banner ---------------------
+    # ``null`` when the compiled dispatcher is OFF (the default) — the ``ranked`` items are
+    # byte-identical to the pre-6.4 response. When the flag is ON this carries an availability
+    # banner; ``shadow_only`` is always True (the source engine still decides). The full
+    # per-decision comparison is produced by ``ShadowCompiledDispatcherService`` (shadow service /
+    # tests), not inlined into the hot ``/rank`` path.
+    compiled_shadow: Optional[CompiledShadowDTO] = None
 
 
 class PlanStopDTO(BaseModel):
