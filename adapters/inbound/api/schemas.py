@@ -52,6 +52,29 @@ class IngestResponse(BaseModel):
     accepted: int
 
 
+class PullRequest(BaseModel):
+    """Phase 7.2: pull external-style loads from the configured sandbox/replay board.
+
+    The board source is configured (``config/load_board.yaml``), not caller-supplied, so a request can
+    never point ingestion at an arbitrary file path. ``replace`` clears existing loads first.
+    """
+
+    limit: Optional[int] = None
+    replace: bool = False
+
+
+class PullResponse(BaseModel):
+    source: str
+    available: bool
+    fetched: int
+    accepted: int
+    rejected: int
+    load_ids: List[int] = Field(default_factory=list)
+    errors: List[dict] = Field(default_factory=list)
+    reason: Optional[str] = None
+    replaced: bool = False
+
+
 class RankRequest(BaseModel):
     truck: TruckStateDTO
     top_n: int = 10

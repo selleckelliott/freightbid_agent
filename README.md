@@ -33,6 +33,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Shadow-mode dispatcher (Phase 6.4)**](#phase-64--shadow-mode-compiled-dispatcher-adapter) | run the compiled model **beside** the source engine for agreement/regret — never in control | **default OFF · source byte-identical** · 1 port / 2 adapters / 1 service · fails closed on disabled/no-artifact/**manifest-mismatch**/invalid-output/exception · can't draft/approve/submit · additive `/rank` banner · **29 tests** |
 | [**Compiled-vs-source stress + cost (Phase 6.5)**](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark) | benchmark the compiled model against the full source engine across 10 shifted worlds on **collectible-profit regret** + safety-critical misses + context/cost | **0/10 worlds PASS** the strict 2%-regret + zero-safety bar — compiled *tracks* source profit (within ±8% on 8/10, beats the naive baseline) but commits a **safety-critical miss in every world** and its tight-market warnings collapse (warn agreement **0.84 → 0.09**) · compiling replaces **~3.9 engine calls/decision**, shrinks the decision payload **1.7×**, recompiles after a rule change in **~31s** · verdict: **stays shadow-only, source stays authoritative** |
 | [**Real-world data contracts (Phase 7.1)**](#phase-71--real-world-data-contracts) | anti-corruption ingress: messy external load/broker rows → a validated domain `Load`, PII redacted at one chokepoint | **integration-ready, not live** · CSV **and** JSON normalize to identical domain objects · per-row structured errors (**reject-row-not-batch**) · broker kept as a **redacted reference, never fed to ML** · internal `Load` + `/loads` ingress **byte-identical** · **21 tests** (488 total) |
+| [**Sandbox connector / replay (Phase 7.2)**](#phase-72--sandbox-connector--replay-adapter) | a `LoadBoardPort` with a seeded **sandbox** generator + a recorded-feed **replay** adapter, and a thin live `pull` flow (board → 7.1 validate → ingest) | external data really flows through the running app: **`POST /loads/pull`** + `freightbid pull` · board is **dumb transport** (emits raw dicts; 7.1 validates) · replay **cursor paging**, fails closed on missing/unreadable feed · config-driven (`load_board.yaml`), **no live Truckstop** · synthetic `POST /loads` **byte-identical** · **17 tests** (505 total) |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1949,6 +1950,42 @@ PYTHONPATH=. python -m pytest tests/test_real_data_contracts.py -q   # 21 tests
 21 new tests pin the external→domain mapping, the per-row error shape, the CSV/JSON equivalence, the
 PII-redaction invariant (no raw email/phone/address/name survives), and a **regression guard** that the
 domain `Load`, `LoadDTO`, and the `/loads` ingress are unchanged. Full suite: **488 passing**.
+
+## Phase 7.2 — Sandbox Connector / Replay Adapter
+
+> 7.1 built the *contract*; 7.2 makes external data **actually flow through the running app**. It adds
+> an integration boundary — a `LoadBoardPort` — with two adapters and a thin live `pull` flow, so the
+> system can consume external-style data through an adapter. There is still **no real Truckstop API**:
+> the boards are **sandbox** (a seeded generator) and **replay** (a recorded feed), exactly the
+> sandbox/replay split Phase 7 scopes.
+
+**The board is dumb transport; the contract is the gate.** A `LoadBoardPort` only emits *raw*,
+feed-shaped dictionaries — the messy alias/unit keys the 7.1 `RawExternalLoad` contract accepts — and
+never returns domain objects or touches a repository. That keeps the anti-corruption layer in one place:
+nothing reaches the engine without passing through 7.1's validate-and-map.
+
+| Adapter | What it does |
+| --- | --- |
+| `SandboxLoadBoardAdapter` | a **seeded, deterministic** generator of external-style rows (money strings, `"22,000 lb"`, equipment codes, full or abbreviated states, single dates *or* windows, per-mile *or* total rate) — same `seed` ⇒ byte-identical rows. The default, so the whole flow runs with **no external data**. |
+| `RecordedLoadBoardReplayAdapter` | replays a recorded feed file (`sample_data/external/recorded_feed.json`) through the 7.1 readers, **paging via an internal cursor** across successive pulls. |
+
+**The thin live wiring.** A `LoadBoardIngestService` is the one place a board meets the load repository:
+it pulls raw rows → runs them through 7.1 `validate_loads` (reject-row-not-batch) → adds the accepted
+domain `Load`s. It is surfaced additively as **`POST /loads/pull`** (and `freightbid pull`), with the
+board selected by config (`config/load_board.yaml`), never by the request — so a caller can't point
+ingestion at an arbitrary path:
+
+```bash
+freightbid pull --replace          # board -> validate -> ingest; then `rank` / `plan` as usual
+# -> Pulled from sandbox: fetched 12, accepted 12, rejected 0 (replaced existing)
+```
+
+**Fail-closed, and the synthetic path is untouched.** An unavailable board (sandbox `count: 0`, a
+missing/empty/unparseable replay feed) degrades to a no-op report with a reason — never an exception in
+the live path, and the repository is left untouched. The existing synthetic `POST /loads` ingress stays
+**byte-identical**. 17 new tests pin sandbox determinism, that boards emit raw dicts (not `Load`s) which
+the contract accepts cleanly, replay cursor paging + fail-closed behavior, the pull/replace/unavailable
+service paths, the container wiring, and the `/loads` regression guard. Full suite: **505 passing**.
 
 
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the
