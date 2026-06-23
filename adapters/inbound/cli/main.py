@@ -1,5 +1,6 @@
 """Typer CLI that talks to the FreightBid API."""
 import json
+import os
 from pathlib import Path
 
 import httpx
@@ -12,12 +13,17 @@ from adapters.inbound.cli.render import (
     render_plan,
     render_rank,
 )
+from application.services import ops_checks
 from application.services.decision_exporter import DecisionExporter
 
 app = typer.Typer(help="FreightBid Dispatch Brain CLI")
 console = Console()
 
 DEFAULT_API = "http://localhost:8000"
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CONFIG_DIR = Path(os.environ.get("FREIGHTBID_CONFIG_DIR", _REPO_ROOT / "config"))
+SAMPLE_TRUCK = _REPO_ROOT / "sample_data" / "truck.json"
+SAMPLE_LOADS = _REPO_ROOT / "sample_data" / "loads.json"
 
 
 def _client(api: str) -> httpx.Client:
@@ -31,6 +37,33 @@ def health(api: str = typer.Option(DEFAULT_API, "--api")):
         r = c.get("/health")
         r.raise_for_status()
         console.print(r.json())
+
+
+@app.command()
+def ready(api: str = typer.Option(DEFAULT_API, "--api")):
+    """Report engine readiness: config, load board, and model-artifact availability (Phase 7.4).
+
+    Distinct from `health` (liveness). `degraded` still serves (rule-based fallbacks + sandbox board);
+    it flags an enabled-but-missing model or an unavailable board.
+    """
+    with _client(api) as c:
+        data = _check(c.get("/ready"))
+    status = data.get("status")
+    color = "green" if status == "ready" else "yellow"
+    console.print(f"[{color}]Readiness: {status}[/{color}]")
+    board = data["checks"]["load_board"]
+    board_state = "available" if board["available"] else f"unavailable: {board.get('reason')}"
+    console.print(f"  load board: {board['source']} ({board_state})")
+    for name, a in data["checks"]["artifacts"].items():
+        if not a.get("enabled"):
+            state = "disabled"
+        elif a.get("present"):
+            state = "present"
+        else:
+            state = "MISSING"
+        console.print(f"  {name}: {state}")
+    for warning in data.get("warnings", []):
+        console.print(f"  [yellow]! {warning}[/yellow]")
 
 
 @app.command()
@@ -146,6 +179,60 @@ def export(
     else:
         console.print(f"[red]Unknown format '{fmt}'. Use bundle | jsonl | csv.[/red]")
         raise typer.Exit(code=1)
+
+
+@app.command("validate-config")
+def validate_config(
+    config_dir: Path = typer.Option(
+        DEFAULT_CONFIG_DIR, "--config-dir", help="Config directory to validate."
+    ),
+):
+    """Validate that every config file loads cleanly (Phase 7.4).
+
+    Runs locally with no running server, so it can preflight a deploy before the API boots. Exits
+    non-zero (listing the offending file + error) if any config fails to load.
+    """
+    report = ops_checks.validate_config(config_dir)
+    for chk in report["checks"]:
+        if chk["ok"]:
+            console.print(f"  [green]OK[/green]   {chk['name']}")
+        else:
+            console.print(f"  [red]FAIL[/red] {chk['name']}: {chk['error']}")
+    if not report["ok"]:
+        console.print("[red]Config validation failed.[/red]")
+        raise typer.Exit(code=1)
+    console.print(f"[green]All config valid[/green] ({report['config_dir']}).")
+
+
+@app.command("smoke-test")
+def smoke_test(
+    truck_file: Path = typer.Option(
+        SAMPLE_TRUCK, "--truck-file", help="Truck JSON used for the rank/bid steps."
+    ),
+    loads_file: Path = typer.Option(
+        SAMPLE_LOADS, "--loads-file", help="Loads JSON ingested for the rank step."
+    ),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """End-to-end smoke test against a running API (Phase 7.4).
+
+    Exercises health -> ready -> pull -> ingest -> rank -> bid draft -> decisions. Mutates state (pulls
+    sandbox loads, ingests the sample loads, drafts a bid); it never approves/submits and never bids
+    for real.
+    """
+    truck = json.loads(Path(truck_file).read_text(encoding="utf-8"))
+    loads = json.loads(Path(loads_file).read_text(encoding="utf-8"))
+    with _client(api) as c:
+        report = ops_checks.run_smoke(c, truck=truck, loads=loads)
+    for step in report["steps"]:
+        if step["ok"]:
+            console.print(f"  [green]OK[/green]   {step['name']}: {step['detail']}")
+        else:
+            console.print(f"  [red]FAIL[/red] {step['name']}: {step['detail']}")
+    if not report["ok"]:
+        console.print("[red]Smoke test failed.[/red]")
+        raise typer.Exit(code=1)
+    console.print("[green]Smoke test passed.[/green]")
 
 
 # -- Phase 4.4: human-in-the-loop bid approval workflow -----------------------

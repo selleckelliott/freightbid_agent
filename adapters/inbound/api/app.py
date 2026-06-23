@@ -28,6 +28,7 @@ from adapters.inbound.api.schemas import (
     RankedLoad,
 )
 from application.bid_approval_service import BidDraftNotFound, LoadNotFoundForBid
+from application.services.ops_checks import readiness_report
 from domain.enums.bid_approval_status import BidApprovalStatus
 from domain.models.bid_draft import InvalidBidTransition
 from ports.compiled_dispatcher import SHADOW_ONLY
@@ -58,6 +59,16 @@ def create_app(container=None) -> FastAPI:
     @app.get("/health")
     def health():
         return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready():
+        """Phase 7.4 readiness probe: config + load-board + model-artifact status (additive, read-only).
+
+        Distinct from ``/health`` (liveness). Always HTTP 200 — every model dependency is optional, so
+        the engine still serves on rule-based fallbacks + the sandbox board even when ``status`` is
+        ``degraded``. Side-effect-free: only cheap board-availability + artifact stat checks.
+        """
+        return readiness_report(container)
 
     @app.post("/loads", response_model=IngestResponse)
     def ingest_loads(req: IngestRequest):
