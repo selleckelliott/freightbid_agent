@@ -1,0 +1,4 @@
+broker_id,company,contact,email,phone,address,mc_number,credit,days_to_pay,bonded,quick_pay,age_days
+BRK-100,Lone Star Logistics,Jane Smith,jane.smith@lonestar.com,(214) 555-0100,"100 Commerce St, Dallas TX",MC-456789,A,21,yes,yes,1500
+BRK-101,Gulf Coast Brokerage,Bob Lee,bob@gulfcoast.com,713-555-0142,"55 Bayou Rd, Houston TX",MC-223344,B,35,no,no,420
+BRK-102,Hill Country Freight,Maria Gomez,maria.gomez@hillcountry.com,+1 512 555 0190,"9 Ranch Way, Austin TX",MC-998877,C,45,no,yes,90

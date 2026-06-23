@@ -1,0 +1,5 @@
+posting_id,equipment_code,weight_lbs,origin,origin_state,origin_lat,origin_lng,dest_city,dest_state,dest_lat,dest_lng,trip_miles,rate,pickup,delivery,broker_id
+5001,FD,"9,800",Dallas,Texas,32.7767,-96.7970,Houston,Texas,29.7604,-95.3698,240,"$1,050",2026-06-01T08:00:00Z,2026-06-02,BRK-100
+5002,V,18000,Houston,TX,29.7604,-95.3698,San Antonio,TX,29.4241,-98.4936,197,720,2026-06-01 14:00,2026-06-02,BRK-101
+5003,R,30000,Fort Worth,Texas,32.7555,-97.3308,Oklahoma City,Oklahoma,35.4676,-97.5164,206,"$1,200",2026-06-02T06:00:00Z,2026-06-02T20:00:00Z,BRK-100
+5004,Hotshot,"12,000",Austin,TX,30.2672,-97.7431,Dallas,TX,32.7767,-96.7970,195,850,2026-06-03T09:00:00Z,2026-06-03T22:00:00Z,BRK-102
