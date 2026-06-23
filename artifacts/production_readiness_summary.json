@@ -1,0 +1,144 @@
+{
+  "facts": {
+    "approval": {
+      "approved_bid_id": 1,
+      "approved_final_status": "submitted_mock",
+      "approved_load_id": 1,
+      "rejected_bid_id": 2,
+      "rejected_final_status": "rejected",
+      "rejected_load_id": 3
+    },
+    "audit_export": {
+      "decision_count": 2,
+      "files": [
+        "decisions.csv",
+        "decisions.jsonl",
+        "manifest.json"
+      ],
+      "model_artifact_ids": {},
+      "pii_leak_in_export": false,
+      "provenance_keys": [
+        "config_hash",
+        "feature_manifest_hash",
+        "generated_at",
+        "git_commit",
+        "git_describe",
+        "model_artifact_ids",
+        "schema_version",
+        "source_policy_version"
+      ],
+      "records_carrying_broker": 0,
+      "source_policy_version": "phase-5.5-full-risk-aware",
+      "status_counts": {
+        "rejected": 1,
+        "submitted_mock": 1
+      }
+    },
+    "board": {
+      "accepted": 12,
+      "available": true,
+      "fetched": 12,
+      "rejected": 0,
+      "source": "sandbox"
+    },
+    "broker_contract": {
+      "brokers_validated": 3,
+      "pii_leak": false,
+      "raw_had_pii": true,
+      "sample_broker_id": "BRK-100",
+      "sample_credit_bucket": "A",
+      "sample_email_token_present": true,
+      "sample_has_address": true,
+      "sample_has_contact_name": true,
+      "sample_has_email": true,
+      "sample_has_phone": true,
+      "sample_phone_token_present": true
+    },
+    "config_files_checked": 6,
+    "final_readiness_status": "ready",
+    "health_ok": true,
+    "operating_ingest_accepted": 4,
+    "preflight_ok": true,
+    "readiness_status": "ready",
+    "recommendation": {
+      "ranked_count": 2,
+      "rate_per_mile_at_target": 1.9155,
+      "recommended_bid": 459.72,
+      "top_load_id": 1,
+      "top_score": 612.483
+    }
+  },
+  "generated_at_utc": "2026-06-23T22:34:32.356900+00:00",
+  "ok": true,
+  "phase": "7.5",
+  "runtime_seconds": 0.285,
+  "stages": [
+    {
+      "index": 1,
+      "key": "preflight",
+      "ok": true,
+      "summary": "all 6 config files load cleanly",
+      "title": "Preflight - config validation"
+    },
+    {
+      "index": 2,
+      "key": "readiness",
+      "ok": true,
+      "summary": "/health -> ok; /ready -> ready (board: sandbox available)",
+      "title": "Liveness & readiness"
+    },
+    {
+      "index": 3,
+      "key": "board_ingress",
+      "ok": true,
+      "summary": "pulled 12 external-style loads from 'sandbox'; 12 validated + accepted, 0 rejected",
+      "title": "External board ingress (7.2 -> 7.1)"
+    },
+    {
+      "index": 4,
+      "key": "broker_contract",
+      "ok": true,
+      "summary": "validated 3 broker(s); contact PII redacted at the chokepoint (raw rows carried PII: True; reference carried PII: False)",
+      "title": "Broker contract + PII redaction (7.1)"
+    },
+    {
+      "index": 5,
+      "key": "operating_ingest",
+      "ok": true,
+      "summary": "ingested 4 operating load(s) for truck 101",
+      "title": "Operating-snapshot ingest"
+    },
+    {
+      "index": 6,
+      "key": "recommendation",
+      "ok": true,
+      "summary": "ranked 2 feasible load(s); top = load 1 (Dallas -> Houston), recommended bid $459.72 (source engine decides)",
+      "title": "Source-engine recommendation"
+    },
+    {
+      "index": 7,
+      "key": "approval",
+      "ok": true,
+      "summary": "bid 1 drafted -> approved -> submit-mock (simulated); bid 2 drafted -> rejected",
+      "title": "Human-in-the-loop approval (4.4)"
+    },
+    {
+      "index": 8,
+      "key": "audit_export",
+      "ok": true,
+      "summary": "exported 2 decision record(s) to an audit bundle (decisions.csv, decisions.jsonl, manifest.json) with model/config provenance; status counts {'submitted_mock': 1, 'rejected': 1}; no contact PII in export",
+      "title": "Durable audit export (7.3)"
+    },
+    {
+      "index": 9,
+      "key": "final_readiness",
+      "ok": true,
+      "summary": "/ready -> ready; workflow complete",
+      "title": "Final readiness recheck"
+    }
+  ],
+  "stages_passed": 9,
+  "stages_total": 9,
+  "title": "Production-Readiness Capstone Demo",
+  "verdict": "PASS"
+}

@@ -21,3 +21,7 @@ benchmarks/reproduced/
 data/synthetic_load_history.jsonl
 data/*.jsonl
 ml/artifacts/*.joblib
+
+# Phase 7.5 - production-readiness demo audit bundle (regenerable; the summary JSON +
+# transcript under artifacts/ are committed, the exported bundle with volatile provenance is not).
+artifacts/production_readiness_export/

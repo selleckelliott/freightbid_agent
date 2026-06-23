@@ -36,6 +36,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Sandbox connector / replay (Phase 7.2)**](#phase-72--sandbox-connector--replay-adapter) | a `LoadBoardPort` with a seeded **sandbox** generator + a recorded-feed **replay** adapter, and a thin live `pull` flow (board → 7.1 validate → ingest) | external data really flows through the running app: **`POST /loads/pull`** + `freightbid pull` · board is **dumb transport** (emits raw dicts; 7.1 validates) · replay **cursor paging**, fails closed on missing/unreadable feed · config-driven (`load_board.yaml`), **no live Truckstop** · synthetic `POST /loads` **byte-identical** · **17 tests** (505 total) |
 | [**Durable decision & audit export (Phase 7.3)**](#phase-73--durable-decision--audit-export) | a `DecisionRecord` bundling the recommendation snapshot + warnings + the bid draft's **existing audit trail** + **model/config provenance**, and a `DecisionExporter` to JSONL / CSV / an audit **bundle** | decisions are auditable **outside the process** — **`GET /decisions`** (read-only) + `freightbid export` · records built **on-demand from live drafts** (**no DB / no Postgres**) · every record stamped with `source_policy_version` + `git` + `config_hash` + model-artifact ids · **CLI writes locally** (a request can never write a server path) · redacted broker **PII never leaks** into exports · **22 tests** (527 total) |
 | [**Deployment & operations hardening (Phase 7.4)**](#phase-74--deployment--operations-hardening) | a readiness probe + **artifact-availability** report, a local **config-validate** preflight, an end-to-end **smoke-test**, and a hardened Docker image | run-it-confidently ops: **`GET /ready`** (liveness `/health` vs readiness, `ready`/`degraded`) + `freightbid ready` · `freightbid validate-config` (no server) · `freightbid smoke-test` drives health→ready→pull→ingest→rank→bid→decisions · Docker **HEALTHCHECK** + **non-root** user · readiness is **side-effect-free**, existing endpoints **byte-identical** · **17 tests** (544 total) |
+| [**Production-readiness capstone (Phase 7.5)**](#phase-75--production-readiness-capstone-demo) | one end-to-end demo wiring **every** Phase 7 capability: board pull → 7.1 validate → broker redaction → ingest → **source recommend** → human approval → 7.3 audit export → ops checks | the closing proof: `benchmarks/run_production_readiness_demo.py` runs **9/9 stages PASS** in-process (no server) · a **deterministic** committed `production_readiness_summary.json` + transcript · source engine stays **authoritative** · `submit-mock` simulated, **no auto-bidding** · raw broker **PII never crosses** the redaction boundary · **12 tests** (556 total) |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -2078,6 +2079,53 @@ config-validation ok/fail, readiness `ready`/`degraded` (enabled-but-missing mod
 the artifact report, the additive + side-effect-free `/ready` (and `/health` unchanged), the smoke runner
 end-to-end and its graceful-failure path, the ops CLI commands, and the hardened Dockerfile. Full suite:
 **544 passing**.
+
+## Phase 7.5 — Production-Readiness Capstone Demo
+
+> The Phase 7 capstone — and the closing proof of the whole project. Where 7.1–7.4 each shipped one
+> integration-readiness capability, 7.5 **wires them all into a single end-to-end run** on external-style
+> data, driven through the *running* FastAPI app in-process (a `TestClient` — no server, no network, **no
+> live Truckstop**). It demonstrates the full operator workflow, not a new intelligence layer.
+
+[`benchmarks/run_production_readiness_demo.py`](benchmarks/run_production_readiness_demo.py) executes
+**nine stages** and reports a single verdict:
+
+| # | Stage | Proves |
+| --- | --- | --- |
+| 1 | Preflight — config validation (7.4) | every config file loads cleanly, before the app boots |
+| 2 | Liveness & readiness (7.4) | `GET /health` + `GET /ready` (`ready`, board available) |
+| 3 | External board ingress (7.2 → 7.1) | pull 12 external-style loads → **validated through the contract** → accepted |
+| 4 | Broker contract + PII redaction (7.1) | a broker with raw PII → a **redacted** reference (tokens + presence flags); **no raw PII survives** |
+| 5 | Operating-snapshot ingest | the truck's feasibility-aligned candidate set (4 loads) |
+| 6 | Source-engine recommendation | the **authoritative** engine ranks 2 feasible loads, prices a bid (`$459.72`) |
+| 7 | Human-in-the-loop approval (4.4) | draft → approve → **submit-mock** (simulated); draft → reject |
+| 8 | Durable audit export (7.3) | `GET /decisions` → a JSONL/CSV/manifest **bundle** with model/config provenance; **no contact PII** |
+| 9 | Final readiness recheck (7.4) | `/ready` still `ready` — workflow complete |
+
+```bash
+python -m benchmarks.run_production_readiness_demo            # writes the summary + transcript
+python -m benchmarks.run_production_readiness_demo --dry-run  # prints the transcript, writes nothing
+```
+
+**The board pull and the recommendation are deliberately separate snapshots.** The sandbox board emits
+external-style rows to exercise the *ingestion contract* (stage 3) — they are not feasibility-aligned to
+any one truck. The recommendation (stage 6) then runs on the truck's real **operating snapshot** (the
+committed sample truck + loads, mutually feasible), so the engine has genuine candidates to rank. This is
+the honest separation an operator would have: *connectivity to the board* vs. *the truck's actual options*.
+
+**Deterministic + committed.** The demo function returns **only deterministic content** (no timestamps,
+git SHAs, or runtimes), so [`artifacts/production_readiness_summary.json`](artifacts/production_readiness_summary.json)
+and [`artifacts/production_readiness_transcript.md`](artifacts/production_readiness_transcript.md) are
+stable, reviewable artifacts (a test runs the demo twice and asserts byte-identical results). The exported
+audit *bundle* carries volatile provenance, so it is written to a gitignored dir and regenerable — only its
+shape (counts, status mix, file names) is recorded in the summary. Headline: **`PASS` — 9/9 stages green**.
+
+**Safety guarantees carried into the capstone.** The source engine remains the sole decider; `submit-mock`
+is a *simulated* terminal state (never a real broker/Truckstop submission); there is no auto-bidding; and
+raw broker contact PII (email/phone/address/name) never crosses the redaction boundary — asserted on the
+broker references **and** on the exported decision payload. 12 new tests pin all nine stages, the structural
+facts, the PII-redaction invariant, the on-disk bundle, transcript rendering, and `main` (incl. the
+write-nothing dry run). Full suite: **556 passing**.
 
 
 
