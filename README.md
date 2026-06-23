@@ -34,6 +34,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Compiled-vs-source stress + cost (Phase 6.5)**](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark) | benchmark the compiled model against the full source engine across 10 shifted worlds on **collectible-profit regret** + safety-critical misses + context/cost | **0/10 worlds PASS** the strict 2%-regret + zero-safety bar — compiled *tracks* source profit (within ±8% on 8/10, beats the naive baseline) but commits a **safety-critical miss in every world** and its tight-market warnings collapse (warn agreement **0.84 → 0.09**) · compiling replaces **~3.9 engine calls/decision**, shrinks the decision payload **1.7×**, recompiles after a rule change in **~31s** · verdict: **stays shadow-only, source stays authoritative** |
 | [**Real-world data contracts (Phase 7.1)**](#phase-71--real-world-data-contracts) | anti-corruption ingress: messy external load/broker rows → a validated domain `Load`, PII redacted at one chokepoint | **integration-ready, not live** · CSV **and** JSON normalize to identical domain objects · per-row structured errors (**reject-row-not-batch**) · broker kept as a **redacted reference, never fed to ML** · internal `Load` + `/loads` ingress **byte-identical** · **21 tests** (488 total) |
 | [**Sandbox connector / replay (Phase 7.2)**](#phase-72--sandbox-connector--replay-adapter) | a `LoadBoardPort` with a seeded **sandbox** generator + a recorded-feed **replay** adapter, and a thin live `pull` flow (board → 7.1 validate → ingest) | external data really flows through the running app: **`POST /loads/pull`** + `freightbid pull` · board is **dumb transport** (emits raw dicts; 7.1 validates) · replay **cursor paging**, fails closed on missing/unreadable feed · config-driven (`load_board.yaml`), **no live Truckstop** · synthetic `POST /loads` **byte-identical** · **17 tests** (505 total) |
+| [**Durable decision & audit export (Phase 7.3)**](#phase-73--durable-decision--audit-export) | a `DecisionRecord` bundling the recommendation snapshot + warnings + the bid draft's **existing audit trail** + **model/config provenance**, and a `DecisionExporter` to JSONL / CSV / an audit **bundle** | decisions are auditable **outside the process** — **`GET /decisions`** (read-only) + `freightbid export` · records built **on-demand from live drafts** (**no DB / no Postgres**) · every record stamped with `source_policy_version` + `git` + `config_hash` + model-artifact ids · **CLI writes locally** (a request can never write a server path) · redacted broker **PII never leaks** into exports · **22 tests** (527 total) |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -1986,6 +1987,52 @@ the live path, and the repository is left untouched. The existing synthetic `POS
 **byte-identical**. 17 new tests pin sandbox determinism, that boards emit raw dicts (not `Load`s) which
 the contract accepts cleanly, replay cursor paging + fail-closed behavior, the pull/replace/unavailable
 service paths, the container wiring, and the `/loads` regression guard. Full suite: **505 passing**.
+
+
+## Phase 7.3 — Durable Decision & Audit Export
+
+> 7.2 made external data flow *in*; 7.3 makes the engine's decisions flow *out* — auditable **outside the
+> running process**. It adds a `DecisionRecord` that bundles everything a reviewer needs to trust a
+> recommendation, and a `DecisionExporter` that writes JSONL, CSV, or an audit **bundle**. Kept
+> deliberately narrow: **no database, no Postgres** — records are built **on-demand** from the live bid
+> drafts the engine already keeps.
+
+**A decision is the bid draft you already have — plus provenance.** The `BidApprovalService` already holds
+each `BidDraft`: the recommendation snapshot (recommended vs. current amount, rate, deltas, win
+probability, expected value, EV label) *and* the full **audit trail** of `BidAuditEvent`s (create → edit →
+approve / reject → submit-mock / expire) *and* its status. A `DecisionRecord` wraps that draft with
+**model/config provenance** and an optional **redacted broker reference**, so nothing about the decision
+lives only in memory.
+
+| Provenance field | Source |
+| --- | --- |
+| `source_policy_version` | the frozen engine policy (`phase-5.5-full-risk-aware`) |
+| `git_commit` · `git_describe` | best-effort `git` (degrades to `unknown`, never raises) |
+| `config_hash` | sha256 of the live bid-policy / constraints / recommender / approval config |
+| `model_artifact_ids` | **only** models actually wired *and* present on disk — `{}` in a fresh clone |
+| `feature_manifest_hash` | the compiled-dispatcher manifest hash when shadow is available, else `null` |
+
+**Export is read-only and writes client-side.** A new **`GET /decisions?status=…`** returns the live
+records (with provenance) — additive and read-only; every existing endpoint stays byte-identical. The
+`freightbid export` CLI **fetches** those records over that endpoint and writes them **locally** itself —
+JSONL or CSV single-file, or a `bundle/` folder (`decisions.jsonl` + flattened `decisions.csv` +
+`manifest.json`). So an export request can **never** make the server write to an arbitrary path — the same
+config-over-request safety stance as the 7.2 board.
+
+```bash
+freightbid export ./audit --format bundle          # GET /decisions -> write decisions.{jsonl,csv} + manifest.json
+freightbid export ./won.jsonl --format jsonl --status approved
+```
+
+**PII stays redacted, end to end.** A record carries the broker only as the 7.1 **redacted
+`BrokerReference`** (credit bucket, days-to-pay, bonded/quick-pay flags) — raw email / phone / address /
+contact name never reach a `DecisionRecord` or any exported row, which a hard test pins on the serialized
+output. Warnings are derived honestly from the draft (only `negative_expected_value` today, since the
+`BidDraft` carries no warnings list) with an explicit override hook the 7.5 demo can use. 22 new tests pin
+the record/provenance shape, CSV columns and audit/warning flattening, the redaction invariant, JSONL
+determinism, the bundle layout, the read-only `GET /decisions` (incl. status filter + side-effect-free
+guarantee), and the CLI writers. Full suite: **527 passing**.
+
 
 
 - **Aggregate nudging beats per-load prediction.** Inside the rolling loop the

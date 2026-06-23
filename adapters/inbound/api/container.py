@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from adapters.outbound.clock import SystemClock
@@ -37,9 +37,11 @@ from application.ortools_distance_planner import ORToolsDistancePlanner
 from application.ortools_profit_aware_planner import ORToolsProfitAwarePlanner
 from application.plan_builder import PlanBuilderService
 from application.recommend_loads import RecommendLoadsService
+from application.services.decision_exporter import SOURCE_POLICY_VERSION, DecisionLog
 from application.services.shadow_compiled_dispatcher_service import (
     ShadowCompiledDispatcherService,
 )
+from ports.compiled_dispatcher import CompiledDispatcherAvailability
 from domain.scoring.heuristic_scoring import HeuristicScoringStrategy
 from ml.models.compiled_dispatcher_model import (
     default_feature_manifest,
@@ -161,6 +163,47 @@ def _build_load_board(cfg: LoadBoardConfig) -> LoadBoardPort:
     return SandboxLoadBoardAdapter(seed=cfg.seed, count=cfg.count)
 
 
+def _decision_model_artifact_ids(
+    bid_cfg: BidRecommenderConfig, compiled_avail: CompiledDispatcherAvailability
+) -> dict:
+    """Phase 7.3 provenance: which models actually backed a decision (only wired+present ones).
+
+    An empty dict means the source engine ran on rules alone (the default clone, with the gitignored
+    model artifacts absent). The compiled dispatcher is included only when its shadow adapter is
+    serveable — it never owns the decision, but its presence is recorded for audit.
+    """
+    ids: dict = {}
+    if bid_cfg.enabled:
+        artifact = Path(bid_cfg.model_path)
+        if not artifact.is_absolute():
+            artifact = ROOT / artifact
+        if artifact.exists():
+            ids["winnability"] = bid_cfg.model_path
+    if bid_cfg.risk_adjusted_ev_enabled:
+        artifact = Path(bid_cfg.payment_model_path)
+        if not artifact.is_absolute():
+            artifact = ROOT / artifact
+        if artifact.exists():
+            ids["payment_risk"] = bid_cfg.payment_model_path
+    if compiled_avail.available and compiled_avail.artifact_path:
+        ids["compiled_dispatcher"] = compiled_avail.artifact_path
+    return ids
+
+
+def _decision_config_payload(
+    config: AppConfig,
+    bid_recommender_config: BidRecommenderConfig,
+    bid_approval_config: BidApprovalConfig,
+) -> dict:
+    """The decision-relevant config snapshot hashed into ``provenance.config_hash``."""
+    return {
+        "bid_policy": asdict(config.bid_policy),
+        "bidding_constraints": asdict(config.bidding_constraints),
+        "bid_recommender": asdict(bid_recommender_config),
+        "bid_approval": asdict(bid_approval_config),
+    }
+
+
 @dataclass
 class Container:
     config: AppConfig
@@ -183,6 +226,7 @@ class Container:
     load_board_config: LoadBoardConfig
     load_board: LoadBoardPort
     load_board_ingest: LoadBoardIngestService
+    decision_log: DecisionLog
 
 
 def build_container(
@@ -251,6 +295,18 @@ def build_container(
     load_board = _build_load_board(load_board_config)
     load_board_ingest = LoadBoardIngestService(load_board, load_repo)
 
+    compiled_avail = compiled_dispatcher_shadow.availability()
+    decision_log = DecisionLog(
+        bid_approval_service,
+        clock,
+        source_policy_version=SOURCE_POLICY_VERSION,
+        model_artifact_ids=_decision_model_artifact_ids(bid_recommender_config, compiled_avail),
+        feature_manifest_hash=compiled_avail.feature_manifest_hash,
+        config_payload=_decision_config_payload(
+            config, bid_recommender_config, bid_approval_config
+        ),
+    )
+
     return Container(
         config=config,
         load_repo=load_repo,
@@ -272,4 +328,5 @@ def build_container(
         load_board_config=load_board_config,
         load_board=load_board,
         load_board_ingest=load_board_ingest,
+        decision_log=decision_log,
     )
