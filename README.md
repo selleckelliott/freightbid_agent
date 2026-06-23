@@ -35,6 +35,7 @@ multi-day dispatch simulation — every recommendation explainable.
 | [**Real-world data contracts (Phase 7.1)**](#phase-71--real-world-data-contracts) | anti-corruption ingress: messy external load/broker rows → a validated domain `Load`, PII redacted at one chokepoint | **integration-ready, not live** · CSV **and** JSON normalize to identical domain objects · per-row structured errors (**reject-row-not-batch**) · broker kept as a **redacted reference, never fed to ML** · internal `Load` + `/loads` ingress **byte-identical** · **21 tests** (488 total) |
 | [**Sandbox connector / replay (Phase 7.2)**](#phase-72--sandbox-connector--replay-adapter) | a `LoadBoardPort` with a seeded **sandbox** generator + a recorded-feed **replay** adapter, and a thin live `pull` flow (board → 7.1 validate → ingest) | external data really flows through the running app: **`POST /loads/pull`** + `freightbid pull` · board is **dumb transport** (emits raw dicts; 7.1 validates) · replay **cursor paging**, fails closed on missing/unreadable feed · config-driven (`load_board.yaml`), **no live Truckstop** · synthetic `POST /loads` **byte-identical** · **17 tests** (505 total) |
 | [**Durable decision & audit export (Phase 7.3)**](#phase-73--durable-decision--audit-export) | a `DecisionRecord` bundling the recommendation snapshot + warnings + the bid draft's **existing audit trail** + **model/config provenance**, and a `DecisionExporter` to JSONL / CSV / an audit **bundle** | decisions are auditable **outside the process** — **`GET /decisions`** (read-only) + `freightbid export` · records built **on-demand from live drafts** (**no DB / no Postgres**) · every record stamped with `source_policy_version` + `git` + `config_hash` + model-artifact ids · **CLI writes locally** (a request can never write a server path) · redacted broker **PII never leaks** into exports · **22 tests** (527 total) |
+| [**Deployment & operations hardening (Phase 7.4)**](#phase-74--deployment--operations-hardening) | a readiness probe + **artifact-availability** report, a local **config-validate** preflight, an end-to-end **smoke-test**, and a hardened Docker image | run-it-confidently ops: **`GET /ready`** (liveness `/health` vs readiness, `ready`/`degraded`) + `freightbid ready` · `freightbid validate-config` (no server) · `freightbid smoke-test` drives health→ready→pull→ingest→rank→bid→decisions · Docker **HEALTHCHECK** + **non-root** user · readiness is **side-effect-free**, existing endpoints **byte-identical** · **17 tests** (544 total) |
 
 Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
@@ -2032,6 +2033,51 @@ output. Warnings are derived honestly from the draft (only `negative_expected_va
 the record/provenance shape, CSV columns and audit/warning flattening, the redaction invariant, JSONL
 determinism, the bundle layout, the read-only `GET /decisions` (incl. status filter + side-effect-free
 guarantee), and the CLI writers. Full suite: **527 passing**.
+
+
+## Phase 7.4 — Deployment & Operations Hardening
+
+> With ingestion (7.1/7.2) and audit export (7.3) in place, 7.4 makes FreightBid **easy to run and
+> inspect** so a reviewer or future operator can run it confidently. It is pure ops hardening — **no new
+> intelligence layer**: a richer readiness probe, a config preflight, an end-to-end smoke runner, and a
+> hardened container. All checks are *additive* and the existing endpoints stay **byte-identical**.
+
+**Liveness vs. readiness.** `GET /health` stays the liveness probe ("the process is up"); a new
+**`GET /ready`** is the readiness probe — it reports config + load-board + **model-artifact** status with
+provenance. It is **side-effect-free** (only the boards' cheap availability check + a stat of each model
+path; it never pulls, ranks, or ingests) and **always HTTP 200**:
+
+| `status` | meaning |
+| --- | --- |
+| `ready` | every *enabled* dependency is usable |
+| `degraded` | still serving, but an **enabled** model's artifact is missing or the board is unavailable (the `warnings` list says which) |
+
+Because every model is **optional** (a fresh clone runs on rule-based fallbacks + the sandbox board by
+design), readiness deliberately reports `degraded` rather than failing — the engine still serves, so
+`degraded` is a heads-up, not an outage. That is why `/ready` returns the nuance in the body instead of a
+503.
+
+**Three operator commands.** The CLI grows a small ops surface:
+
+```bash
+freightbid validate-config     # local preflight: every config file loads cleanly (no server needed)
+freightbid ready               # GET /ready: board + artifact availability, ready vs degraded
+freightbid smoke-test          # end-to-end: health -> ready -> pull -> ingest -> rank -> bid -> decisions
+```
+
+`validate-config` runs **before** the API boots (pure disk reads), so a bad `cost_model.yaml` is caught
+early with a precise message instead of a stack trace. `smoke-test` drives a *running* API through the
+whole workflow — it proves the write paths end to end (it pulls sandbox loads, ingests the sample loads,
+and drafts a bid) while never approving, submitting, or bidding for real.
+
+**A hardened image.** The `Dockerfile` now runs as a **non-root** user (`freight`, uid 10001) and ships a
+**HEALTHCHECK** that polls `/health` (via stdlib `urllib`, since the slim image has no `curl`). A new
+[`docs/production_readiness_runbook.md`](docs/production_readiness_runbook.md) documents running it,
+the probes, the artifact table, the smoke test, audit export, and the safety guarantees. 17 new tests pin
+config-validation ok/fail, readiness `ready`/`degraded` (enabled-but-missing model, unavailable board),
+the artifact report, the additive + side-effect-free `/ready` (and `/health` unchanged), the smoke runner
+end-to-end and its graceful-failure path, the ops CLI commands, and the hardened Dockerfile. Full suite:
+**544 passing**.
 
 
 
