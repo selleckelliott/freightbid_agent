@@ -248,6 +248,24 @@ def create_app(container=None) -> FastAPI:
             raise HTTPException(status_code=409, detail=str(exc))
         return bid_draft_to_dto(draft)
 
+    # -- Phase 7.3: durable decision & audit export ---------------------------
+
+    @app.get("/decisions")
+    def list_decisions(status: str | None = Query(default=None)):
+        """Read-only audit view: every bid decision as a record + the shared model/config provenance.
+
+        Additive and side-effect-free — building records does not mutate state. File export
+        (JSONL/CSV/bundle) is driven client-side by the ``freightbid export`` CLI, so a request can
+        never write to a server path.
+        """
+        status_filter = None
+        if status is not None:
+            try:
+                status_filter = BidApprovalStatus(status)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"unknown status '{status}'")
+        return container.decision_log.payload(status_filter)
+
     return app
 
 

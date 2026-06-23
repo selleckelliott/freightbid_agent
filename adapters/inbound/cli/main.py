@@ -12,6 +12,7 @@ from adapters.inbound.cli.render import (
     render_plan,
     render_rank,
 )
+from application.services.decision_exporter import DecisionExporter
 
 app = typer.Typer(help="FreightBid Dispatch Brain CLI")
 console = Console()
@@ -107,6 +108,44 @@ def plan(truck_file: Path, api: str = typer.Option(DEFAULT_API, "--api")):
         data = r.json()
 
     render_plan(console, data)
+
+
+@app.command()
+def export(
+    out: Path,
+    fmt: str = typer.Option("bundle", "--format", help="bundle | jsonl | csv"),
+    status: str = typer.Option(None, "--status", help="Filter by bid status."),
+    api: str = typer.Option(DEFAULT_API, "--api"),
+):
+    """Export decision records for offline audit (Phase 7.3).
+
+    Fetches /decisions (recommendation snapshot + audit trail + model/config provenance) and writes
+    locally - an audit bundle folder (decisions.jsonl + decisions.csv + manifest.json), or a single
+    JSONL/CSV file. No server-side files are written; OUT is a local path on this machine.
+    """
+    params = {"status": status} if status else None
+    with _client(api) as c:
+        data = _check(c.get("/decisions", params=params))
+    records = data.get("decisions", [])
+    provenance = data.get("provenance", {})
+    fmt_norm = fmt.lower()
+    if fmt_norm == "jsonl":
+        path = out if out.suffix else out / "decisions.jsonl"
+        count = DecisionExporter.write_jsonl(records, path)
+        console.print(f"[green]Wrote {count} decision(s)[/green] to {path}")
+    elif fmt_norm == "csv":
+        path = out if out.suffix else out / "decisions.csv"
+        count = DecisionExporter.write_csv(records, path)
+        console.print(f"[green]Wrote {count} decision(s)[/green] to {path}")
+    elif fmt_norm == "bundle":
+        report = DecisionExporter.write_bundle(records, out, provenance=provenance)
+        console.print(
+            f"[green]Exported {report.decision_count} decision(s)[/green] to {report.out_dir} "
+            f"(jsonl + csv + manifest); status counts: {report.status_counts}"
+        )
+    else:
+        console.print(f"[red]Unknown format '{fmt}'. Use bundle | jsonl | csv.[/red]")
+        raise typer.Exit(code=1)
 
 
 # -- Phase 4.4: human-in-the-loop bid approval workflow -----------------------
