@@ -2278,49 +2278,18 @@ Seven phases of building one decision engine, distilled into the lessons I would
   (`risky_brokers` **+5.7%** collectible profit), but the **live default stays payment-blind by
   design** — the stress test evaluates the stack, it does not deploy it.
 
-**Next work**
-- **Phase 4 — broker / load quality & winnability.** The
-  [winnability dataset](#phase-41--load-quality--winnability-dataset) (4.1), the
-  [calibrated bid-winnability model](#phase-42--calibrated-bid-winnability-model)
-  (4.2), and the
-  [expected-value bid recommender](#phase-43--expected-value-bid-recommender) (4.3)
-  are built, the recommender is **surfaced** through the live API/CLI behind a feature
-  flag (4.3b), and a [human-in-the-loop bid-approval workflow](#phase-44--human-in-the-loop-bid-approval-workflow)
-  (4.4) gates every bid through an audited approve/edit/reject lifecycle, and
-  [broker-quality stress tests](#phase-45--broker-quality-stress-testing-does-the-bid-edge-survive-a-worse-market)
-  (4.5) show the EV edge **HOLDS across all 10 shifted broker markets**. The open
-  thread from 4.5 is **risk-adjusted EV** — folding expected payment into the bid
-  objective so the recommender stops treating a slow / defaulting broker like a
-  reliable one — plus periodic recalibration of the frozen win-model under market shift.
-- **Phase 5 — risk-aware bidding & recalibration (complete).** The
-  [calibrated payment-risk model](#phase-52--calibrated-payment-risk-model) (5.2) is built,
-  [risk-adjusted EV](#phase-51--risk-adjusted-ev-objective) (5.1) folds it into the objective
-  behind a default-off flag, a
-  [calibration-drift monitor](#phase-53--calibration-drift-monitor) (5.3) stands watch over the
-  frozen win-model — flagging the reserve / win-curve worlds Phase 4.5 exposed as **ALERT**
-  (ECE ≈ 0.20) while payment shifts stay calibrated — and a
-  [recalibration workflow](#phase-54--recalibration-workflow) (5.4) **repairs all 3 flagged
-  worlds** (ECE ≈ 0.20 → ≈ 0.03) with a post-hoc Platt map fit on a recent window and validated
-  on a later holdout, base model frozen. The
-  [risk-aware stress capstone](#phase-55--risk-aware-stress-test-the-capstone) (5.5) re-scores the
-  whole stack on **realized collectible profit** across the 10 worlds: full risk-aware beats raw EV
-  in **4/10** — recalibration carries the 3 win-curve worlds **+14–25%**, payment risk lifts
-  `risky_brokers` **+5.7%**, baseline left flat — closing Phase 5.
-- **Phase 6 — compiled dispatcher agent (complete).** The orchestrated engine is compiled into a
-  *subterranean* agent: an explicit [16-node workflow graph + teacher traces](#phase-61--workflow-graph--teacher-trace-generator)
-  (6.1), a [two-form dispatcher dataset](#phase-62--synthetic-dispatcher-conversation-dataset) (6.2),
-  a [distilled multi-head model](#phase-63--distilled-multi-head-compiled-dispatcher-model) (6.3,
-  action **macro-F1 0.94**) that emits the JSON recommendation from case facts alone, a
-  [default-off shadow adapter](#phase-64--shadow-mode-compiled-dispatcher-adapter) (6.4) that runs it
-  beside the engine **byte-identically**, and a
-  [compiled-vs-source stress + cost capstone](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark)
-  (6.5). The capstone's verdict is a **boundary**: compiling replaces ~3.9 engine calls/decision and
-  shrinks the context, but the compiled model fails **0/10** stress worlds on safety-critical misses, so
-  it **stays shadow-only and the source engine stays authoritative**. The open thread is an **LLM
-  adapter** behind the same `CompiledDispatcherPort` — a real fine-tuned small model where the token/$
-  saving actually materializes.
-- **Multi-truck dispatch.** Fleet-level assignment so the destination edge can compound.
-- **Real Truckstop adapter.** Swap the synthetic board for a live feed behind the existing port.
+**Next work** — the decision engine is complete through Phase 7 (see
+[Project status](#project-status) and the per-phase deep dives below); these are the open
+threads *beyond* it:
+- **Multi-truck / fleet dispatch.** Fleet-level assignment so the destination edge can compound
+  across units instead of a single truck — the largest modeling step left.
+- **Live Truckstop adapter.** Swap the sandbox / replay board for a real feed behind the existing
+  `LoadBoardPort`. Phase 7's real-world data contracts and sandbox connector were built specifically
+  to make this a drop-in rather than a rewrite.
+- **LLM compiled-dispatcher adapter.** The open thread from
+  [Phase 6.5](#phase-65--compiled-vs-orchestrated-stress--costcontext-benchmark): a fine-tuned small
+  model behind the same `CompiledDispatcherPort`, held to the **identical default-off shadow-mode
+  safety bar**, where the token / dollar saving actually materializes.
 - **Agent orchestration.** Multi-agent search and negotiation over the planners.
 
 **Quick path (≈90 seconds):** skim the [results table](#results-at-a-glance) and
