@@ -1,0 +1,84 @@
+# Phase 8.3 - Fleet dispatch greedy-vs-coordinated benchmark configuration.
+#
+# Drives benchmarks/run_fleet_dispatch.py. Each episode is one synthetic world
+# (Phase 3.1 generator, per-episode seed) replayed for a whole FLEET two ways:
+#   * greedy      - each free truck grabs its own best feasible load (uncoordinated)
+#   * fleet-aware - one global CP-SAT max-profit truck x load matching (coordinated)
+# Both arms share the identical ProfitPairScorer and face the SAME world + SAME
+# fleet start (common random numbers), so the measured gap is the value of GLOBAL
+# COORDINATION, not of avoiding double-booking (greedy is already conflict-free).
+#
+# The world block is the single source of truth for the baseline; a condition only
+# lists the fields it overrides (unlisted fields fall back to the baseline), so the
+# `heterogeneous_baseline` condition reproduces the canonical world exactly.
+#
+# Recognised override keys (must match simulation.experiment.ConditionSpec):
+#   loads_per_snapshot_mean   market density (Poisson mean loads/snapshot)
+#   unposted_rate_fraction    share of "call for rate" (non-viable) postings
+#   competition_take_rate     fraction of visible loads skimmed by rival demand
+#   fuel_cost_per_mile        $/mi fuel (rebuilds CostModel -> evaluator -> scorer)
+#   deadhead_fuel_multiplier  extra fuel burden on empty miles
+#   daily_drive_hours         HOS daily drive cap restored each duty day
+#   force_equipment           pin EVERY truck to one trailer (HS | F | FSDV) ->
+#                             homogeneous fleet = maximum contention on the board
+#   horizon_days              episode length
+# An unset `force_equipment` means a HETEROGENEOUS fleet: each truck draws its own
+# start hub + trailer (the realistic primary benchmark).
+
+world:
+  start_date: "2026-01-01"
+  horizon_days: 5               # length of each rolling episode
+  snapshots_per_day: 8          # board refresh cadence (every 3h)
+  loads_per_snapshot_mean: 60   # Poisson mean per snapshot (rich shared board)
+  unposted_rate_fraction: 0.15  # share posted "call for rate" (non-viable)
+  max_post_age_hours: 12.0
+  radius_mi: 400.0              # how far each truck reaches for a pickup
+  daily_drive_hours: 11.0       # HOS daily drive cap restored each duty day
+
+fleet:
+  size: 5                       # trucks dispatched over the one shared board
+
+episodes:
+  count: 50                     # episode ramp lives on the CLI (--episodes 5/50)
+  base_seed: 8000               # episode e uses world seed base_seed + e
+
+solver:
+  time_limit_seconds: 0.5       # CP-SAT max-profit matching budget per epoch
+  max_candidates_per_truck: null  # optional top-N profit cap per truck (perf guard)
+
+conditions:
+  - name: heterogeneous_baseline
+    rationale: >-
+      Realistic mixed fleet (each truck draws its own hub + trailer) on the
+      canonical world. The headline test: does global coordination beat greedy
+      when trucks mostly serve different equipment markets?
+
+  - name: homogeneous_contention
+    force_equipment: HS
+    loads_per_snapshot_mean: 25
+    rationale: >-
+      Every truck pinned to hot-shot (HS) on a deliberately THIN board (25
+      loads/snapshot). The whole fleet contends for one scarce equipment market -
+      a genuine demand>supply squeeze where conflict-free greedy degrades and
+      global coordination should matter most.
+
+  - name: high_density
+    loads_per_snapshot_mean: 120
+    rationale: >-
+      Flooded board (120 loads/snapshot). With options everywhere, greedy rarely
+      collides - the coordination edge may compress.
+
+  - name: competition
+    competition_take_rate: 0.40
+    rationale: >-
+      40% of visible loads are skimmed first by rival demand (view-biased toward
+      contested loads). A thinner shared board - does coordination still help when
+      the best loads vanish for everyone?
+
+  - name: expensive_miles
+    fuel_cost_per_mile: 0.95
+    deadhead_fuel_multiplier: 1.5
+    rationale: >-
+      Fuel 0.55 -> 0.95 $/mi and empty miles burn 1.5x (rebuilds the cost stack).
+      Every wasted deadhead hurts more, so better global assignment of trucks to
+      nearby loads should pay off.
