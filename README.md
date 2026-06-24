@@ -7,6 +7,28 @@ multi-day dispatch simulation — every recommendation explainable.
 
 ![FreightBid Agent rolling-replay A/B: the destination-aware policy lifts cumulative profit while cutting deadhead across 150 sequential episodes](benchmarks/rolling_replay_comparison.png)
 
+## Project status
+
+**Complete — Phases 1–7 shipped.** FreightBid Agent is a finished portfolio build: one hexagonal Python
+decision engine carried from a deterministic dispatch brain all the way to an integration-ready,
+auditable operator tool — every recommendation explainable, every risky capability flag-gated, the
+source engine always authoritative. **556 tests pass**; the latest release tag is
+[`v0.7.5-production-readiness-demo`](https://github.com/selleckelliott/freightbid_agent/tags), and
+[`v0.7-complete`](https://github.com/selleckelliott/freightbid_agent/tags) marks the full-project capstone.
+
+| Phase | Theme | Status |
+| --- | --- | --- |
+| 1 | Deterministic dispatch brain — cost model · scoring · CLI/API | ✅ Shipped |
+| 2 | OR-Tools route optimization + Pareto objective tuning | ✅ Shipped |
+| 3 | ML augmentation — destination model · rolling replay · stress tests | ✅ Shipped |
+| 4 | Broker/load winnability — calibrated P(win) · EV bidding · approval workflow | ✅ Shipped |
+| 5 | Risk-aware bidding — payment risk · risk-adjusted EV · calibration + recalibration | ✅ Shipped |
+| 6 | Compiled dispatcher agent — workflow graph · distilled multi-head model · shadow mode | ✅ Shipped |
+| 7 | Production readiness — data contracts · sandbox connector · audit export · ops hardening | ✅ Shipped |
+
+**Start here:** [Results at a glance](#results-at-a-glance) · [Demo](#demo) ·
+[Architecture & story](ARCHITECTURE.md) · [Reproduce](#reproduce) · [What I learned](#what-i-learned).
+
 ## Results at a glance
 
 | Layer | Approach | Headline result |
@@ -57,6 +79,10 @@ cost-and-bid rationale — rendered straight from the API against `sample_data/`
 ![CLI plan demo](benchmarks/demo_plan.svg)
 
 ## Architecture (Hexagonal / Ports & Adapters)
+
+> For the full architecture **and the project story** — the plan → delivery arc, the layer map, the
+> end-to-end decision flow, and the source-of-truth-vs-compiled boundary — see
+> **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 **System** — a thin CLI/API over an application core that depends only on ports;
 adapters and planners plug in behind them.
@@ -2199,6 +2225,35 @@ write-nothing dry run). Full suite: **556 passing**.
   merely cheaper versus where it is unsafe, then keep it shadow-only and leave the engine authoritative.
 
 
+## What I learned
+
+Seven phases of building one decision engine, distilled into the lessons I would carry forward:
+
+- **Calibration beats raw accuracy when a model drives a decision.** A bid recommender lives or dies on
+  whether a predicted 70% win *actually* wins ~70% of the time. Optimizing calibration (test ECE
+  **0.010**), not just ROC AUC, is what let expected-value bidding beat the best fixed policy by
+  **+32.8%** instead of quietly over-bidding into a confident-but-wrong model.
+- **Freeze the model, then stress it honestly.** Every stress test re-scored a model **frozen on the
+  baseline world**. That discipline surfaced truths a quiet refit would have hidden — reserve/win-curve
+  worlds drifting to ECE ≈ 0.20, the compiled model committing a safety-critical miss in **all 10**
+  worlds — and it made the wins (EV holds **10/10**, recalibration repairs **3/3**) believable.
+- **The metric is the design.** Through Phase 4 the objective was `P(win) × margin`, so payment quality
+  was invisible — the recommender would happily bid into a broker that never pays. Only when Phase 5.5
+  switched the headline to **realized collectible profit** did payment risk finally move the numbers.
+- **A faster model is not automatically a safer one.** The compiled dispatcher tracked the engine's
+  profit within ±8% and replaced ~3.9 engine calls per decision — yet its tight-market warnings
+  collapsed (agreement **0.84 → 0.09**). The honest verdict was a **boundary**, not a trophy: it stays
+  shadow-only and the source engine stays authoritative until it proves itself safe.
+- **Flag-gated and byte-identical-when-off is a feature, not timidity.** Every risky capability
+  (risk-adjusted EV, the compiled shadow adapter) ships **default-off** and is **proven byte-identical**
+  when disabled. New power never silently changes the trusted default path.
+- **Determinism is what turns a claim into evidence.** Seeded worlds, committed artifacts, and
+  determinism-pinned tests mean a reviewer can re-run a benchmark and get the *same* number. Reproducible
+  beats impressive.
+- **Hexagonal architecture paid for itself.** Ports/adapters let a synthetic board, a sandbox connector,
+  and a recorded replay feed swap behind one interface, and let the entire risk-and-compile stack grow
+  without the domain core ever depending on FastAPI, scikit-learn, or OR-Tools.
+
 ## Limitations & next work
 **Limitations**
 - **Single truck, simple HOS.** One unit with a basic daily drive-hour reset caps
@@ -2272,3 +2327,7 @@ write-nothing dry run). Full suite: **556 passing**.
 the [demo](#demo), run `python -m benchmarks.reproduce`, then read
 [What I learned](#what-i-learned). The per-phase sections below are the full deep
 dive.
+
+## License
+
+Released under the [MIT License](LICENSE).
