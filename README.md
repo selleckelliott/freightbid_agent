@@ -9,12 +9,13 @@ multi-day dispatch simulation — every recommendation explainable.
 
 ## Project status
 
-**Complete — Phases 1–7 shipped.** FreightBid Agent is a finished portfolio build: one hexagonal Python
+**Complete — Phases 1–8 shipped.** FreightBid Agent is a finished portfolio build: one hexagonal Python
 decision engine carried from a deterministic dispatch brain all the way to an integration-ready,
-auditable operator tool — every recommendation explainable, every risky capability flag-gated, the
-source engine always authoritative. **556 tests pass**; the latest release tag is
-[`v0.7.5-production-readiness-demo`](https://github.com/selleckelliott/freightbid_agent/tags), and
-[`v0.7-complete`](https://github.com/selleckelliott/freightbid_agent/tags) marks the full-project capstone.
+auditable operator tool — and then extended to **multi-truck fleet coordination**. Every recommendation is
+explainable, every risky capability flag-gated, the source engine always authoritative. **600 tests pass**;
+the latest release tag is [`v0.8.3`](https://github.com/selleckelliott/freightbid_agent/tags), and
+[`v0.8-complete`](https://github.com/selleckelliott/freightbid_agent/tags) marks the fleet-dispatch capstone
+([`v0.7-complete`](https://github.com/selleckelliott/freightbid_agent/tags) marks the Phases 1–7 milestone).
 
 | Phase | Theme | Status |
 | --- | --- | --- |
@@ -25,6 +26,7 @@ source engine always authoritative. **556 tests pass**; the latest release tag i
 | 5 | Risk-aware bidding — payment risk · risk-adjusted EV · calibration + recalibration | ✅ Shipped |
 | 6 | Compiled dispatcher agent — workflow graph · distilled multi-head model · shadow mode | ✅ Shipped |
 | 7 | Production readiness — data contracts · sandbox connector · audit export · ops hardening | ✅ Shipped |
+| 8 | Fleet dispatch — multi-truck CP-SAT assignment vs greedy · fleet simulator + benchmark | ✅ Shipped |
 
 **Start here:** [Results at a glance](#results-at-a-glance) · [Demo](#demo) ·
 [Architecture & story](ARCHITECTURE.md) · [Reproduce](#reproduce) · [What I learned](#what-i-learned).
@@ -59,8 +61,9 @@ source engine always authoritative. **556 tests pass**; the latest release tag i
 | [**Durable decision & audit export (Phase 7.3)**](#phase-73--durable-decision--audit-export) | a `DecisionRecord` bundling the recommendation snapshot + warnings + the bid draft's **existing audit trail** + **model/config provenance**, and a `DecisionExporter` to JSONL / CSV / an audit **bundle** | decisions are auditable **outside the process** — **`GET /decisions`** (read-only) + `freightbid export` · records built **on-demand from live drafts** (**no DB / no Postgres**) · every record stamped with `source_policy_version` + `git` + `config_hash` + model-artifact ids · **CLI writes locally** (a request can never write a server path) · redacted broker **PII never leaks** into exports · **22 tests** (527 total) |
 | [**Deployment & operations hardening (Phase 7.4)**](#phase-74--deployment--operations-hardening) | a readiness probe + **artifact-availability** report, a local **config-validate** preflight, an end-to-end **smoke-test**, and a hardened Docker image | run-it-confidently ops: **`GET /ready`** (liveness `/health` vs readiness, `ready`/`degraded`) + `freightbid ready` · `freightbid validate-config` (no server) · `freightbid smoke-test` drives health→ready→pull→ingest→rank→bid→decisions · Docker **HEALTHCHECK** + **non-root** user · readiness is **side-effect-free**, existing endpoints **byte-identical** · **17 tests** (544 total) |
 | [**Production-readiness capstone (Phase 7.5)**](#phase-75--production-readiness-capstone-demo) | one end-to-end demo wiring **every** Phase 7 capability: board pull → 7.1 validate → broker redaction → ingest → **source recommend** → human approval → 7.3 audit export → ops checks | the closing proof: `benchmarks/run_production_readiness_demo.py` runs **9/9 stages PASS** in-process (no server) · a **deterministic** committed `production_readiness_summary.json` + transcript · source engine stays **authoritative** · `submit-mock` simulated, **no auto-bidding** · raw broker **PII never crosses** the redaction boundary · **12 tests** (556 total) |
+| [**Fleet dispatch coordination (Phase 8)**](#phase-8--fleet-dispatch--multi-truck-assignment) | greedy vs **CP-SAT** global truck→load matching over one shared board, 50 CRN worlds × 5 trucks · evaluation-only, per-pair $ reuse the existing evaluator | **coordination HOLDS where contention is real** — homogeneous/thin board **+20.9 profit [+5.8,+45.4] · −3.9% deadhead**, dense + competition also HOLD, **0/5 regress** · a small, consistent, never-negative edge · **K=1 invariant** + committed-summary reconciliation · **44 tests** (600 total) |
 
-Single-truck, synthetic-market simulation: the claim is **sign-stable, explainable**
+Single-truck and fleet, synthetic-market simulation: the claim is **sign-stable, explainable**
 dispatch gains across markets, not a magic number — see
 [What I learned](#what-i-learned) and [Limitations & next work](#limitations--next-work).
 
@@ -2225,9 +2228,67 @@ write-nothing dry run). Full suite: **556 passing**.
   merely cheaper versus where it is unsafe, then keep it shadow-only and leave the engine authoritative.
 
 
+## Phase 8 — Fleet Dispatch & Multi-Truck Assignment
+
+> The Phase 8 modeling step extends the single-truck decision engine to a **fleet**. The whole engine to
+> date plans one truck; the next realistic question is **coordination**: given many trucks and one shared
+> load board, does a *globally optimized* truck→load assignment beat *uncoordinated* single-truck greedy on
+> fleet profit, deadhead, and utilization? **Evaluation-only** — no API/CLI authority, no auto-bidding, no
+> UI, no live Truckstop, **no new models** (every per-pair dollar reuses the existing evaluator).
+
+**Two policies, one shared scorer (8.1).** Every truck×load pair is priced through the *same*
+`EvaluateLoadsService.evaluate_one` — the financial source of truth from Phase 1 — wrapped in a
+`ProfitPairScorer` that gates on the existing feasibility checker (so every feasible pair clears the `$50`
+profit floor, a positivity invariant that keeps the optimizer from ever idling a truck that has a feasible
+load). The two arms differ only in *how they pick*:
+- **greedy** (`GreedyFleetPolicy`) — free trucks, in id order, each claim their own best feasible load; a
+  claimed load is removed so the next truck can't take it. Conflict-free, but **uncoordinated**.
+- **fleet-aware** (`AssignmentFleetPolicy`) — one global **OR-Tools CP-SAT** max-profit bipartite matching
+  over the whole field (≤1 load/truck, ≤1 truck/load), deterministic (single worker, fixed seed,
+  integer-cent weights, sorted output).
+
+Because greedy is *already* conflict-free, the measured gap is the value of **global optimization**, not of
+merely avoiding double-booking.
+
+**Fleet rolling-horizon simulator (8.2).** `run_fleet_episode` advances K `TruckSimulator`s over one shared,
+consumable `SnapshotBoard` on an event-driven clock (step = next board snapshot ∪ next truck free-up). Each
+epoch gathers free trucks, builds each truck's equipment-filtered view of the shared board, calls the
+policy, executes the assignments (shared `mark_consumed` = no double-booking across the fleet), and idles
+the unassigned. `FleetEpisodeMetrics` adds fleet-level signals on top of the per-truck rollups: **profit
+balance** (per-truck profit dispersion + Gini), **destination concentration** (HHI), and **contention**
+(loads visible to ≥2 free trucks). A hard **K=1 invariant** anchors it back to Phase 3: with one truck there
+is no contention, so fleet-aware must reproduce the greedy trajectory *exactly* — proven trajectory-for-
+trajectory.
+
+**The benchmark (8.3).** [`benchmarks/run_fleet_dispatch.py`](benchmarks/run_fleet_dispatch.py) replays 50
+common-random-number worlds per condition for a 5-truck fleet; both arms face the same world and the same
+fleet start, so trajectories diverge only by policy. Verdicts reuse the Phase 3.4 CI rule (**HOLDS** =
+profit CI-low ≥ 0 *and* deadhead no worse · **NEUTRAL** · **REGRESSION**).
+
+![Phase 8.3 greedy vs fleet-aware: paired fleet-profit delta per condition, with the coordination edge becoming statistically significant under genuine contention](benchmarks/fleet_dispatch_comparison.png)
+
+| Condition | Fleet / board | Verdict | Paired profit (fleet-aware − greedy) | Deadhead |
+| --- | --- | --- | --- | --- |
+| **homogeneous_contention** | all HS, thin board (25/snap) | **HOLDS** | **+20.9 [+5.8, +45.4]** | **−3.9%** |
+| **high_density** | heterogeneous, flooded (120) | **HOLDS** | +6.7 [+0.2, +17.7] | −0.3% |
+| **competition** | heterogeneous, 40% skimmed | **HOLDS** | +4.3 [+1.5, +7.5] | −0.9% |
+| heterogeneous_baseline | heterogeneous, mixed | NEUTRAL | +2.7 [−16.6, +20.6] | −0.7% |
+| expensive_miles | heterogeneous, costly empties | NEUTRAL | +3.6 [−14.8, +16.7] | −1.1% |
+
+**The honest finding:** global coordination yields a **small but consistent** profit edge and a
+**consistent deadhead reduction**, statistically significant (paired CI excludes 0) exactly where contention
+is genuine — a homogeneous fleet on a deliberately thin board (**+20.9 profit, −3.9% deadhead**, the
+cleanest win), plus dense and competition-skimmed boards — and directionally positive but *within noise* on
+rich heterogeneous boards, where trucks naturally serve different equipment markets and conflict-free greedy
+is already near-optimal. **0 of 5 conditions regress.** The capstone result is a *boundary*, not a trophy:
+coordination earns its keep under real demand>supply pressure; elsewhere greedy is good enough. **44 new
+tests** across 8.1–8.3 (incl. the K=1 invariant, determinism, the cost-override rebuild, and a full-episode
+committed-summary reconciliation); full suite **600 passing**.
+
+
 ## What I learned
 
-Seven phases of building one decision engine, distilled into the lessons I would carry forward:
+Eight phases of building one decision engine, distilled into the lessons I would carry forward:
 
 - **Calibration beats raw accuracy when a model drives a decision.** A bid recommender lives or dies on
   whether a predicted 70% win *actually* wins ~70% of the time. Optimizing calibration (test ECE
@@ -2253,11 +2314,19 @@ Seven phases of building one decision engine, distilled into the lessons I would
 - **Hexagonal architecture paid for itself.** Ports/adapters let a synthetic board, a sandbox connector,
   and a recorded replay feed swap behind one interface, and let the entire risk-and-compile stack grow
   without the domain core ever depending on FastAPI, scikit-learn, or OR-Tools.
+- **Coordination is a boundary, not a trophy.** [Phase 8](#phase-8--fleet-dispatch--multi-truck-assignment)
+  showed a global CP-SAT fleet assignment beats conflict-free greedy by a *small, consistent* margin that is
+  only statistically clear under genuine demand>supply contention (a homogeneous fleet on a thin board:
+  **+20.9 profit, −3.9% deadhead**); on rich boards trucks naturally diverge and greedy is already
+  near-optimal. The honest headline was *where* coordination pays — not a single trophy number — and it
+  reused the same frozen evaluator, CRN worlds, and CI-verdict discipline as every earlier A/B.
 
 ## Limitations & next work
 **Limitations**
-- **Single truck, simple HOS.** One unit with a basic daily drive-hour reset caps
-  how much the destination edge can compound; a fleet would amplify (or stress) it.
+- **Fleet is evaluation-only; the live engine is single-truck.**
+  [Phase 8](#phase-8--fleet-dispatch--multi-truck-assignment) adds a multi-truck coordination simulator +
+  benchmark (greedy vs CP-SAT assignment over a shared board), but the live API/CLI still plans one unit
+  with a basic daily drive-hour HOS reset; promoting fleet coordination into the live engine is open work.
 - **Synthetic market.** The world is generated from market profiles informed by
   real Truckstop board screenshots, but it is not real booking data — magnitudes
   are indicative, not forecasts.
@@ -2278,11 +2347,14 @@ Seven phases of building one decision engine, distilled into the lessons I would
   (`risky_brokers` **+5.7%** collectible profit), but the **live default stays payment-blind by
   design** — the stress test evaluates the stack, it does not deploy it.
 
-**Next work** — the decision engine is complete through Phase 7 (see
+**Next work** — the decision engine is complete through Phase 8 (see
 [Project status](#project-status) and the per-phase deep dives below); these are the open
 threads *beyond* it:
-- **Multi-truck / fleet dispatch.** Fleet-level assignment so the destination edge can compound
-  across units instead of a single truck — the largest modeling step left.
+- **Live fleet dispatch.** [Phase 8](#phase-8--fleet-dispatch--multi-truck-assignment) built the multi-truck
+  coordination *evaluation* harness (greedy vs CP-SAT assignment, fleet simulator + benchmark); the open
+  thread is promoting it into the live API/CLI engine (a `fleet-plan` surface) behind the same
+  source-authoritative, flag-gated discipline — plus richer multi-day driver scheduling and inter-truck
+  load relays the current simple HOS reset does not model.
 - **Live Truckstop adapter.** Swap the sandbox / replay board for a real feed behind the existing
   `LoadBoardPort`. Phase 7's real-world data contracts and sandbox connector were built specifically
   to make this a drop-in rather than a rewrite.

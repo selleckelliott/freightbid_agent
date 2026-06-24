@@ -14,13 +14,14 @@ into an expected **collectible** profit, check whether the win model can still b
 recommend a bid, a no-bid, or a hand-off for human approval — always with an explanation. The project's
 real point is engineering: it shows a decision system grown in disciplined layers — heuristics →
 optimization → machine learning → risk modelling → a compiled "subterranean" agent → production
-hardening — where every risky capability is flag-gated, every model is stress-tested while frozen, and
-the auditable source engine always stays authoritative.
+hardening → multi-truck fleet coordination — where every risky capability is flag-gated, every model is
+stress-tested while frozen, and the auditable source engine always stays authoritative.
 
 ## Plan → delivery arc
 
-The system was built as seven phases, each a measurable increment over the last. All seven are **shipped**
-(556 tests passing; tags `v0.1.0` … `v0.7.5`, capstone `v0.7-complete`):
+The system was built as eight phases, each a measurable increment over the last. All eight are **shipped**
+(600 tests passing; tags `v0.1.0` … `v0.8.3`, capstones `v0.7-complete` for Phases 1–7 and `v0.8-complete`
+for the fleet-dispatch milestone):
 
 | Phase | What it added | The honest result |
 | --- | --- | --- |
@@ -31,6 +32,7 @@ The system was built as seven phases, each a measurable increment over the last.
 | **5 — Risk-aware bidding** | Calibrated payment risk, risk-adjusted EV, calibration-drift monitor + recalibration | Headline metric becomes **realized collectible profit**; recalibration repairs **3/3** drifted worlds. |
 | **6 — Compiled dispatcher** | Workflow graph + teacher traces → a distilled multi-head model run in shadow mode | Action **macro-F1 0.94**, but a safety-critical miss in **10/10** worlds → stays shadow-only. |
 | **7 — Production readiness** | Real-data contracts, sandbox/replay connector, audit export, ops hardening, capstone demo | External-style data flows board → validate → recommend → approve → **export**, fully auditable. |
+| **8 — Fleet dispatch** | Multi-truck CP-SAT assignment vs greedy, event-driven fleet simulator, coordination benchmark | Coordination **HOLDS** where contention is real (**+20.9 profit / −3.9% deadhead** on a thin homogeneous board), **0/5** regressions — a boundary, not a trophy. |
 
 The narrative deliberately includes the *non*-wins: Phase 6 concludes the compiled model is **not** safe
 enough to take control, and Phase 5 shows that payment quality only matters once you measure the right
@@ -58,12 +60,14 @@ flowchart TB
         P2[(DistanceProvider)]
         P3[(LoadBoardPort)]
         P4[(CompiledDispatcherPort)]
+        P5[(FleetDispatchPolicy)]
     end
     subgraph Out[Outbound adapters]
         A1[in-memory / store]
         A2[Haversine · tolls]
         A3[sandbox · replay board]
         A4[noop · sklearn compiled]
+        A5[greedy · CP-SAT fleet assignment]
         ML[frozen ML artifacts<br/>win · payment · destination · compiled]
         OPT[OR-Tools planner]
     end
@@ -76,8 +80,9 @@ flowchart TB
 
 **Directories** mirror the layers: `domain/` (entities, scoring, policies), `ports/` (interfaces),
 `adapters/` (inbound CLI/API + outbound implementations), `application/` (use-cases, services,
-ingestion), `ml/` (datasets, training, models, workflows), `benchmarks/` (stress tests + reproducible
-charts), `config/` (YAML feature flags), `simulation/` (seeded synthetic market).
+ingestion, fleet coordination), `ml/` (datasets, training, models, workflows), `benchmarks/` (stress tests
++ reproducible charts), `config/` (YAML feature flags), `simulation/` (seeded synthetic market + the fleet
+rolling-horizon simulator).
 
 ## The decision flow
 
@@ -107,7 +112,7 @@ recompile after a rule change) but commits a safety-critical miss in every stres
 engine stays authoritative**. The same `CompiledDispatcherPort` leaves room for a future fine-tuned LLM
 adapter to be held to the identical safety bar.
 
-## Design principles that held across all seven phases
+## Design principles that held across all eight phases
 
 - **Explainable by construction** — every bid carries its cost-and-rationale breakdown.
 - **Flag-gated & byte-identical-when-off** — new risk never changes the trusted default path silently.
