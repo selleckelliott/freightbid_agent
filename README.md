@@ -7,6 +7,44 @@ multi-day dispatch simulation — every recommendation explainable.
 
 ![FreightBid Agent rolling-replay A/B: the destination-aware policy lifts cumulative profit while cutting deadhead across 150 sequential episodes](benchmarks/rolling_replay_comparison.png)
 
+## Executive summary
+
+FreightBid Agent is a portfolio project built to demonstrate end-to-end **AI-systems engineering** — not a
+scraper or a calculator, but a **freight decision engine** that evaluates load opportunities, reasons about
+constraints, prices risk, and explains every recommendation it makes.
+
+It was built as **eight measurable phases**, each a deliberate increment on the last:
+
+> heuristic scoring → OR-Tools route optimization → a learned destination-risk model → calibrated
+> win-probability + expected-value bidding → payment-risk-aware *collectible profit* + calibration repair →
+> a distilled "compiled" dispatcher agent → production-readiness hardening → multi-truck fleet coordination.
+
+**What it demonstrates** — the reason it exists:
+- **Domain modeling + clean architecture.** Hexagonal ports/adapters; the domain core never imports
+  FastAPI, scikit-learn, or OR-Tools, so every model, board, and connector swaps behind an interface.
+- **Optimization + ML with discipline.** CP-SAT routing *and* fleet assignment, plus models judged on
+  **calibration** (test ECE 0.003–0.010), not just accuracy — because a probability that drives a bid has
+  to be *trustworthy*, not merely sharp.
+- **Benchmark-driven evaluation.** Common Random Numbers, paired bootstrap confidence intervals, and an
+  honest HOLDS / NEUTRAL / REGRESSION verdict on every claim.
+- **Explainable, flag-gated, safety-first decisions.** Every risky capability is default-off and
+  byte-identical when disabled; the auditable source engine always stays authoritative.
+
+**Headline honest results:**
+- **Destination-aware dispatch** — **+3.9% profit / −4.7% deadhead** over a multi-day horizon, with
+  **0 regressions across 18 stressed markets**.
+- **EV bid recommender** — **+32.8% realized profit vs the best fixed bid**, beating fixed bidding in
+  **10/10** broker-quality shifts.
+- **Calibrated win + payment models** (**test ECE ≤ 0.010**); recalibration repairs **3/3** drifted worlds.
+- **Fleet coordination** holds where contention is real (**+20.9 profit / −3.9% deadhead**), **0/5**
+  regressions.
+- **600 tests** pass; the full project is tagged [`v1.0-portfolio`](https://github.com/selleckelliott/freightbid_agent/tags).
+
+The throughline is **intellectual honesty**: the project documents its *non*-wins — the compiled agent is
+proven *not* safe enough to take control; payment quality only matters once you measure the right objective
+— as carefully as its wins. See the [case study](#case-study-one-load-end-to-end) for a single decision
+traced end to end, and [What I learned](#what-i-learned) for the engineering lessons.
+
 ## Project status
 
 **Complete — Phases 1–8 shipped.** FreightBid Agent is a finished portfolio build: one hexagonal Python
@@ -28,8 +66,9 @@ the latest release tag is [`v0.8.3`](https://github.com/selleckelliott/freightbi
 | 7 | Production readiness — data contracts · sandbox connector · audit export · ops hardening | ✅ Shipped |
 | 8 | Fleet dispatch — multi-truck CP-SAT assignment vs greedy · fleet simulator + benchmark | ✅ Shipped |
 
-**Start here:** [Results at a glance](#results-at-a-glance) · [Demo](#demo) ·
-[Architecture & story](ARCHITECTURE.md) · [Reproduce](#reproduce) · [What I learned](#what-i-learned).
+**Start here:** [Executive summary](#executive-summary) · [Results at a glance](#results-at-a-glance) ·
+[Case study](#case-study-one-load-end-to-end) · [Demo](#demo) · [Architecture & story](ARCHITECTURE.md) ·
+[Reproduce](#reproduce) · [What I learned](#what-i-learned).
 
 ## Results at a glance
 
@@ -80,6 +119,50 @@ cost-and-bid rationale — rendered straight from the API against `sample_data/`
 `freightbid plan sample_data/truck.json` — the proposed plan with per-stop economics:
 
 ![CLI plan demo](benchmarks/demo_plan.svg)
+
+## Case study: one load, end to end
+
+To make the engine concrete, here is a single recommendation traced through the pipeline — the real output
+of `freightbid rank sample_data/truck.json` for **truck 101** (a Dry Van out of Dallas, TX, with 11
+driver-hours available), top load shown.
+
+**The scenario.** The board is pulled and validated (Phase 7.1 contracts), infeasible loads are filtered
+(equipment, capacity, HOS, lane reachability), and every survivor is priced through the *same* cost model
+the engine is later scored on — so the recommendation and the benchmark agree on what a dollar means.
+
+**Stage by stage**, for the winning load (Load 1):
+
+| Stage | What the engine computes | Result for Load 1 |
+| --- | --- | --- |
+| Feasibility | equipment · capacity · HOS · reachability gate | passes · **0 mi** deadhead to pickup |
+| Cost model | fuel + driver + deadhead, fully loaded | **$383.10** |
+| Heuristic score | `profit + rpm·50 − deadhead·0.5 − hours·5`, weighted | $466.90 + $3.54·50 − 0 − 6.3h·5 ⇒ **612.48** |
+| Route plan | OR-Tools feasibility + per-stop economics | pickup ETA **18:00**, on time |
+| Bid construction | `cost × (1 + margin)`, clamped to lane $/mi guardrails | target **$459.72** ($1.92/mi) · range [$402.26, $517.19] |
+
+The recommendation is **explainable by construction**: every number above is surfaced to the operator, not
+hidden behind a single score.
+
+**One layer deeper.** The later phases re-price that same $459.72 anchor as a *decision under uncertainty* —
+the same load, carried through the stack the project added phase by phase:
+- **Win probability (Phase 4.2).** A calibrated classifier (test ECE 0.010) estimates `P(win)` at the
+  proposed ask — a trustworthy 70% means ~70% of such bids *actually* win.
+- **Expected-value bid (Phase 4.3).** Rather than a fixed margin, the engine sweeps a bid ladder and picks
+  the ask that maximizes `P(win) × margin` — worth **+32.8% realized profit vs the best fixed bid** in the
+  benchmark.
+- **Collectible profit (Phase 5.1–5.2).** A payment-risk model (`P(default)`, `E[pay_days]`) discounts
+  *revenue* by the odds of collection while keeping the *full* cost — so the objective becomes expected
+  **collectible** profit, and can go honestly negative on a likely defaulter instead of just shrinking.
+- **Trust check (Phase 5.3–5.4).** A drift monitor flags when the frozen win model is miscalibrated for the
+  current market, and a promote-only-if-safer recalibration repairs `P(win)` *before* the bid is trusted.
+
+**The safety envelope.** A bid over the approval threshold is routed to a **human** (approve / edit /
+reject) — never auto-submitted. The distilled compiled dispatcher (Phase 6) may run *beside* this flow in
+shadow mode, but it **cannot** draft, approve, or submit; the source engine stays authoritative. Every step
+is captured in an exportable `DecisionRecord` with full model/config provenance.
+
+That is the whole thesis in one decision: **optimize the obvious, price the uncertainty, explain the
+result, and keep a human and an audit trail on the risky edge.**
 
 ## Architecture (Hexagonal / Ports & Adapters)
 
@@ -727,8 +810,9 @@ modest and precise — **sign stability of the destination-aware advantage acros
 wide spread of markets**, not a large effect in any one of them. That a fixed
 signal trained on one distribution stays net-positive under density, competition,
 cost, HOS, equipment, and horizon shifts is the evidence that the Phase 3.1→3.3
-loop learned something real rather than overfitting the baseline world. See
-`benchmarks/stress_test_comparison.png` for the forest plot.
+loop learned something real rather than overfitting the baseline world.
+
+![Phase 3.4 sequential policy stress test: a forest plot of the destination-aware advantage (paired profit and deadhead deltas with 95% CIs) across 18 shifted markets — the edge never reverses sign and regresses in zero conditions](benchmarks/stress_test_comparison.png)
 
 Reproduce (destination-aware trajectory appears only when the gitignored model
 artifact exists locally; otherwise every condition is reported `DEST_SKIPPED`):
@@ -1916,6 +2000,8 @@ one workflow rule (`payment_default_warn 0.15 → 0.08`), re-traces the same sna
 in-sample agreement. Changing the procedure is a regenerate-and-recompile, not a re-engineering.
 
 ### Verdict
+
+![Phase 6.5 compiled-vs-orchestrated stress test: collectible-profit regret and action/approval/warning agreement vs the source engine across 10 shifted worlds — the compiled model tracks profit but commits a safety-critical miss in every world and its tight-market warning agreement collapses, so it stays shadow-only](benchmarks/compiled_dispatcher_results.png)
 
 ```bash
 python -m benchmarks.run_compiled_dispatcher_stress --days 21 --max-loads 600   # 10 worlds x 3 arms -> stress summary

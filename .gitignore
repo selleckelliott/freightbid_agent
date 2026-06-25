@@ -9,6 +9,9 @@ __pycache__/
 benchmarks/scenarios/gen/
 # Scratch/smoke artifacts (underscore-prefixed) from local benchmark runs.
 benchmarks/_*
+# Default scratch output of `chart_results.py` (regenerable; the canonical 1,000-scenario
+# baseline chart is committed at benchmarks/results/heuristic_baseline_1000.png).
+benchmarks/results_chart.png
 
 # Phase 3.5 — non-destructive reproduce output (regenerable; committed demo
 # assets live directly under benchmarks/).
